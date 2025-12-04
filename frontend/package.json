@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "start": "webpack serve --mode development --open",
-    "build": "webpack --mode production",
+    "build": "node node_modules/webpack/bin/webpack.js --mode production",
     "lint": "eslint src --ext .js,.jsx --fix",
     "lint:check": "eslint src --ext .js,.jsx"
   },

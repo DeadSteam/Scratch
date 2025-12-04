@@ -77,3 +77,4 @@ class EquipmentConfigService(BaseService[EquipmentConfig, EquipmentConfigCreate,
 
 
 
+

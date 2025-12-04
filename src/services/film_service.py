@@ -66,3 +66,4 @@ class FilmService(BaseService[Film, FilmCreate, FilmUpdate, FilmRead]):
 
 
 
+
