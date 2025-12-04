@@ -1,0 +1,456 @@
+/* Image Carousel - Laboratory Precision Theme */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  flex: 1;
+}
+
+.container:focus {
+  outline: none;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  height: 300px;
+  background: var(--color-bg-tertiary);
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-xl);
+  color: var(--color-text-muted);
+}
+
+.empty svg {
+  opacity: 0.5;
+}
+
+.empty p {
+  font-size: var(--text-sm);
+  margin: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MAIN IMAGE
+   ═══════════════════════════════════════════════════════════ */
+
+.mainImage {
+  position: relative;
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  flex: 1;
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mainImage img {
+  width: 100%;
+  height: 100%;
+  max-height: 400px;
+  object-fit: contain;
+  cursor: zoom-in;
+  transition: transform var(--transition-base);
+}
+
+.mainImage:hover img {
+  transform: scale(1.02);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NAVIGATION BUTTONS
+   ═══════════════════════════════════════════════════════════ */
+
+.navButton {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-glass);
+  backdrop-filter: blur(var(--blur-md));
+  -webkit-backdrop-filter: blur(var(--blur-md));
+  border: 1px solid var(--color-glass-border);
+  border-radius: var(--radius-xl);
+  color: var(--color-text-primary);
+  opacity: 0;
+  transition: all var(--transition-base) var(--ease-out);
+  z-index: 10;
+}
+
+.container:hover .navButton,
+.container:focus-within .navButton {
+  opacity: 1;
+}
+
+.navButton:hover {
+  background: var(--color-accent-primary);
+  color: var(--color-text-inverse);
+  border-color: transparent;
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3);
+  transform: translateY(-50%) scale(1.05);
+}
+
+.prevButton {
+  left: var(--space-4);
+}
+
+.nextButton {
+  right: var(--space-4);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   IMAGE INFO OVERLAY
+   ═══════════════════════════════════════════════════════════ */
+
+.imageInfo {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-5);
+  background: linear-gradient(transparent, rgba(12, 15, 20, 0.95));
+}
+
+.passesLabel {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-accent-primary);
+  background: rgba(245, 158, 11, 0.15);
+  padding: var(--space-1-5) var(--space-4);
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.counter {
+  font-size: var(--text-sm);
+  font-family: var(--font-mono);
+  color: var(--color-text-secondary);
+  background: var(--color-glass);
+  padding: var(--space-1-5) var(--space-3);
+  border-radius: var(--radius-md);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   THUMBNAILS CONTAINER
+   ═══════════════════════════════════════════════════════════ */
+
+.thumbnailsContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-xl);
+  padding: var(--space-3);
+}
+
+.thumbnailsNavButton {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-glass);
+  backdrop-filter: blur(var(--blur-md));
+  -webkit-backdrop-filter: blur(var(--blur-md));
+  border: 1px solid var(--color-glass-border);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: all var(--transition-base) var(--ease-out);
+  z-index: 10;
+}
+
+.thumbnailsNavButton:hover:not(:disabled) {
+  background: var(--color-accent-primary);
+  color: var(--color-text-inverse);
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+}
+
+.thumbnailsNavButton:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   THUMBNAILS
+   ═══════════════════════════════════════════════════════════ */
+
+.thumbnails {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex: 1;
+  scrollbar-width: thin;
+  scroll-behavior: smooth;
+  /* Limit visible thumbnails */
+  max-width: calc((72px + var(--space-2)) * 6);
+}
+
+.thumbnails::-webkit-scrollbar {
+  height: 6px;
+}
+
+.thumbnails::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.thumbnails::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: var(--radius-full);
+}
+
+.thumbnails::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-light);
+}
+
+.thumbnail {
+  position: relative;
+  flex-shrink: 0;
+  width: 72px;
+  height: 54px;
+  border: 2px solid transparent;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: all var(--transition-base) var(--ease-out);
+  cursor: pointer;
+}
+
+.thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.thumbnail:hover {
+  border-color: var(--color-border-light);
+  transform: translateY(-2px);
+}
+
+.thumbnail.active {
+  border-color: var(--color-accent-primary);
+  box-shadow: 0 0 0 2px var(--color-accent-subtle);
+}
+
+.thumbnailLabel {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  font-size: 9px;
+  font-weight: var(--font-semibold);
+  text-align: center;
+  padding: 3px;
+  background: rgba(12, 15, 20, 0.85);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.thumbnail.active .thumbnailLabel {
+  background: var(--color-accent-primary);
+  color: var(--color-text-inverse);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   THUMBNAIL WRAPPER (for delete button positioning)
+   ═══════════════════════════════════════════════════════════ */
+
+.thumbnailWrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.thumbnailWrapper .thumbnail {
+  width: 72px;
+  height: 54px;
+}
+
+.thumbnailWrapper.active .thumbnail {
+  border-color: var(--color-accent-primary);
+  box-shadow: 0 0 0 2px var(--color-accent-subtle);
+}
+
+.thumbnailDelete {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-error);
+  color: white;
+  border-radius: var(--radius-full);
+  opacity: 0;
+  transform: scale(0.8);
+  transition: all var(--transition-fast) var(--ease-spring);
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+}
+
+.thumbnailWrapper:hover .thumbnailDelete {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.thumbnailDelete:hover {
+  background: #dc2626;
+  transform: scale(1.1);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DELETE BUTTON ON MAIN IMAGE
+   ═══════════════════════════════════════════════════════════ */
+
+.deleteMainButton {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-glass);
+  backdrop-filter: blur(var(--blur-md));
+  -webkit-backdrop-filter: blur(var(--blur-md));
+  border: 1px solid var(--color-glass-border);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-muted);
+  opacity: 0;
+  transition: all var(--transition-base) var(--ease-out);
+  z-index: 10;
+}
+
+.mainImage:hover .deleteMainButton {
+  opacity: 1;
+}
+
+.deleteMainButton:hover {
+  background: var(--color-error);
+  border-color: transparent;
+  color: white;
+  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.4);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DELETE CONFIRMATION OVERLAY
+   ═══════════════════════════════════════════════════════════ */
+
+.deleteOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(12, 15, 20, 0.9);
+  backdrop-filter: blur(var(--blur-md));
+  -webkit-backdrop-filter: blur(var(--blur-md));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  border-radius: var(--radius-xl);
+  animation: fadeIn 0.2s var(--ease-out);
+}
+
+.deleteModal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-8);
+  text-align: center;
+  animation: scaleIn 0.2s var(--ease-spring);
+}
+
+.deleteIcon {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-xl);
+  background: var(--color-error-bg);
+  color: var(--color-error);
+}
+
+.deleteModal h4 {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.deleteModal p {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.deleteActions {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.cancelButton,
+.confirmButton {
+  padding: var(--space-2-5) var(--space-5);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-fast) var(--ease-out);
+}
+
+.cancelButton {
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+}
+
+.cancelButton:hover {
+  background: var(--color-surface-elevated);
+  border-color: var(--color-border-light);
+}
+
+.confirmButton {
+  background: var(--color-error);
+  color: white;
+  border: 1px solid transparent;
+}
+
+.confirmButton:hover {
+  background: #dc2626;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

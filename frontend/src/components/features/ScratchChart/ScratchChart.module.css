@@ -1,0 +1,51 @@
+/* Scratch Chart Component Styles */
+
+.container {
+  position: relative;
+  height: 300px;
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.title {
+  margin: 0 0 var(--space-4) 0;
+  color: var(--color-text);
+  font-size: var(--text-base);
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+}
+
+.tooltip {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.tooltipTitle {
+  margin: 0 0 4px 0;
+  color: #f1f5f9;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.tooltipLabel {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+
+

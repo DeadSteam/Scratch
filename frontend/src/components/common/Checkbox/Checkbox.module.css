@@ -1,0 +1,67 @@
+/* Checkbox Component Styles */
+
+.wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  cursor: pointer;
+  user-select: none;
+}
+
+.wrapper.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.checkmark {
+  width: 20px;
+  height: 20px;
+  border: var(--border-width-2) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-base);
+  flex-shrink: 0;
+}
+
+.checkmark svg {
+  width: 12px;
+  height: 12px;
+  color: transparent;
+  transition: color var(--transition-base);
+}
+
+.wrapper:hover:not(.disabled) .checkmark {
+  border-color: var(--color-accent-primary);
+}
+
+.input:focus-visible + .checkmark {
+  border-color: var(--color-accent-primary);
+  box-shadow: 0 0 0 3px var(--color-accent-subtle);
+}
+
+.input:checked + .checkmark {
+  background: var(--color-accent-primary);
+  border-color: var(--color-accent-primary);
+}
+
+.input:checked + .checkmark svg {
+  color: var(--color-text-inverse);
+}
+
+.label {
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+}
+
+
+

@@ -1,0 +1,155 @@
+/* Input Component - Laboratory Precision Theme */
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.fullWidth {
+  width: 100%;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   LABEL
+   ═══════════════════════════════════════════════════════════ */
+
+.label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-secondary);
+  letter-spacing: var(--tracking-wide);
+}
+
+.required {
+  color: var(--color-accent-primary);
+  margin-left: var(--space-1);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   INPUT WRAPPER
+   ═══════════════════════════════════════════════════════════ */
+
+.inputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.icon {
+  position: absolute;
+  left: var(--space-4);
+  color: var(--color-text-muted);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  transition: color var(--transition-fast);
+}
+
+.inputWrapper:focus-within .icon {
+  color: var(--color-accent-primary);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   INPUT
+   ═══════════════════════════════════════════════════════════ */
+
+.input {
+  width: 100%;
+  height: 48px;
+  padding: 0 var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  transition: all var(--transition-base) var(--ease-out);
+}
+
+.inputWrapper:has(.icon) .input {
+  padding-left: calc(var(--space-4) + 20px + var(--space-2));
+}
+
+.input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.input:hover:not(:disabled) {
+  border-color: var(--color-border-light);
+  background: var(--color-surface-hover);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-accent-primary);
+  background: var(--color-surface);
+  box-shadow: 
+    0 0 0 3px var(--color-accent-subtle),
+    0 0 20px rgba(245, 158, 11, 0.08);
+}
+
+.input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--color-bg-tertiary);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ERROR STATE
+   ═══════════════════════════════════════════════════════════ */
+
+.hasError .input {
+  border-color: var(--color-error);
+  background: rgba(239, 68, 68, 0.03);
+}
+
+.hasError .input:focus {
+  box-shadow: 
+    0 0 0 3px var(--color-error-bg),
+    0 0 20px rgba(239, 68, 68, 0.08);
+}
+
+.hasError .icon {
+  color: var(--color-error);
+}
+
+.error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  font-size: var(--text-sm);
+  color: var(--color-error);
+}
+
+.error::before {
+  content: '';
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--color-error);
+  flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   HINT
+   ═══════════════════════════════════════════════════════════ */
+
+.hint {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NUMBER INPUT - HIDE SPINNERS
+   ═══════════════════════════════════════════════════════════ */
+
+.input[type="number"]::-webkit-outer-spin-button,
+.input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.input[type="number"] {
+  -moz-appearance: textfield;
+}
