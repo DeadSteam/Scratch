@@ -4,6 +4,7 @@
  */
 
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { ThemeProvider } from '@context/ThemeContext';
 import { AuthProvider } from '@context/AuthContext';
 import { NotificationProvider } from '@context/NotificationContext';
 import { ProtectedRoute } from '@components/layout';
@@ -23,8 +24,9 @@ import '@styles/global.css';
 export function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <NotificationProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <NotificationProvider>
           {/* Toast notifications */}
           <ToastContainer />
           
@@ -78,7 +80,8 @@ export function App() {
             <Route path="*" element={<Navigate to={ROUTES.EXPERIMENTS} replace />} />
           </Routes>
         </NotificationProvider>
-      </AuthProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }

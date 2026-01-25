@@ -1,17 +1,14 @@
-from typing import List
-from uuid import UUID
-
-from sqlalchemy import ForeignKey, Boolean, String, Table, Column
-from sqlalchemy.orm import Mapped, relationship, mapped_column
+from sqlalchemy import Boolean, Column, ForeignKey, String, Table
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import UUIDBase
 
 # Association table for user-roles many-to-many relationship
 user_roles = Table(
-    'user_roles',
+    "user_roles",
     UUIDBase.metadata,
-    Column('user_id', ForeignKey('users.id', ondelete='CASCADE'), primary_key=True),
-    Column('role_id', ForeignKey('roles.id', ondelete='CASCADE'), primary_key=True),
+    Column("user_id", ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
+    Column("role_id", ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True),
 )
 
 
@@ -21,7 +18,7 @@ class Role(UUIDBase):
     name: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
 
     # связь с User через ассоциативную таблицу
-    users: Mapped[List["User"]] = relationship(
+    users: Mapped[list["User"]] = relationship(
         secondary=user_roles,
         back_populates="roles",
         cascade="all, delete",
@@ -40,10 +37,8 @@ class User(UUIDBase):
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
-    roles: Mapped[List["Role"]] = relationship(
-        secondary=user_roles,
-        back_populates="users",
-        lazy="selectin"
+    roles: Mapped[list["Role"]] = relationship(
+        secondary=user_roles, back_populates="users", lazy="selectin"
     )
 
     # Note: No experiments relationship - experiments are in a separate database (experiments_db)

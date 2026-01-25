@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import { useNotification } from '@context/NotificationContext';
-import { Button, Input } from '@components/common';
+import { Button, Input, ThemeToggle } from '@components/common';
 import { ROUTES } from '@utils/constants';
 import { validatePassword, validateUsername, isValidEmail } from '@utils/validators';
 import styles from './LoginPage.module.css';
@@ -116,6 +116,9 @@ export function LoginPage() {
 
   return (
     <div className={styles.container}>
+      <div className={styles.themeToggleWrap}>
+        <ThemeToggle />
+      </div>
       {/* Background decoration */}
       <div className={styles.bgDecoration}>
         <div className={styles.gridOverlay} />

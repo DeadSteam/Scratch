@@ -1,0 +1,38 @@
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 100
+fix = true
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E", # ошибки стиля (pycodestyle)
+    "F", # логические ошибки (pyflakes)
+    "B", # баг-паттерны (bugbear)
+    "I", # импорты
+    "UP", # обновление синтаксиса
+    "SIM", # упрощения
+    "PERF", # производительность
+]
+ignore = [
+    "E501", # длину строки контролирует black
+    "B008", # Depends/Query/File в FastAPI — намеренное использование
+]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+check_untyped_defs = true
+ignore_missing_imports = true
+no_implicit_optional = true
+show_error_codes = true
+pretty = true
+
+[[tool.mypy.overrides]]
+module = ["api.*", "src.api.*"]
+disable_error_code = ["no-untyped-def"]

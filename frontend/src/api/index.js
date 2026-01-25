@@ -11,6 +11,8 @@ export { filmService } from './FilmService';
 export { configService } from './ConfigService';
 export { analysisService } from './AnalysisService';
 export { userService } from './UserService';
-
+export { situationService } from './SituationService';
+export { causeService } from './CauseService';
+export { adviceService } from './AdviceService';
 
 

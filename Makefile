@@ -12,7 +12,8 @@ help:
 	@echo "  shell     - Подключиться к контейнеру приложения"
 	@echo "  test      - Запустить тесты"
 	@echo "  clean     - Очистить Docker ресурсы"
-	@echo "  db-shell  - Подключиться к базе данных"
+	@echo "  db-shell  - Подключиться к базе данных experiments"
+	@echo "  db-shell-knowledge - Подключиться к базе знаний"
 	@echo "  redis-cli - Подключиться к Redis"
 
 # Собрать образы
@@ -44,9 +45,13 @@ clean:
 	docker-compose down -v
 	docker system prune -f
 
-# Подключиться к базе данных
+# Подключиться к базе данных experiments
 db-shell:
 	docker-compose exec experiments_db psql -U postgres -d experiments_db
+
+# Подключиться к базе знаний
+db-shell-knowledge:
+	docker-compose exec knowledge_db psql -U postgres -d knowledge_db
 
 # Подключиться к Redis
 redis-cli:

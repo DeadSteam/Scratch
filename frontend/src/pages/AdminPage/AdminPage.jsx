@@ -9,12 +9,14 @@ import { Layout } from '@components/layout';
 import { UsersManagement } from './UsersManagement';
 import { FilmsManagement } from './FilmsManagement';
 import { ConfigsManagement } from './ConfigsManagement';
+import { KnowledgeManagement } from './KnowledgeManagement';
 import styles from './AdminPage.module.css';
 
 const TABS = [
   { id: 'users', label: 'Пользователи' },
   { id: 'films', label: 'Типы пленок' },
   { id: 'configs', label: 'Конфигурации' },
+  { id: 'knowledge', label: 'База знаний' },
 ];
 
 export function AdminPage() {
@@ -28,6 +30,8 @@ export function AdminPage() {
         return <FilmsManagement />;
       case 'configs':
         return <ConfigsManagement />;
+      case 'knowledge':
+        return <KnowledgeManagement />;
       default:
         return null;
     }

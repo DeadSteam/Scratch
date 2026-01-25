@@ -1,4 +1,3 @@
-from typing import Optional
 from uuid import UUID
 
 from pydantic import Field, field_validator
@@ -13,33 +12,33 @@ class ExperimentImageBase(SchemaBase):
 
 
 class ExperimentImageCreate(ExperimentImageBase):
-    @field_validator('image_data')
+    @field_validator("image_data")
     @classmethod
     def validate_image_size(cls, v: bytes) -> bytes:
         """Validate image data size."""
         max_size = 10 * 1024 * 1024  # 10MB
         if len(v) > max_size:
-            raise ValueError(f'Image size must not exceed {max_size} bytes (10MB)')
+            raise ValueError(f"Image size must not exceed {max_size} bytes (10MB)")
         if len(v) == 0:
-            raise ValueError('Image data cannot be empty')
+            raise ValueError("Image data cannot be empty")
         return v
 
 
 class ExperimentImageUpdate(SchemaBase):
-    experiment_id: Optional[UUID] = None
-    image_data: Optional[bytes] = None
-    passes: Optional[int] = Field(None, ge=0, le=1000)
-    
-    @field_validator('image_data')
+    experiment_id: UUID | None = None
+    image_data: bytes | None = None
+    passes: int | None = Field(None, ge=0, le=1000)
+
+    @field_validator("image_data")
     @classmethod
-    def validate_image_size(cls, v: Optional[bytes]) -> Optional[bytes]:
+    def validate_image_size(cls, v: bytes | None) -> bytes | None:
         """Validate image data size if provided."""
         if v is not None:
             max_size = 10 * 1024 * 1024  # 10MB
             if len(v) > max_size:
-                raise ValueError(f'Image size must not exceed {max_size} bytes (10MB)')
+                raise ValueError(f"Image size must not exceed {max_size} bytes (10MB)")
             if len(v) == 0:
-                raise ValueError('Image data cannot be empty')
+                raise ValueError("Image data cannot be empty")
         return v
 
 
@@ -47,6 +46,3 @@ class ExperimentImageRead(SchemaBase):
     id: UUID
     experiment_id: UUID
     passes: int
-
-
-

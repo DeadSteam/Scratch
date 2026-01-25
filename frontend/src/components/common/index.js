@@ -11,6 +11,6 @@ export { Spinner } from './Spinner/Spinner';
 export { Modal } from './Modal/Modal';
 export { ToastContainer } from './Toast/Toast';
 export { EmptyState } from './EmptyState/EmptyState';
-
+export { ThemeToggle } from './ThemeToggle/ThemeToggle';
 
 

@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="ScratchLab - Система анализа устойчивости полимерных пленок к царапинам">
   <meta name="theme-color" content="#0a1628">
+  <script>
+    (function(){ try { if (localStorage.getItem('scratchlab_theme') === 'light') document.documentElement.setAttribute('data-theme','light'); } catch(e){} })();
+  </script>
   <title>ScratchLab | Анализ устойчивости к царапинам</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -46,6 +49,8 @@
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
+    [data-theme="light"] body { background-color: #f8fafc; color: #0f172a; }
+    [data-theme="light"] .app-loader { background: #f8fafc; }
   </style>
 </head>
 <body>

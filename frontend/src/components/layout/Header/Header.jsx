@@ -3,15 +3,29 @@
  * Main navigation header
  */
 
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
+import { useTheme } from '@context/ThemeContext';
 import { ROUTES } from '@utils/constants';
 import styles from './Header.module.css';
 
 export function Header() {
   const { user, isAdmin, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onOutside = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) setIsOpen(false);
+    };
+    document.addEventListener('click', onOutside);
+    return () => document.removeEventListener('click', onOutside);
+  }, [isOpen]);
 
   const handleLogout = () => {
     logout();
@@ -19,6 +33,7 @@ export function Header() {
   };
 
   const isActive = (path) => location.pathname === path;
+  const isDark = theme === 'dark';
 
   return (
     <header className={styles.header}>
@@ -49,8 +64,14 @@ export function Header() {
           )}
         </nav>
 
-        <div className={styles.userSection}>
-          <div className={styles.userInfo}>
+        <div className={styles.userSection} ref={containerRef}>
+          <button
+            type="button"
+            className={`${styles.userTrigger} ${isOpen ? styles.active : ''}`}
+            onClick={() => setIsOpen((o) => !o)}
+            aria-expanded={isOpen}
+            aria-haspopup="true"
+          >
             <div className={styles.avatar}>
               {user?.username?.[0]?.toUpperCase() || 'U'}
             </div>
@@ -60,18 +81,40 @@ export function Header() {
                 {isAdmin ? 'Администратор' : 'Пользователь'}
               </span>
             </div>
-          </div>
-          <button 
-            type="button"
-            className={styles.logoutButton}
-            onClick={handleLogout}
-            title="Выйти"
-          >
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M3 4.25A2.25 2.25 0 015.25 2h5.5A2.25 2.25 0 0113 4.25v2a.75.75 0 01-1.5 0v-2a.75.75 0 00-.75-.75h-5.5a.75.75 0 00-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 00.75-.75v-2a.75.75 0 011.5 0v2A2.25 2.25 0 0110.75 18h-5.5A2.25 2.25 0 013 15.75V4.25z" clipRule="evenodd" />
-              <path fillRule="evenodd" d="M6 10a.75.75 0 01.75-.75h9.546l-1.048-1.048a.75.75 0 111.06-1.06l2.5 2.5a.75.75 0 010 1.06l-2.5 2.5a.75.75 0 11-1.06-1.06l1.048-1.048H6.75A.75.75 0 016 10z" clipRule="evenodd" />
-            </svg>
           </button>
+
+          {isOpen && (
+            <div className={styles.dropdown}>
+              <button
+                type="button"
+                className={styles.dropdownItem}
+                onClick={() => { toggleTheme(); setIsOpen(false); }}
+              >
+                {isDark ? (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="5"/>
+                    <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                  </svg>
+                ) : (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                  </svg>
+                )}
+                <span>{isDark ? 'Светлая тема' : 'Тёмная тема'}</span>
+              </button>
+              <button
+                type="button"
+                className={`${styles.dropdownItem} ${styles.danger}`}
+                onClick={handleLogout}
+              >
+                <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M3 4.25A2.25 2.25 0 015.25 2h5.5A2.25 2.25 0 0113 4.25v2a.75.75 0 01-1.5 0v-2a.75.75 0 00-.75-.75h-5.5a.75.75 0 00-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 00.75-.75v-2a.75.75 0 011.5 0v2A2.25 2.25 0 0110.75 18h-5.5A2.25 2.25 0 013 15.75V4.25z" clipRule="evenodd" />
+                  <path fillRule="evenodd" d="M6 10a.75.75 0 01.75-.75h9.546l-1.048-1.048a.75.75 0 111.06-1.06l2.5 2.5a.75.75 0 010 1.06l-2.5 2.5a.75.75 0 11-1.06-1.06l1.048-1.048H6.75A.75.75 0 016 10z" clipRule="evenodd" />
+                </svg>
+                <span>Выйти</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </header>

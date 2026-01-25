@@ -41,6 +41,9 @@
   --color-secondary: #6366f1;
   --color-secondary-glow: rgba(99, 102, 241, 0.15);
   
+  /* Header */
+  --color-header-bg: rgba(12, 15, 20, 0.85);
+
   /* Text hierarchy */
   --color-text-primary: #f8fafc;
   --color-text-secondary: #94a3b8;
@@ -217,4 +220,50 @@
   --z-tooltip: 700;
   --z-toast: 800;
   --z-max: 9999;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   СВЕТЛАЯ ТЕМА (Белая)
+   ═══════════════════════════════════════════════════════════ */
+
+[data-theme="light"] {
+  /* Background layers */
+  --color-bg-primary: #f8fafc;
+  --color-bg-secondary: #f1f5f9;
+  --color-bg-tertiary: #e2e8f0;
+  --color-surface: #ffffff;
+  --color-surface-elevated: #f8fafc;
+  --color-surface-hover: #f1f5f9;
+
+  /* Glass */
+  --color-glass: rgba(255, 255, 255, 0.85);
+  --color-glass-border: rgba(0, 0, 0, 0.06);
+
+  /* Borders */
+  --color-border: rgba(0, 0, 0, 0.1);
+  --color-border-light: rgba(0, 0, 0, 0.14);
+
+  /* Header */
+  --color-header-bg: rgba(255, 255, 255, 0.9);
+
+  /* Text */
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-muted: #64748b;
+  --color-text-disabled: #94a3b8;
+  --color-text-inverse: #ffffff;
+
+  /* Accent — оставляем тёплый акцент, слегка приглушаем subtle */
+  --color-accent-subtle: rgba(245, 158, 11, 0.12);
+  --color-accent-glow: rgba(245, 158, 11, 0.25);
+
+  /* Shadows — мягче для светлого фона */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.12), 0 8px 16px rgba(0, 0, 0, 0.06);
+  --shadow-2xl: 0 24px 64px rgba(0, 0, 0, 0.14);
+  --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.04);
+  --shadow-inner-lg: inset 0 4px 8px rgba(0, 0, 0, 0.06);
 }

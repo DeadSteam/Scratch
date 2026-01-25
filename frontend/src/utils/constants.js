@@ -9,6 +9,7 @@ export const STORAGE_KEYS = {
   ACCESS_TOKEN: 'scratchlab_access_token',
   REFRESH_TOKEN: 'scratchlab_refresh_token',
   USER: 'scratchlab_user',
+  THEME: 'scratchlab_theme',
 };
 
 export const ROUTES = {

@@ -4,7 +4,7 @@
   position: sticky;
   top: 0;
   height: var(--header-height);
-  background: rgba(12, 15, 20, 0.85);
+  background: var(--color-header-bg);
   border-bottom: 1px solid var(--color-border);
   z-index: var(--z-header);
   backdrop-filter: blur(var(--blur-xl));
@@ -100,25 +100,34 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   USER SECTION
+   USER SECTION & DROPDOWN
    ═══════════════════════════════════════════════════════════ */
 
 .userSection {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: var(--space-4);
 }
 
-.userInfo {
+.userTrigger {
   display: flex;
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-2) var(--space-3);
+  border: none;
   border-radius: var(--radius-lg);
+  background: none;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
   transition: background var(--transition-base);
 }
 
-.userInfo:hover {
+.userTrigger:hover {
+  background: var(--color-surface);
+}
+
+.userTrigger.active {
   background: var(--color-surface);
 }
 
@@ -140,6 +149,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-0-5);
+  align-items: flex-start;
 }
 
 .userName {
@@ -155,18 +165,44 @@
   letter-spacing: var(--tracking-wider);
 }
 
-.logoutButton {
-  width: 38px;
-  height: 38px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-muted);
+/* Dropdown */
+.dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: var(--space-2);
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--color-surface-elevated);
+  border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-lg);
-  transition: all var(--transition-base) var(--ease-out);
+  box-shadow: var(--shadow-lg);
+  z-index: var(--z-dropdown);
+  padding: var(--space-2);
 }
 
-.logoutButton:hover {
+.dropdownItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2-5) var(--space-3);
+  border: none;
+  border-radius: var(--radius-md);
+  background: none;
+  cursor: pointer;
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+  font-family: inherit;
+  transition: background var(--transition-base);
+  text-align: left;
+}
+
+.dropdownItem:hover {
+  background: var(--color-surface-hover);
+}
+
+.dropdownItem.danger:hover {
   background: var(--color-error-bg);
   color: var(--color-error);
 }
@@ -179,7 +215,7 @@
   .userMeta {
     display: none;
   }
-  
+
   .nav {
     display: none;
   }

@@ -57,16 +57,17 @@ export function ROISelector({
     ctx.fillRect(0, sel.y, sel.x, sel.height);
     ctx.fillRect(sel.x + sel.width, sel.y, canvas.width - sel.x - sel.width, sel.height);
     
-    // Selection border
-    ctx.strokeStyle = '#00d4ff';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([6, 4]);
+    // Рамка выделения: тонкая линия, оранжевый
+    ctx.strokeStyle = 'rgba(245, 158, 11, 0.95)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 3]);
     ctx.strokeRect(sel.x, sel.y, sel.width, sel.height);
     
-    // Corner handles
+    // Угловые маркеры — в тон рамки
     ctx.setLineDash([]);
-    ctx.fillStyle = '#00d4ff';
-    const handleSize = 8;
+    ctx.strokeStyle = 'rgba(245, 158, 11, 0.95)';
+    ctx.fillStyle = 'rgba(245, 158, 11, 0.95)';
+    const handleSize = 6;
     const corners = [
       { x: sel.x, y: sel.y },
       { x: sel.x + sel.width, y: sel.y },

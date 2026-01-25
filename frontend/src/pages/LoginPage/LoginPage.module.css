@@ -11,6 +11,13 @@
   background: var(--color-bg-primary);
 }
 
+.themeToggleWrap {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  z-index: var(--z-raised);
+}
+
 /* ═══════════════════════════════════════════════════════════
    BACKGROUND DECORATIONS
    ═══════════════════════════════════════════════════════════ */
