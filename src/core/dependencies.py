@@ -87,12 +87,16 @@ def get_advice_repository() -> AdviceRepository:
 
 
 # Service dependencies
-def get_user_service(user_repo: UserRepository = Depends(get_user_repository)) -> UserService:
+def get_user_service(
+    user_repo: UserRepository = Depends(get_user_repository),
+) -> UserService:
     """Get user service instance."""
     return UserService(user_repo)
 
 
-def get_film_service(film_repo: FilmRepository = Depends(get_film_repository)) -> FilmService:
+def get_film_service(
+    film_repo: FilmRepository = Depends(get_film_repository),
+) -> FilmService:
     """Get film service instance."""
     return FilmService(film_repo)
 
@@ -160,8 +164,12 @@ RedisClient = Annotated[object, Depends(get_redis_client)]
 UserRepo = Annotated[UserRepository, Depends(get_user_repository)]
 ExperimentRepo = Annotated[ExperimentRepository, Depends(get_experiment_repository)]
 FilmRepo = Annotated[FilmRepository, Depends(get_film_repository)]
-EquipmentConfigRepo = Annotated[EquipmentConfigRepository, Depends(get_equipment_config_repository)]
-ExperimentImageRepo = Annotated[ExperimentImageRepository, Depends(get_experiment_image_repository)]
+EquipmentConfigRepo = Annotated[
+    EquipmentConfigRepository, Depends(get_equipment_config_repository)
+]
+ExperimentImageRepo = Annotated[
+    ExperimentImageRepository, Depends(get_experiment_image_repository)
+]
 SituationRepo = Annotated[SituationRepository, Depends(get_situation_repository)]
 CauseRepo = Annotated[CauseRepository, Depends(get_cause_repository)]
 AdviceRepo = Annotated[AdviceRepository, Depends(get_advice_repository)]
@@ -169,9 +177,13 @@ AdviceRepo = Annotated[AdviceRepository, Depends(get_advice_repository)]
 # Service DI
 UserSvc = Annotated[UserService, Depends(get_user_service)]
 FilmSvc = Annotated[FilmService, Depends(get_film_service)]
-EquipmentConfigSvc = Annotated[EquipmentConfigService, Depends(get_equipment_config_service)]
+EquipmentConfigSvc = Annotated[
+    EquipmentConfigService, Depends(get_equipment_config_service)
+]
 ExperimentSvc = Annotated[ExperimentService, Depends(get_experiment_service)]
-ExperimentImageSvc = Annotated[ExperimentImageService, Depends(get_experiment_image_service)]
+ExperimentImageSvc = Annotated[
+    ExperimentImageService, Depends(get_experiment_image_service)
+]
 ImageAnalysisSvc = Annotated[ImageAnalysisService, Depends(get_image_analysis_service)]
 SituationSvc = Annotated[SituationService, Depends(get_situation_service)]
 CauseSvc = Annotated[CauseService, Depends(get_cause_service)]

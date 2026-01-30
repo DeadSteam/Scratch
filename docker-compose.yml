@@ -19,6 +19,8 @@ services:
       - "8000:8000"
     volumes:
       - .:/app
+      # Сохраняем .venv из образа: том не даёт хосту перезаписать /app/.venv (см. docs.astral.sh/uv/guides/integration/docker)
+      - app_venv:/app/.venv
     depends_on:
       experiments_db:
         condition: service_healthy
@@ -185,3 +187,4 @@ volumes:
   experiments_data:
   users_data:
   knowledge_data:
+  app_venv:

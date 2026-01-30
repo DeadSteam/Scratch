@@ -8,13 +8,22 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..models.image import ExperimentImage
 from ..repositories.experiment_repository import ExperimentRepository
 from ..repositories.image_repository import ExperimentImageRepository
-from ..schemas.image import ExperimentImageCreate, ExperimentImageRead, ExperimentImageUpdate
+from ..schemas.image import (
+    ExperimentImageCreate,
+    ExperimentImageRead,
+    ExperimentImageUpdate,
+)
 from .base import BaseService
 from .exceptions import NotFoundError
 
 
 class ExperimentImageService(
-    BaseService[ExperimentImage, ExperimentImageCreate, ExperimentImageUpdate, ExperimentImageRead]
+    BaseService[
+        ExperimentImage,
+        ExperimentImageCreate,
+        ExperimentImageUpdate,
+        ExperimentImageRead,
+    ]
 ):
     """Experiment image service."""
 
@@ -44,25 +53,37 @@ class ExperimentImageService(
         return await super().create(data, session)
 
     async def get_by_experiment_id(
-        self, experiment_id: UUID, session: AsyncSession, skip: int = 0, limit: int = 100
+        self,
+        experiment_id: UUID,
+        session: AsyncSession,
+        skip: int = 0,
+        limit: int = 100,
     ) -> list[ExperimentImageRead]:
         """Get all images for an experiment."""
         # Validate experiment exists
         if not await self.experiment_repo.exists(experiment_id, session):
             raise NotFoundError("Experiment", experiment_id)
 
-        images = await self.image_repo.get_by_experiment_id(experiment_id, session, skip, limit)
+        images = await self.image_repo.get_by_experiment_id(
+            experiment_id, session, skip, limit
+        )
         return [self.read_schema.model_validate(img) for img in images]
 
-    async def delete_by_experiment_id(self, experiment_id: UUID, session: AsyncSession) -> int:
+    async def delete_by_experiment_id(
+        self, experiment_id: UUID, session: AsyncSession
+    ) -> int:
         """Delete all images for an experiment."""
         # Validate experiment exists
         if not await self.experiment_repo.exists(experiment_id, session):
             raise NotFoundError("Experiment", experiment_id)
 
-        return cast(int, await self.image_repo.delete_by_experiment_id(experiment_id, session))
+        return cast(
+            int, await self.image_repo.delete_by_experiment_id(experiment_id, session)
+        )
 
-    async def get_raw_by_id(self, entity_id: UUID, session: AsyncSession) -> ExperimentImage:
+    async def get_raw_by_id(
+        self, entity_id: UUID, session: AsyncSession
+    ) -> ExperimentImage:
         """Get raw image model with binary data."""
         entity = await self.repository.get_by_id(entity_id, session)
         if not entity:

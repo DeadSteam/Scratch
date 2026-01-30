@@ -212,7 +212,7 @@ Scratch/
 ├── backend/
 │   ├── src/                # Исходный код
 │   ├── alembic/            # Миграции БД
-│   ├── requirements.txt    # Python зависимости
+│   ├── pyproject.toml      # Python зависимости (uv)
 │   ├── Dockerfile          # Multi-stage build
 │   └── entrypoint.sh       # Startup script
 ├── frontend/

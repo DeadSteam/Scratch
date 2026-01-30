@@ -33,21 +33,27 @@ class Experiment(UUIDBase):
         UUID(as_uuid=True), ForeignKey("films.id", ondelete="CASCADE"), nullable=False
     )
     config_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("equipment_configs.id", ondelete="CASCADE"), nullable=False
+        UUID(as_uuid=True),
+        ForeignKey("equipment_configs.id", ondelete="CASCADE"),
+        nullable=False,
     )
     # Note: user_id references users in a separate database (users_db)
     # No ForeignKey constraint as users are in a different database
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
 
     name: Mapped[str | None] = mapped_column(String(200), nullable=True)
-    date: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), default=datetime.utcnow)
+    date: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), default=datetime.utcnow
+    )
     rect_coords: Mapped[list[float] | None] = mapped_column(ARRAY(Float))
     weight: Mapped[float | None] = mapped_column(Float)
     has_fabric: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Результаты анализа царапин: массив с индексом зацарапанности для каждого фото
     # Структура: [{"image_id": "uuid", "scratch_index": 0.0342}, ...]
-    scratch_results: Mapped[list[dict[str, object]] | None] = mapped_column(JSON, nullable=True)
+    scratch_results: Mapped[list[dict[str, object]] | None] = mapped_column(
+        JSON, nullable=True
+    )
 
     # связи
     film: Mapped[Film] = relationship(back_populates="experiments")

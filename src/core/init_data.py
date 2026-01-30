@@ -32,7 +32,9 @@ async def create_admin_role(session: AsyncSession) -> Role:
     return admin_role
 
 
-async def assign_admin_role_to_user(user: User, admin_role: Role, session: AsyncSession) -> None:
+async def assign_admin_role_to_user(
+    user: User, admin_role: Role, session: AsyncSession
+) -> None:
     """Assign admin role to user if not already assigned."""
     # Refresh user to get roles
     await session.refresh(user, ["roles"])
@@ -58,7 +60,9 @@ async def create_default_admin(session: AsyncSession) -> None:
         admin_role = await create_admin_role(session)
 
         # Check if admin already exists
-        existing_admin = await user_repo.get_by_username(settings.ADMIN_USERNAME, session)
+        existing_admin = await user_repo.get_by_username(
+            settings.ADMIN_USERNAME, session
+        )
 
         if existing_admin:
             logger.info(f"Admin user '{settings.ADMIN_USERNAME}' already exists")
@@ -90,7 +94,9 @@ async def create_default_admin(session: AsyncSession) -> None:
     except AlreadyExistsError:
         logger.info(f"Admin user '{settings.ADMIN_USERNAME}' already exists")
         # Ensure admin role is assigned even if user exists
-        existing_admin = await user_repo.get_by_username(settings.ADMIN_USERNAME, session)
+        existing_admin = await user_repo.get_by_username(
+            settings.ADMIN_USERNAME, session
+        )
         if existing_admin:
             admin_role = await create_admin_role(session)
             await assign_admin_role_to_user(existing_admin, admin_role, session)

@@ -17,7 +17,9 @@ class ScratchResult(SchemaBase):
     """Single scratch analysis result."""
 
     image_id: UUID = Field(..., description="Image UUID")
-    scratch_index: float = Field(..., ge=0, le=1, description="Calculated scratch index (0-1)")
+    scratch_index: float = Field(
+        ..., ge=0, le=1, description="Calculated scratch index (0-1)"
+    )
 
 
 class ExperimentBase(SchemaBase):
@@ -30,7 +32,9 @@ class ExperimentBase(SchemaBase):
         None, description="Rectangle coordinates for analysis [x, y, width, height]"
     )
     weight: float | None = Field(None, gt=0, description="Sample weight in grams")
-    has_fabric: bool | None = Field(False, description="Whether fabric substrate was used")
+    has_fabric: bool | None = Field(
+        False, description="Whether fabric substrate was used"
+    )
     scratch_results: list[dict[str, Any]] | None = Field(
         None, description="Array of scratch analysis results for each image"
     )

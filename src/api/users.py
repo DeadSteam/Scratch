@@ -92,7 +92,9 @@ async def get_user(user_id: UUID, user_service: UserSvc, db: UsersDBSession):
     summary="Get user by username",
     description="Retrieve a specific user by their username",
 )
-async def get_user_by_username(username: str, user_service: UserSvc, db: UsersDBSession):
+async def get_user_by_username(
+    username: str, user_service: UserSvc, db: UsersDBSession
+):
     """Get user by username."""
     user = await user_service.get_by_username(username, db)
     return Response(success=True, message="User retrieved successfully", data=user)

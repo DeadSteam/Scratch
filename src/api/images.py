@@ -45,7 +45,9 @@ async def get_images_by_experiment(
     summary="Get image by ID",
     description="Retrieve a specific image by its ID",
 )
-async def get_image(image_id: UUID, image_service: ExperimentImageSvc, db: MainDBSession):
+async def get_image(
+    image_id: UUID, image_service: ExperimentImageSvc, db: MainDBSession
+):
     """Get image by ID."""
     image = await image_service.get_by_id(image_id, db)
     return Response(success=True, message="Image retrieved successfully", data=image)
@@ -56,7 +58,9 @@ async def get_image(image_id: UUID, image_service: ExperimentImageSvc, db: MainD
     summary="Get image binary data",
     description="Retrieve the actual image binary data",
 )
-async def get_image_data(image_id: UUID, image_service: ExperimentImageSvc, db: MainDBSession):
+async def get_image_data(
+    image_id: UUID, image_service: ExperimentImageSvc, db: MainDBSession
+):
     """Get image binary data for display."""
     # Get raw model with image_data
     image = await image_service.get_raw_by_id(image_id, db)
@@ -71,7 +75,11 @@ async def get_image_data(image_id: UUID, image_service: ExperimentImageSvc, db: 
         content_type = "image/png"
     elif len(image_bytes) >= 6 and image_bytes[:6] in (b"GIF87a", b"GIF89a"):
         content_type = "image/gif"
-    elif len(image_bytes) >= 12 and image_bytes[:4] == b"RIFF" and image_bytes[8:12] == b"WEBP":
+    elif (
+        len(image_bytes) >= 12
+        and image_bytes[:4] == b"RIFF"
+        and image_bytes[8:12] == b"WEBP"
+    ):
         content_type = "image/webp"
 
     return FastAPIResponse(
@@ -92,7 +100,9 @@ async def upload_image(
     image_service: ExperimentImageSvc,
     db: MainDBSession,
     experiment_id: UUID = Query(..., description="Experiment ID"),
-    passes: int = Query(0, ge=0, le=1000, description="Number of passes (0 for reference image)"),
+    passes: int = Query(
+        0, ge=0, le=1000, description="Number of passes (0 for reference image)"
+    ),
     file: UploadFile = File(..., description="Image file"),
 ):
     """Upload a new experiment image."""
@@ -117,7 +127,9 @@ async def upload_image(
     description="Create a new experiment image from raw data",
 )
 async def create_image(
-    image_data: ExperimentImageCreate, image_service: ExperimentImageSvc, db: MainDBSession
+    image_data: ExperimentImageCreate,
+    image_service: ExperimentImageSvc,
+    db: MainDBSession,
 ):
     """Create a new experiment image."""
     image = await image_service.create(image_data, db)
@@ -130,7 +142,9 @@ async def create_image(
     summary="Delete image",
     description="Permanently delete an experiment image",
 )
-async def delete_image(image_id: UUID, image_service: ExperimentImageSvc, db: MainDBSession):
+async def delete_image(
+    image_id: UUID, image_service: ExperimentImageSvc, db: MainDBSession
+):
     """Delete image."""
     await image_service.delete(image_id, db)
     return None
@@ -147,4 +161,6 @@ async def delete_all_experiment_images(
 ):
     """Delete all images for an experiment."""
     count = await image_service.delete_by_experiment_id(experiment_id, db)
-    return Response(success=True, message=f"Deleted {count} images", data={"deleted_count": count})
+    return Response(
+        success=True, message=f"Deleted {count} images", data={"deleted_count": count}
+    )

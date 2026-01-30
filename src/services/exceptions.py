@@ -26,7 +26,9 @@ class AlreadyExistsError(ServiceException):
 
     def __init__(self, entity_name: str, field: str, value: Any):
         message = f"{entity_name} with {field}='{value}' already exists"
-        super().__init__(message, {"entity": entity_name, "field": field, "value": value})
+        super().__init__(
+            message, {"entity": entity_name, "field": field, "value": value}
+        )
 
 
 class AuthenticationError(ServiceException):

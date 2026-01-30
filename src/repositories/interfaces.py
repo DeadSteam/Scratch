@@ -16,7 +16,9 @@ class BaseRepository(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    async def get_all(self, session: AsyncSession, skip: int = 0, limit: int = 100) -> list[T]:
+    async def get_all(
+        self, session: AsyncSession, skip: int = 0, limit: int = 100
+    ) -> list[T]:
         """Get all entities with pagination."""
         pass
 
@@ -26,7 +28,9 @@ class BaseRepository(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    async def update(self, id: UUID, data: dict[str, Any], session: AsyncSession) -> T | None:
+    async def update(
+        self, id: UUID, data: dict[str, Any], session: AsyncSession
+    ) -> T | None:
         """Update entity by ID."""
         pass
 

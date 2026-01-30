@@ -25,7 +25,9 @@ class CustomJSONEncoder(json.JSONEncoder):
 
 
 # Regex for ISO date format detection
-ISO_DATE_REGEX = re.compile(r"^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})?)?$")
+ISO_DATE_REGEX = re.compile(
+    r"^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})?)?$"
+)
 
 
 def parse_json_with_dates(json_str: str) -> Any:
@@ -36,7 +38,9 @@ def parse_json_with_dates(json_str: str) -> Any:
             if isinstance(value, str) and ISO_DATE_REGEX.match(value):
                 try:
                     if "T" in value:
-                        obj[key] = datetime.datetime.fromisoformat(value.replace("Z", "+00:00"))
+                        obj[key] = datetime.datetime.fromisoformat(
+                            value.replace("Z", "+00:00")
+                        )
                     else:
                         obj[key] = datetime.date.fromisoformat(value)
                 except (ValueError, TypeError):
@@ -49,7 +53,9 @@ def parse_json_with_dates(json_str: str) -> Any:
 class RedisClient:
     """Redis client wrapper with proper error handling and serialization."""
 
-    def __init__(self, url: str, encoding: str = "utf-8", decode_responses: bool = True) -> None:
+    def __init__(
+        self, url: str, encoding: str = "utf-8", decode_responses: bool = True
+    ) -> None:
         self.client = aioredis.from_url(  # type: ignore[no-untyped-call]
             url,
             encoding=encoding,
@@ -82,7 +88,9 @@ class RedisClient:
 
             # Try to deserialize JSON
             try:
-                if isinstance(value, str) and (value.startswith("{") or value.startswith("[")):
+                if isinstance(value, str) and (
+                    value.startswith("{") or value.startswith("[")
+                ):
                     return parse_json_with_dates(value)
                 return value
             except (TypeError, json.JSONDecodeError):

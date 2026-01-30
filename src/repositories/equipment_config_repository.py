@@ -11,9 +11,13 @@ class EquipmentConfigRepository(CachedRepositoryImpl[EquipmentConfig]):
     def __init__(self) -> None:
         super().__init__(EquipmentConfig)
 
-    async def get_by_name(self, name: str, session: AsyncSession) -> EquipmentConfig | None:
+    async def get_by_name(
+        self, name: str, session: AsyncSession
+    ) -> EquipmentConfig | None:
         """Get equipment config by name."""
-        result = await session.execute(select(EquipmentConfig).where(EquipmentConfig.name == name))
+        result = await session.execute(
+            select(EquipmentConfig).where(EquipmentConfig.name == name)
+        )
         return result.scalar_one_or_none()
 
     async def search_by_name(

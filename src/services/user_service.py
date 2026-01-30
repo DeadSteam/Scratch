@@ -6,6 +6,8 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .base import BaseService
+from .exceptions import AlreadyExistsError, AuthenticationError, NotFoundError
 from ..core.security import (
     create_access_token,
     create_refresh_token,
@@ -15,8 +17,6 @@ from ..core.security import (
 from ..models.user import User
 from ..repositories.user_repository import UserRepository
 from ..schemas.user import UserCreate, UserRead, UserUpdate
-from .base import BaseService
-from .exceptions import AlreadyExistsError, AuthenticationError, NotFoundError
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,10 @@ class UserService(BaseService[User, UserCreate, UserUpdate, UserRead]):
         self.user_repo = repository
 
     async def _check_unique_constraints(
-        self, data: dict[str, Any], session: AsyncSession, exclude_id: UUID | None = None
+        self,
+        data: dict[str, Any],
+        session: AsyncSession,
+        exclude_id: UUID | None = None,
     ) -> None:
         """Check username and email uniqueness."""
         if "username" in data:
@@ -62,7 +65,9 @@ class UserService(BaseService[User, UserCreate, UserUpdate, UserRead]):
         user = await self.user_repo.create(user_data, session)
         return self.read_schema.model_validate(user)
 
-    async def update(self, entity_id: UUID, data: UserUpdate, session: AsyncSession) -> UserRead:
+    async def update(
+        self, entity_id: UUID, data: UserUpdate, session: AsyncSession
+    ) -> UserRead:
         """Update user, hash password if provided."""
         user_data = data.model_dump(exclude_unset=True, exclude={"password"})
 
@@ -99,7 +104,9 @@ class UserService(BaseService[User, UserCreate, UserUpdate, UserRead]):
 
         # Verify password
         logger.info(f"DEBUG: Verifying password for user '{username}'")
-        logger.info(f"DEBUG: Password length: {len(password)}, first 5 chars: '{password[:5]}'")
+        logger.info(
+            f"DEBUG: Password length: {len(password)}, first 5 chars: '{password[:5]}'"
+        )
         logger.info(f"DEBUG: Hash preview: '{user.password_hash[:30]}'")
         password_valid = verify_password(password, user.password_hash)
         logger.info(f"DEBUG: Password valid: {password_valid}")
@@ -107,7 +114,9 @@ class UserService(BaseService[User, UserCreate, UserUpdate, UserRead]):
             raise AuthenticationError("Invalid username or password")
 
         # Generate tokens
-        access_token = create_access_token({"sub": str(user.id), "username": user.username})
+        access_token = create_access_token(
+            {"sub": str(user.id), "username": user.username}
+        )
         refresh_token = create_refresh_token({"sub": str(user.id)})
 
         return {

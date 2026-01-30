@@ -18,7 +18,9 @@ class RoleCreate(SchemaBase):
     def name_alphanumeric(cls, v: str) -> str:
         """Validate role name is alphanumeric with underscores."""
         if not v.replace("_", "").replace("-", "").isalnum():
-            raise ValueError("Role name must be alphanumeric (underscores and hyphens allowed)")
+            raise ValueError(
+                "Role name must be alphanumeric (underscores and hyphens allowed)"
+            )
         return v.lower()
 
 

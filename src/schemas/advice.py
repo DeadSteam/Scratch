@@ -9,7 +9,9 @@ from .base import SchemaBase
 
 class AdviceBase(SchemaBase):
     cause_id: UUID | None = Field(None, description="Ссылка на причину")
-    description: str | None = Field(None, max_length=50, description="Текст рекомендации")
+    description: str | None = Field(
+        None, max_length=50, description="Текст рекомендации"
+    )
 
 
 class AdviceCreate(AdviceBase):

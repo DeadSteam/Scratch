@@ -12,7 +12,9 @@ from .exceptions import NotFoundError
 from .knowledge_service_base import KnowledgeServiceBase
 
 
-class AdviceService(KnowledgeServiceBase[object, AdviceCreate, AdviceUpdate, AdviceRead]):
+class AdviceService(
+    KnowledgeServiceBase[object, AdviceCreate, AdviceUpdate, AdviceRead]
+):
     def __init__(
         self,
         repository: AdviceRepository,

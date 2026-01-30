@@ -41,7 +41,9 @@ class ExperimentService(
 
     async def get_by_id(self, entity_id: UUID, session: AsyncSession) -> ExperimentRead:
         """Get experiment by ID with relationships loaded."""
-        experiment = await self.experiment_repo.get_by_id_with_relations(entity_id, session)
+        experiment = await self.experiment_repo.get_by_id_with_relations(
+            entity_id, session
+        )
         if not experiment:
             raise NotFoundError(self.entity_name, entity_id)
         return self.read_schema.model_validate(experiment)
@@ -50,10 +52,14 @@ class ExperimentService(
         self, session: AsyncSession, skip: int = 0, limit: int = 100
     ) -> list[ExperimentRead]:
         """Get all experiments with relationships loaded."""
-        experiments = await self.experiment_repo.get_all_with_relations(session, skip, limit)
+        experiments = await self.experiment_repo.get_all_with_relations(
+            session, skip, limit
+        )
         return [self.read_schema.model_validate(e) for e in experiments]
 
-    async def create(self, data: ExperimentCreate, session: AsyncSession) -> ExperimentRead:
+    async def create(
+        self, data: ExperimentCreate, session: AsyncSession
+    ) -> ExperimentRead:
         """Create experiment with validation of foreign keys."""
         # Note: We don't validate user exists because users are in a different database (users_db)
         # The user_id is verified by the JWT authentication middleware
@@ -79,7 +85,9 @@ class ExperimentService(
         if data.film_id and not await self.film_repo.exists(data.film_id, session):
             raise NotFoundError("Film", data.film_id)
 
-        if data.config_id and not await self.config_repo.exists(data.config_id, session):
+        if data.config_id and not await self.config_repo.exists(
+            data.config_id, session
+        ):
             raise NotFoundError("EquipmentConfig", data.config_id)
 
         # Check if entity exists
@@ -91,7 +99,9 @@ class ExperimentService(
 
         if not entity_data:
             # No fields to update, just return current entity with relations
-            experiment = await self.experiment_repo.get_by_id_with_relations(entity_id, session)
+            experiment = await self.experiment_repo.get_by_id_with_relations(
+                entity_id, session
+            )
             if not experiment:
                 raise NotFoundError(self.entity_name, entity_id)
             return self.read_schema.model_validate(experiment)
@@ -100,7 +110,9 @@ class ExperimentService(
         await self.experiment_repo.update(entity_id, entity_data, session)
 
         # Re-fetch with relationships loaded
-        experiment = await self.experiment_repo.get_by_id_with_relations(entity_id, session)
+        experiment = await self.experiment_repo.get_by_id_with_relations(
+            entity_id, session
+        )
         if not experiment:
             raise NotFoundError(self.entity_name, entity_id)
 
@@ -113,13 +125,17 @@ class ExperimentService(
         # Note: We don't validate user exists here because users are in a different database (users_db)
         # If user doesn't exist, we'll just return an empty list of experiments
         try:
-            experiments = await self.experiment_repo.get_by_user_id(user_id, session, skip, limit)
+            experiments = await self.experiment_repo.get_by_user_id(
+                user_id, session, skip, limit
+            )
             # Convert to read schema, handling cases where related objects might not be loaded
             result = []
             for exp in experiments:
                 try:
                     # Use from_attributes=True to handle SQLAlchemy models
-                    exp_read = self.read_schema.model_validate(exp, from_attributes=True)
+                    exp_read = self.read_schema.model_validate(
+                        exp, from_attributes=True
+                    )
                     result.append(exp_read)
                 except Exception as e:
                     # Log validation error but continue processing other experiments
@@ -149,7 +165,9 @@ class ExperimentService(
             import logging
 
             logger = logging.getLogger(__name__)
-            logger.error(f"Error getting experiments by user_id {user_id}: {e}", exc_info=True)
+            logger.error(
+                f"Error getting experiments by user_id {user_id}: {e}", exc_info=True
+            )
             raise
 
     async def get_by_film_id(
@@ -160,7 +178,9 @@ class ExperimentService(
         if not await self.film_repo.exists(film_id, session):
             raise NotFoundError("Film", film_id)
 
-        experiments = await self.experiment_repo.get_by_film_id(film_id, session, skip, limit)
+        experiments = await self.experiment_repo.get_by_film_id(
+            film_id, session, skip, limit
+        )
         return [self.read_schema.model_validate(e) for e in experiments]
 
     async def get_by_config_id(
@@ -171,10 +191,14 @@ class ExperimentService(
         if not await self.config_repo.exists(config_id, session):
             raise NotFoundError("EquipmentConfig", config_id)
 
-        experiments = await self.experiment_repo.get_by_config_id(config_id, session, skip, limit)
+        experiments = await self.experiment_repo.get_by_config_id(
+            config_id, session, skip, limit
+        )
         return [self.read_schema.model_validate(e) for e in experiments]
 
-    async def get_with_images(self, experiment_id: UUID, session: AsyncSession) -> ExperimentRead:
+    async def get_with_images(
+        self, experiment_id: UUID, session: AsyncSession
+    ) -> ExperimentRead:
         """Get experiment with all related images."""
         experiment = await self.experiment_repo.get_with_images(experiment_id, session)
         if not experiment:
@@ -205,7 +229,9 @@ class ExperimentService(
         )
 
         # Re-fetch with relationships loaded
-        experiment = await self.experiment_repo.get_by_id_with_relations(experiment_id, session)
+        experiment = await self.experiment_repo.get_by_id_with_relations(
+            experiment_id, session
+        )
         if not experiment:
             raise NotFoundError("Experiment", experiment_id)
 

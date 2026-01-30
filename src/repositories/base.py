@@ -43,7 +43,9 @@ class BaseRepositoryImpl(BaseRepository[T], Generic[T]):
         result = await session.execute(select(self.model).where(pk == id))
         return result.scalar_one_or_none()
 
-    async def get_all(self, session: AsyncSession, skip: int = 0, limit: int = 100) -> list[T]:
+    async def get_all(
+        self, session: AsyncSession, skip: int = 0, limit: int = 100
+    ) -> list[T]:
         """Get all entities with pagination."""
         result = await session.execute(select(self.model).offset(skip).limit(limit))
         return list(result.scalars().all())
@@ -55,7 +57,9 @@ class BaseRepositoryImpl(BaseRepository[T], Generic[T]):
         await session.commit()
         return result.scalar_one()
 
-    async def update(self, id: UUID, data: dict[str, Any], session: AsyncSession) -> T | None:
+    async def update(
+        self, id: UUID, data: dict[str, Any], session: AsyncSession
+    ) -> T | None:
         """Update entity by ID."""
         pk = self.model.id
         stmt = update(self.model).where(pk == id).values(**data).returning(self.model)
@@ -102,7 +106,9 @@ class CachedRepositoryImpl(BaseRepositoryImpl[T], Generic[T]):
         entity = await self.get_by_id(id, session)
         if entity:
             # Cache the entity
-            entity_dict = {c.name: getattr(entity, c.name) for c in entity.__table__.columns}
+            entity_dict = {
+                c.name: getattr(entity, c.name) for c in entity.__table__.columns
+            }
             await redis_client.set(cache_key, entity_dict)
 
         return entity
@@ -150,7 +156,9 @@ class CachedRepositoryImpl(BaseRepositoryImpl[T], Generic[T]):
         await self.invalidate_cache()
         return entity
 
-    async def update(self, id: UUID, data: dict[str, Any], session: AsyncSession) -> T | None:
+    async def update(
+        self, id: UUID, data: dict[str, Any], session: AsyncSession
+    ) -> T | None:
         """Update entity and invalidate cache."""
         entity = await super().update(id, data, session)
         if entity:

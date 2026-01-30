@@ -89,7 +89,10 @@ class BaseService(Generic[T, CreateSchema, UpdateSchema, ReadSchema]):
         return cast(bool, await self.repository.delete(entity_id, session))
 
     async def _check_unique_constraints(
-        self, data: dict[str, Any], session: AsyncSession, exclude_id: UUID | None = None
+        self,
+        data: dict[str, Any],
+        session: AsyncSession,
+        exclude_id: UUID | None = None,
     ) -> None:
         """
         Check unique constraints before create/update.

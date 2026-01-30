@@ -26,7 +26,10 @@ class FilmService(BaseService[Film, FilmCreate, FilmUpdate, FilmRead]):
         self.film_repo = repository
 
     async def _check_unique_constraints(
-        self, data: dict[str, Any], session: AsyncSession, exclude_id: UUID | None = None
+        self,
+        data: dict[str, Any],
+        session: AsyncSession,
+        exclude_id: UUID | None = None,
     ) -> None:
         """Check film name uniqueness."""
         if "name" in data:

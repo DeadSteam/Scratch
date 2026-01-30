@@ -47,8 +47,12 @@ class Settings(BaseSettings):
 
     # Default Admin User
     ADMIN_USERNAME: str = Field(default="admin", description="Default admin username")
-    ADMIN_EMAIL: str = Field(default="admin@example.com", description="Default admin email")
-    ADMIN_PASSWORD: str = Field(default="Akrawer1", description="Default admin password")
+    ADMIN_EMAIL: str = Field(
+        default="admin@example.com", description="Default admin email"
+    )
+    ADMIN_PASSWORD: str = Field(
+        default="Akrawer1", description="Default admin password"
+    )
 
     # CORS
     CORS_ORIGINS: list[str] = Field(default=["*"], description="CORS allowed origins")
@@ -100,13 +104,15 @@ class Settings(BaseSettings):
         default=10 * 1024 * 1024, description="Max file size in bytes (10MB)"
     )
     ALLOWED_IMAGE_TYPES: list[str] = Field(
-        default=["image/jpeg", "image/png", "image/webp"], description="Allowed image MIME types"
+        default=["image/jpeg", "image/png", "image/webp"],
+        description="Allowed image MIME types",
     )
 
     # Logging
     LOG_LEVEL: str = Field(default="INFO", description="Logging level")
     LOG_FORMAT: str = Field(
-        default="%(asctime)s - %(name)s - %(levelname)s - %(message)s", description="Log format"
+        default="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        description="Log format",
     )
 
 

@@ -17,7 +17,9 @@ from .core.redis import close_redis_connection
 from .services.exceptions import ServiceException
 
 # Configure logging
-logging.basicConfig(level=getattr(logging, settings.LOG_LEVEL.upper()), format=settings.LOG_FORMAT)
+logging.basicConfig(
+    level=getattr(logging, settings.LOG_LEVEL.upper()), format=settings.LOG_FORMAT
+)
 logger = logging.getLogger(__name__)
 
 
@@ -82,8 +84,12 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
     if origin and origin in settings.CORS_ORIGINS:
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Access-Control-Allow-Credentials"] = "true"
-        response.headers["Access-Control-Allow-Methods"] = ", ".join(settings.CORS_METHODS)
-        response.headers["Access-Control-Allow-Headers"] = ", ".join(settings.CORS_HEADERS)
+        response.headers["Access-Control-Allow-Methods"] = ", ".join(
+            settings.CORS_METHODS
+        )
+        response.headers["Access-Control-Allow-Headers"] = ", ".join(
+            settings.CORS_HEADERS
+        )
 
     return response
 

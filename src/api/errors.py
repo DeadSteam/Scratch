@@ -16,7 +16,9 @@ from ..services.exceptions import (
 from .responses import ErrorDetail, ErrorResponse
 
 
-async def service_exception_handler(request: Request, exc: ServiceException) -> JSONResponse:
+async def service_exception_handler(
+    request: Request, exc: ServiceException
+) -> JSONResponse:
     """Handle service layer exceptions."""
     status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
 
@@ -58,5 +60,6 @@ async def validation_exception_handler(
     )
 
     return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, content=error_response.model_dump()
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content=error_response.model_dump(),
     )

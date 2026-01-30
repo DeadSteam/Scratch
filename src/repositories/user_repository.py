@@ -12,7 +12,9 @@ class UserRepository(CachedRepositoryImpl[User], UserRepositoryInterface[User]):
     def __init__(self) -> None:
         super().__init__(User)
 
-    async def get_by_username(self, username: str, session: AsyncSession) -> User | None:
+    async def get_by_username(
+        self, username: str, session: AsyncSession
+    ) -> User | None:
         """Get user by username."""
         result = await session.execute(select(User).where(User.username == username))
         return result.scalar_one_or_none()
@@ -26,10 +28,14 @@ class UserRepository(CachedRepositoryImpl[User], UserRepositoryInterface[User]):
         self, session: AsyncSession, skip: int = 0, limit: int = 100
     ) -> list[User]:
         """Get active users only."""
-        result = await session.execute(select(User).where(User.is_active).offset(skip).limit(limit))
+        result = await session.execute(
+            select(User).where(User.is_active).offset(skip).limit(limit)
+        )
         return list(result.scalars().all())
 
-    async def get_by_username_cached(self, username: str, session: AsyncSession) -> User | None:
+    async def get_by_username_cached(
+        self, username: str, session: AsyncSession
+    ) -> User | None:
         """Get user by username with cache check."""
         redis_client = await self._get_redis_client()
         cache_key = f"user:username:{username}"
@@ -48,7 +54,9 @@ class UserRepository(CachedRepositoryImpl[User], UserRepositoryInterface[User]):
 
         return user
 
-    async def get_by_email_cached(self, email: str, session: AsyncSession) -> User | None:
+    async def get_by_email_cached(
+        self, email: str, session: AsyncSession
+    ) -> User | None:
         """Get user by email with cache check."""
         redis_client = await self._get_redis_client()
         cache_key = f"user:email:{email}"

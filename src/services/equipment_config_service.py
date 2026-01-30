@@ -17,7 +17,12 @@ from .exceptions import AlreadyExistsError
 
 
 class EquipmentConfigService(
-    BaseService[EquipmentConfig, EquipmentConfigCreate, EquipmentConfigUpdate, EquipmentConfigRead]
+    BaseService[
+        EquipmentConfig,
+        EquipmentConfigCreate,
+        EquipmentConfigUpdate,
+        EquipmentConfigRead,
+    ]
 ):
     """Equipment configuration service."""
 
@@ -32,7 +37,10 @@ class EquipmentConfigService(
         self.config_repo = repository
 
     async def _check_unique_constraints(
-        self, data: dict[str, Any], session: AsyncSession, exclude_id: UUID | None = None
+        self,
+        data: dict[str, Any],
+        session: AsyncSession,
+        exclude_id: UUID | None = None,
     ) -> None:
         """Check config name uniqueness."""
         if "name" in data:
@@ -44,12 +52,16 @@ class EquipmentConfigService(
         self, name_pattern: str, session: AsyncSession, skip: int = 0, limit: int = 100
     ) -> list[EquipmentConfigRead]:
         """Search equipment configs by name pattern."""
-        configs = await self.config_repo.search_by_name(name_pattern, session, skip, limit)
+        configs = await self.config_repo.search_by_name(
+            name_pattern, session, skip, limit
+        )
         return [self.read_schema.model_validate(c) for c in configs]
 
     async def get_by_head_type(
         self, head_type: str, session: AsyncSession, skip: int = 0, limit: int = 100
     ) -> list[EquipmentConfigRead]:
         """Get configs by head type."""
-        configs = await self.config_repo.get_by_head_type(head_type, session, skip, limit)
+        configs = await self.config_repo.get_by_head_type(
+            head_type, session, skip, limit
+        )
         return [self.read_schema.model_validate(c) for c in configs]

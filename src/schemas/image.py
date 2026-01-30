@@ -8,7 +8,9 @@ from .base import SchemaBase
 class ExperimentImageBase(SchemaBase):
     experiment_id: UUID = Field(..., description="ID of the related experiment")
     image_data: bytes = Field(..., description="Binary image data")
-    passes: int = Field(0, ge=0, le=1000, description="Number of passes (0 for reference image)")
+    passes: int = Field(
+        0, ge=0, le=1000, description="Number of passes (0 for reference image)"
+    )
 
 
 class ExperimentImageCreate(ExperimentImageBase):

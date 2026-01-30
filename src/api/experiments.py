@@ -122,11 +122,15 @@ async def get_experiments_by_config(
     description="Create a new experiment",
 )
 async def create_experiment(
-    experiment_data: ExperimentCreate, experiment_service: ExperimentSvc, db: MainDBSession
+    experiment_data: ExperimentCreate,
+    experiment_service: ExperimentSvc,
+    db: MainDBSession,
 ):
     """Create a new experiment."""
     experiment = await experiment_service.create(experiment_data, db)
-    return Response(success=True, message="Experiment created successfully", data=experiment)
+    return Response(
+        success=True, message="Experiment created successfully", data=experiment
+    )
 
 
 @router.get(
@@ -135,10 +139,14 @@ async def create_experiment(
     summary="Get experiment by ID",
     description="Retrieve a specific experiment by its ID",
 )
-async def get_experiment(experiment_id: UUID, experiment_service: ExperimentSvc, db: MainDBSession):
+async def get_experiment(
+    experiment_id: UUID, experiment_service: ExperimentSvc, db: MainDBSession
+):
     """Get experiment by ID."""
     experiment = await experiment_service.get_by_id(experiment_id, db)
-    return Response(success=True, message="Experiment retrieved successfully", data=experiment)
+    return Response(
+        success=True, message="Experiment retrieved successfully", data=experiment
+    )
 
 
 @router.get(
@@ -153,7 +161,9 @@ async def get_experiment_with_images(
     """Get experiment with all related images."""
     experiment = await experiment_service.get_with_images(experiment_id, db)
     return Response(
-        success=True, message="Experiment with images retrieved successfully", data=experiment
+        success=True,
+        message="Experiment with images retrieved successfully",
+        data=experiment,
     )
 
 
@@ -171,7 +181,9 @@ async def update_experiment(
 ):
     """Update experiment information."""
     experiment = await experiment_service.update(experiment_id, experiment_data, db)
-    return Response(success=True, message="Experiment updated successfully", data=experiment)
+    return Response(
+        success=True, message="Experiment updated successfully", data=experiment
+    )
 
 
 @router.delete(

@@ -17,7 +17,9 @@ class ScratchAnalysisRequest(BaseModel):
     """Request model for scratch analysis."""
 
     experiment_id: UUID = Field(..., description="Experiment ID")
-    reference_image_id: UUID = Field(..., description="Reference (non-scratched) image ID")
+    reference_image_id: UUID = Field(
+        ..., description="Reference (non-scratched) image ID"
+    )
     scratched_image_ids: list[UUID] = Field(
         ..., min_length=1, description="List of scratched image IDs"
     )
@@ -26,16 +28,24 @@ class ScratchAnalysisRequest(BaseModel):
 class HistogramData(BaseModel):
     """Histogram data model."""
 
-    brightness_level: int = Field(..., ge=0, le=255, description="Brightness level (0-255)")
-    pixel_count: int = Field(..., ge=0, description="Number of pixels at this brightness")
+    brightness_level: int = Field(
+        ..., ge=0, le=255, description="Brightness level (0-255)"
+    )
+    pixel_count: int = Field(
+        ..., ge=0, description="Number of pixels at this brightness"
+    )
 
 
 class ImageAnalysisResult(BaseModel):
     """Single image analysis result."""
 
-    grayscale_shape: tuple[int, int] = Field(..., description="Grayscale image dimensions (H, W)")
+    grayscale_shape: tuple[int, int] = Field(
+        ..., description="Grayscale image dimensions (H, W)"
+    )
     total_pixels: int = Field(..., description="Total number of pixels")
-    brightness_levels_count: int = Field(..., description="Number of unique brightness levels")
+    brightness_levels_count: int = Field(
+        ..., description="Number of unique brightness levels"
+    )
 
 
 class ScratchedImageResult(BaseModel):
@@ -50,17 +60,23 @@ class ScratchedImageResult(BaseModel):
 class ScratchAnalysisSummary(BaseModel):
     """Summary statistics for scratch analysis."""
 
-    average_scratch_index: float = Field(..., description="Average scratch index across all images")
+    average_scratch_index: float = Field(
+        ..., description="Average scratch index across all images"
+    )
     max_scratch_index: float = Field(..., description="Maximum scratch index")
     min_scratch_index: float = Field(..., description="Minimum scratch index")
-    num_scratched_images: int = Field(..., description="Number of analyzed scratched images")
+    num_scratched_images: int = Field(
+        ..., description="Number of analyzed scratched images"
+    )
 
 
 class ScratchAnalysisResponse(BaseModel):
     """Complete scratch analysis response."""
 
     experiment_id: str = Field(..., description="Experiment UUID")
-    reference_image: dict[str, object] = Field(..., description="Reference image analysis")
+    reference_image: dict[str, object] = Field(
+        ..., description="Reference image analysis"
+    )
     scratched_images: list[ScratchedImageResult] = Field(
         ..., description="Scratched images analysis"
     )
@@ -131,11 +147,15 @@ async def analyze_scratch_resistance(
         )
 
         await experiment_service.save_scratch_results(
-            experiment_id=request.experiment_id, scratch_results=scratch_results, session=db
+            experiment_id=request.experiment_id,
+            scratch_results=scratch_results,
+            session=db,
         )
 
     return Response(
-        success=True, message="Scratch resistance analysis completed successfully", data=result
+        success=True,
+        message="Scratch resistance analysis completed successfully",
+        data=result,
     )
 
 
@@ -165,7 +185,9 @@ async def get_image_histogram(
     experiment_repo = ExperimentRepository()
     experiment = await experiment_repo.get_by_id(image.experiment_id, db)
     rect_coords = (
-        experiment.rect_coords if experiment and hasattr(experiment, "rect_coords") else None
+        experiment.rect_coords
+        if experiment and hasattr(experiment, "rect_coords")
+        else None
     )
 
     # Analyze image with ROI cropping if coordinates are available.
@@ -213,7 +235,9 @@ async def quick_experiment_analysis(
     experiment_repo = ExperimentRepository()
     experiment = await experiment_repo.get_by_id(experiment_id, db)
     rect_coords = (
-        experiment.rect_coords if experiment and hasattr(experiment, "rect_coords") else None
+        experiment.rect_coords
+        if experiment and hasattr(experiment, "rect_coords")
+        else None
     )
 
     # Get all images for experiment
@@ -247,5 +271,9 @@ async def quick_experiment_analysis(
     return Response(
         success=True,
         message=f"Analyzed {len(results)} images",
-        data={"experiment_id": str(experiment_id), "images": results, "count": len(results)},
+        data={
+            "experiment_id": str(experiment_id),
+            "images": results,
+            "count": len(results),
+        },
     )

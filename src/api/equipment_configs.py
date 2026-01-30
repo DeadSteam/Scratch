@@ -98,11 +98,15 @@ async def get_configs_by_head_type(
     summary="Get config by ID",
     description="Retrieve a specific equipment configuration by ID",
 )
-async def get_config(config_id: UUID, config_service: EquipmentConfigSvc, db: MainDBSession):
+async def get_config(
+    config_id: UUID, config_service: EquipmentConfigSvc, db: MainDBSession
+):
     """Get equipment configuration by ID."""
     config = await config_service.get_by_id(config_id, db)
     return Response(
-        success=True, message="Equipment configuration retrieved successfully", data=config
+        success=True,
+        message="Equipment configuration retrieved successfully",
+        data=config,
     )
 
 
@@ -114,12 +118,16 @@ async def get_config(config_id: UUID, config_service: EquipmentConfigSvc, db: Ma
     description="Create a new equipment configuration",
 )
 async def create_config(
-    config_data: EquipmentConfigCreate, config_service: EquipmentConfigSvc, db: MainDBSession
+    config_data: EquipmentConfigCreate,
+    config_service: EquipmentConfigSvc,
+    db: MainDBSession,
 ):
     """Create a new equipment configuration."""
     config = await config_service.create(config_data, db)
     return Response(
-        success=True, message="Equipment configuration created successfully", data=config
+        success=True,
+        message="Equipment configuration created successfully",
+        data=config,
     )
 
 
@@ -138,7 +146,9 @@ async def update_config(
     """Update equipment configuration."""
     config = await config_service.update(config_id, config_data, db)
     return Response(
-        success=True, message="Equipment configuration updated successfully", data=config
+        success=True,
+        message="Equipment configuration updated successfully",
+        data=config,
     )
 
 
@@ -148,7 +158,9 @@ async def update_config(
     summary="Delete equipment config",
     description="Permanently delete an equipment configuration",
 )
-async def delete_config(config_id: UUID, config_service: EquipmentConfigSvc, db: MainDBSession):
+async def delete_config(
+    config_id: UUID, config_service: EquipmentConfigSvc, db: MainDBSession
+):
     """Delete equipment configuration."""
     await config_service.delete(config_id, db)
     return None

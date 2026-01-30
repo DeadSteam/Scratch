@@ -47,7 +47,9 @@ async def register(user_data: UserCreate, user_service: UserSvc, db: UsersDBSess
 )
 async def login(credentials: LoginRequest, user_service: UserSvc, db: UsersDBSession):
     """Authenticate user and return JWT tokens."""
-    auth_result = await user_service.authenticate(credentials.username, credentials.password, db)
+    auth_result = await user_service.authenticate(
+        credentials.username, credentials.password, db
+    )
 
     token_response = TokenResponse(**auth_result)
 

@@ -14,7 +14,11 @@ class ExperimentImageRepository(CachedRepositoryImpl[ExperimentImage]):
         super().__init__(ExperimentImage)
 
     async def get_by_experiment_id(
-        self, experiment_id: UUID, session: AsyncSession, skip: int = 0, limit: int = 100
+        self,
+        experiment_id: UUID,
+        session: AsyncSession,
+        skip: int = 0,
+        limit: int = 100,
     ) -> list[ExperimentImage]:
         """Get images by experiment ID."""
         result = await session.execute(
@@ -25,11 +29,15 @@ class ExperimentImageRepository(CachedRepositoryImpl[ExperimentImage]):
         )
         return list(result.scalars().all())
 
-    async def delete_by_experiment_id(self, experiment_id: UUID, session: AsyncSession) -> int:
+    async def delete_by_experiment_id(
+        self, experiment_id: UUID, session: AsyncSession
+    ) -> int:
         """Delete all images for an experiment."""
         from sqlalchemy import delete
 
-        stmt = delete(ExperimentImage).where(ExperimentImage.experiment_id == experiment_id)
+        stmt = delete(ExperimentImage).where(
+            ExperimentImage.experiment_id == experiment_id
+        )
         result = await session.execute(stmt)
         await session.commit()
         return result.rowcount

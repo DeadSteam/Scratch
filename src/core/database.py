@@ -78,7 +78,9 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
 
 async def get_users_db_session() -> AsyncGenerator[AsyncSession, None]:
     """Dependency to get users database session."""
-    logger.info(f"DEBUG: Creating users_db session with URL: {settings.USERS_DATABASE_URL}")
+    logger.info(
+        f"DEBUG: Creating users_db session with URL: {settings.USERS_DATABASE_URL}"
+    )
     async with UsersSessionLocal() as session:
         try:
             yield session

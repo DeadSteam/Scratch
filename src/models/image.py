@@ -25,7 +25,9 @@ class ExperimentImage(UUIDBase):
     __tablename__ = "experiment_images"
 
     experiment_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("experiments.id", ondelete="CASCADE"), nullable=False
+        UUID(as_uuid=True),
+        ForeignKey("experiments.id", ondelete="CASCADE"),
+        nullable=False,
     )
 
     image_data: Mapped[bytes] = mapped_column(

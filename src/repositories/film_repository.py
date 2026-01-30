@@ -21,6 +21,9 @@ class FilmRepository(CachedRepositoryImpl[Film]):
     ) -> list[Film]:
         """Search films by name pattern."""
         result = await session.execute(
-            select(Film).where(Film.name.ilike(f"%{name_pattern}%")).offset(skip).limit(limit)
+            select(Film)
+            .where(Film.name.ilike(f"%{name_pattern}%"))
+            .offset(skip)
+            .limit(limit)
         )
         return list(result.scalars().all())

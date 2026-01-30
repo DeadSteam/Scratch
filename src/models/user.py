@@ -15,7 +15,9 @@ user_roles = Table(
 class Role(UUIDBase):
     __tablename__ = "roles"
 
-    name: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
+    name: Mapped[str] = mapped_column(
+        String(50), unique=True, nullable=False, index=True
+    )
 
     # связь с User через ассоциативную таблицу
     users: Mapped[list["User"]] = relationship(
@@ -32,8 +34,12 @@ class Role(UUIDBase):
 class User(UUIDBase):
     __tablename__ = "users"
 
-    username: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
-    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
+    username: Mapped[str] = mapped_column(
+        String(50), unique=True, nullable=False, index=True
+    )
+    email: Mapped[str] = mapped_column(
+        String(255), unique=True, nullable=False, index=True
+    )
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 

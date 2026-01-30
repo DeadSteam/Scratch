@@ -28,7 +28,9 @@ class ExperimentRepository(
         # Re-fetch with relationships loaded
         return await self.get_by_id_with_relations(new_id, session)
 
-    async def get_by_id_with_relations(self, id: UUID, session: AsyncSession) -> Experiment | None:
+    async def get_by_id_with_relations(
+        self, id: UUID, session: AsyncSession
+    ) -> Experiment | None:
         """Get experiment by ID with film and config relationships loaded."""
         result = await session.execute(
             select(Experiment)
@@ -76,7 +78,9 @@ class ExperimentRepository(
         )
         return list(result.scalars().all())
 
-    async def get_with_images(self, id: UUID, session: AsyncSession) -> Experiment | None:
+    async def get_with_images(
+        self, id: UUID, session: AsyncSession
+    ) -> Experiment | None:
         """Get experiment with related images, film, and config."""
         result = await session.execute(
             select(Experiment)
@@ -118,7 +122,8 @@ class ExperimentRepository(
         if experiments:
             # Cache the experiments
             experiments_dict = [
-                {c.name: getattr(exp, c.name) for c in exp.__table__.columns} for exp in experiments
+                {c.name: getattr(exp, c.name) for c in exp.__table__.columns}
+                for exp in experiments
             ]
             await redis_client.set(cache_key, experiments_dict)
 

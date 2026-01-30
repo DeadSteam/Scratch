@@ -25,7 +25,9 @@ class KnowledgeRepositoryBase(Generic[T]):
         result = await session.execute(select(self.model).where(self.pk_column == id))
         return result.scalar_one_or_none()
 
-    async def get_all(self, session: AsyncSession, skip: int = 0, limit: int = 100) -> list[T]:
+    async def get_all(
+        self, session: AsyncSession, skip: int = 0, limit: int = 100
+    ) -> list[T]:
         result = await session.execute(
             select(self.model).order_by(self.pk_column).offset(skip).limit(limit)
         )
@@ -38,7 +40,9 @@ class KnowledgeRepositoryBase(Generic[T]):
         row = result.one()
         return self.model(**row._mapping)
 
-    async def update(self, id: UUID, data: dict[str, Any], session: AsyncSession) -> T | None:
+    async def update(
+        self, id: UUID, data: dict[str, Any], session: AsyncSession
+    ) -> T | None:
         stmt = (
             update(self.model)
             .where(self.pk_column == id)
@@ -57,5 +61,7 @@ class KnowledgeRepositoryBase(Generic[T]):
         return result.rowcount > 0
 
     async def exists(self, id: UUID, session: AsyncSession) -> bool:
-        result = await session.execute(select(self.pk_column).where(self.pk_column == id))
+        result = await session.execute(
+            select(self.pk_column).where(self.pk_column == id)
+        )
         return result.scalar_one_or_none() is not None

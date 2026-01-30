@@ -6,9 +6,15 @@ from .base import SchemaBase
 
 
 class EquipmentConfigBase(SchemaBase):
-    name: str = Field(..., min_length=1, max_length=100, description="Equipment configuration name")
-    head_type: str | None = Field(None, max_length=100, description="Type of equipment head")
-    description: str | None = Field(None, description="Detailed description of the configuration")
+    name: str = Field(
+        ..., min_length=1, max_length=100, description="Equipment configuration name"
+    )
+    head_type: str | None = Field(
+        None, max_length=100, description="Type of equipment head"
+    )
+    description: str | None = Field(
+        None, description="Detailed description of the configuration"
+    )
 
 
 class EquipmentConfigCreate(EquipmentConfigBase):

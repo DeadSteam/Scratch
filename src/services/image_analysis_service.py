@@ -115,7 +115,9 @@ class ImageAnalysisService:
             # Try to import PIL for image loading
             from PIL import Image
         except ImportError:
-            raise ServiceValidationError("PIL (Pillow) is required for image processing") from None
+            raise ServiceValidationError(
+                "PIL (Pillow) is required for image processing"
+            ) from None
 
         # Load image from bytes
         image = Image.open(BytesIO(image_data))
@@ -159,7 +161,9 @@ class ImageAnalysisService:
             total_pixels = 1  # avoid division by zero
 
         if histogram:
-            dominant_brightness, dominant_count = max(histogram.items(), key=lambda item: item[1])
+            dominant_brightness, dominant_count = max(
+                histogram.items(), key=lambda item: item[1]
+            )
         else:
             dominant_brightness, dominant_count = 0, 0
 
@@ -203,7 +207,9 @@ class ImageAnalysisService:
             raise NotFoundError("Experiment", experiment_id)
 
         # Get ROI coordinates from experiment (rect_coords: [x, y, width, height])
-        rect_coords = experiment.rect_coords if hasattr(experiment, "rect_coords") else None
+        rect_coords = (
+            experiment.rect_coords if hasattr(experiment, "rect_coords") else None
+        )
 
         # Get reference image
         reference_image = await self.image_repo.get_by_id(reference_image_id, session)
@@ -211,7 +217,9 @@ class ImageAnalysisService:
             raise NotFoundError("ExperimentImage", reference_image_id)
 
         if reference_image.experiment_id != experiment_id:
-            raise ServiceValidationError("Reference image does not belong to this experiment")
+            raise ServiceValidationError(
+                "Reference image does not belong to this experiment"
+            )
 
         # Analyze reference image with ROI cropping
         reference_analysis = self.analyze_image(reference_image.image_data, rect_coords)
@@ -232,7 +240,9 @@ class ImageAnalysisService:
                 )
 
             # Analyze scratched image with ROI cropping (same coordinates for all images)
-            scratched_analysis = self.analyze_image(scratched_image.image_data, rect_coords)
+            scratched_analysis = self.analyze_image(
+                scratched_image.image_data, rect_coords
+            )
 
             # Calculate scratch index for this scratched image
             # Using pixel ratio (count_q / total_pixels) instead of absolute count

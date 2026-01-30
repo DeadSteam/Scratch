@@ -5,11 +5,11 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .exceptions import NotFoundError
+from .knowledge_service_base import KnowledgeServiceBase
 from ..repositories.cause_repository import CauseRepository
 from ..repositories.situation_repository import SituationRepository
 from ..schemas.cause import CauseCreate, CauseRead, CauseUpdate
-from .exceptions import NotFoundError
-from .knowledge_service_base import KnowledgeServiceBase
 
 
 class CauseService(KnowledgeServiceBase[object, CauseCreate, CauseUpdate, CauseRead]):
@@ -34,7 +34,9 @@ class CauseService(KnowledgeServiceBase[object, CauseCreate, CauseUpdate, CauseR
         exclude_id: UUID | None = None,
     ) -> None:
         situation_id = data.get("situation_id")
-        if situation_id is not None and not await self.situation_repo.exists(situation_id, session):
+        if situation_id is not None and not await self.situation_repo.exists(
+            situation_id, session
+        ):
             raise NotFoundError("Situation", situation_id)
 
     async def get_by_situation_id(
@@ -46,5 +48,7 @@ class CauseService(KnowledgeServiceBase[object, CauseCreate, CauseUpdate, CauseR
     ) -> list[CauseRead]:
         if not await self.situation_repo.exists(situation_id, session):
             raise NotFoundError("Situation", situation_id)
-        causes = await self.repository.get_by_situation_id(situation_id, session, skip, limit)
+        causes = await self.repository.get_by_situation_id(
+            situation_id, session, skip, limit
+        )
         return [self.read_schema.model_validate(c) for c in causes]
