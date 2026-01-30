@@ -1,11 +1,33 @@
+[project]
+name = "scratch"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "asyncpg>=0.28.0",
+    "email-validator>=2.0",
+    "fastapi>=0.109.0",
+    "numpy>=1.24.0",
+    "bcrypt>=4.0",
+    "pillow>=10.0",
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0",
+    "python-jose[cryptography]>=3.3",
+    "python-multipart>=0.0.6",
+    "redis>=5.0",
+    "sqlalchemy[asyncio]>=2.0",
+    "uvicorn[standard]>=0.27.0",
+]
+
 [tool.black]
-line-length = 100
-target-version = ["py311"]
+line-length = 88
+target-version = ["py313"]
 
 [tool.ruff]
 line-length = 100
 fix = true
-target-version = "py311"
+target-version = "py313"
 
 [tool.ruff.lint]
 select = [
@@ -23,7 +45,7 @@ ignore = [
 ]
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.13"
 strict = true
 warn_unused_configs = true
 disallow_untyped_defs = true
