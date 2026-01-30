@@ -47,9 +47,7 @@ class ExperimentCreate(ExperimentBase):
         """Validate rectangle coordinates have correct format."""
         if v is not None:
             if len(v) != 4:
-                raise ValueError(
-                    "Rectangle coordinates must contain exactly 4 values: [x, y, width, height]"
-                )
+                raise ValueError("Rectangle must have 4 values: [x, y, width, height]")
             if any(coord < 0 for coord in v):
                 raise ValueError("Rectangle coordinates must be non-negative")
         return v

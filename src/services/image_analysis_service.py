@@ -40,12 +40,12 @@ class ImageAnalysisService:
             raise ServiceValidationError("Image must be RGB format (H, W, 3)")
 
         # Extract RGB channels
-        R = image_array[:, :, 0].astype(np.float32)
-        G = image_array[:, :, 1].astype(np.float32)
-        B = image_array[:, :, 2].astype(np.float32)
+        r = image_array[:, :, 0].astype(np.float32)
+        g = image_array[:, :, 1].astype(np.float32)
+        b = image_array[:, :, 2].astype(np.float32)
 
         # Apply grayscale formula
-        grayscale = 0.3 * R + 0.59 * G + 0.11 * B
+        grayscale = 0.3 * r + 0.59 * g + 0.11 * b
 
         return cast(NDArray[np.uint8], grayscale.astype(np.uint8))
 
@@ -78,8 +78,8 @@ class ImageAnalysisService:
         Args:
             histogram: Brightness histogram for a single image
             total_pixels: Total number of pixels in the analyzed region (ROI)
-            weights: Custom weights for each brightness level (0-255)
-                    If None, weights are calculated as q/255 (closer to white = higher weight)
+            weights: Custom weights per brightness (0-255).
+                    If None, use q/255 (whiter = higher weight).
 
         Returns:
             Scratch index value (normalized ratio, independent of ROI size)
@@ -106,7 +106,7 @@ class ImageAnalysisService:
 
         Args:
             image_data: Raw image bytes
-            rect_coords: Optional ROI coordinates [x, y, width, height] to crop image before analysis
+            rect_coords: Optional ROI [x, y, width, height] to crop before analysis
 
         Returns:
             Analysis results with grayscale data, histogram, and statistics
@@ -239,7 +239,7 @@ class ImageAnalysisService:
                     f"Image {scratched_id} does not belong to this experiment"
                 )
 
-            # Analyze scratched image with ROI cropping (same coordinates for all images)
+            # Analyze scratched image with ROI (same coords for all images)
             scratched_analysis = self.analyze_image(
                 scratched_image.image_data, rect_coords
             )
@@ -261,8 +261,8 @@ class ImageAnalysisService:
 
             scratch_indices.append(scratch_index)
 
-        # Calculate scratch index for reference image (по тому же принципу, без сравнения)
-        # Using pixel ratio (count_q / total_pixels) instead of absolute count
+        # Scratch index for reference image (same formula, no comparison).
+        # Uses pixel ratio (count_q / total_pixels).
         reference_scratch_index = self.calculate_scratch_index(
             reference_analysis["histogram"], reference_analysis["total_pixels"]
         )

@@ -25,7 +25,7 @@ class EquipmentConfig(UUIDBase):
     head_type: Mapped[str | None] = mapped_column(String(100))
     description: Mapped[str | None] = mapped_column(Text)
 
-    # связь с экспериментами
+    # relation to experiments
     experiments: Mapped[list[Experiment]] = relationship(
         back_populates="config", cascade="all, delete-orphan"
     )

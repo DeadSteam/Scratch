@@ -163,7 +163,7 @@ async def analyze_scratch_resistance(
     "/histogram/{image_id}",
     response_model=Response[dict[str, Any]],
     summary="Get image histogram",
-    description="Get brightness histogram for a specific image (uses ROI coordinates from experiment if available)",
+    description="Get brightness histogram for image (uses experiment ROI if available)",
 )
 async def get_image_histogram(
     image_id: UUID, analysis_service: ImageAnalysisSvc, db: MainDBSession
@@ -191,8 +191,7 @@ async def get_image_histogram(
     )
 
     # Analyze image with ROI cropping if coordinates are available.
-    # Если ROI выходит за границы конкретного изображения (например, старые фото
-    # другого размера), не падаем с ошибкой, а анализируем всё изображение.
+    # If ROI is out of bounds for this image (e.g. old photo size), use full image.
     try:
         analysis = analysis_service.analyze_image(image.image_data, rect_coords)
     except ServiceValidationError:
@@ -218,7 +217,7 @@ async def get_image_histogram(
     "/experiment/{experiment_id}/quick-analysis",
     response_model=Response[dict[str, Any]],
     summary="Quick analysis of all experiment images",
-    description="Analyze all images in an experiment (simple statistics, uses ROI coordinates if available)",
+    description="Analyze all experiment images (simple stats, uses ROI if available)",
 )
 async def quick_experiment_analysis(
     experiment_id: UUID,

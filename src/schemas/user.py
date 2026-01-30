@@ -1,3 +1,4 @@
+from typing import ClassVar
 from uuid import UUID
 
 from pydantic import EmailStr, Field, field_validator
@@ -85,6 +86,6 @@ class UserUpdate(SchemaBase):
 
 class UserRead(UserBase):
     id: UUID
-    roles: list[RoleRead] = []
+    roles: list[RoleRead] = Field(default_factory=list)
 
-    model_config = {"from_attributes": True}
+    model_config: ClassVar[dict] = {"from_attributes": True}

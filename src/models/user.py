@@ -19,7 +19,7 @@ class Role(UUIDBase):
         String(50), unique=True, nullable=False, index=True
     )
 
-    # связь с User через ассоциативную таблицу
+    # relation to User via association table
     users: Mapped[list["User"]] = relationship(
         secondary=user_roles,
         back_populates="roles",
@@ -47,4 +47,4 @@ class User(UUIDBase):
         secondary=user_roles, back_populates="users", lazy="selectin"
     )
 
-    # Note: No experiments relationship - experiments are in a separate database (experiments_db)
+    # Note: No experiments relation; experiments live in experiments_db

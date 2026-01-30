@@ -18,19 +18,20 @@ dependencies = [
     "redis>=5.0",
     "sqlalchemy[asyncio]>=2.0",
     "uvicorn[standard]>=0.27.0",
+    "ruff>=0.14.14",
+    "ty>=0.0.14",
 ]
 
-[tool.black]
-line-length = 88
-target-version = ["py313"]
-
 [tool.ruff]
-line-length = 100
+line-length = 88
 fix = true
 target-version = "py313"
 
 [tool.ruff.lint]
 select = [
+    "N", # pyupgrade
+    "C4", # flake8-bugbear
+    "RUF", # Ruff-specific rules
     "E", # ошибки стиля (pycodestyle)
     "F", # логические ошибки (pyflakes)
     "B", # баг-паттерны (bugbear)
@@ -39,22 +40,32 @@ select = [
     "SIM", # упрощения
     "PERF", # производительность
 ]
+
 ignore = [
-    "E501", # длину строки контролирует black
     "B008", # Depends/Query/File в FastAPI — намеренное использование
 ]
 
-[tool.mypy]
-python_version = "3.13"
-strict = true
-warn_unused_configs = true
-disallow_untyped_defs = true
-check_untyped_defs = true
-ignore_missing_imports = true
-no_implicit_optional = true
-show_error_codes = true
-pretty = true
+[tool.ty.environment]
+# Use project root so "src" is the top-level package and ..core etc. resolve.
+root = ["."]
 
-[[tool.mypy.overrides]]
-module = ["api.*", "src.api.*"]
-disable_error_code = ["no-untyped-def"]
+[tool.ty.analysis]
+allowed-unresolved-imports = []
+
+# Relax strict checks for Starlette/FastAPI app wiring and generic services
+[[tool.ty.overrides]]
+include = ["src/main.py"]
+[tool.ty.overrides.rules]
+invalid-argument-type = "ignore"
+
+[[tool.ty.overrides]]
+include = ["src/repositories/**", "src/services/base.py", "src/services/knowledge_service_base.py", "src/services/advice_service.py", "src/services/cause_service.py"]
+[tool.ty.overrides.rules]
+# Generic T/ReadSchema bounds (DeclarativeBase, SchemaBase) have these attributes at runtime
+possibly-missing-attribute = "ignore"
+unresolved-attribute = "warn"
+invalid-return-type = "error"
+
+[tool.lint.isort]
+known-first-party = ["scratch", "src"]
+

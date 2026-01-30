@@ -7,16 +7,16 @@ from .knowledge import Advice, Cause, Situation
 from .user import Role, User, user_roles
 
 __all__ = [
+    "Advice",
     "Base",
-    "UUIDBase",
-    "User",
-    "Role",
-    "user_roles",
-    "Film",
+    "Cause",
     "EquipmentConfig",
     "Experiment",
     "ExperimentImage",
+    "Film",
+    "Role",
     "Situation",
-    "Cause",
-    "Advice",
+    "UUIDBase",
+    "User",
+    "user_roles",
 ]

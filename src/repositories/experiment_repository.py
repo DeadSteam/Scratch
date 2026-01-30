@@ -26,7 +26,10 @@ class ExperimentRepository(
         new_id = result.scalar_one()
 
         # Re-fetch with relationships loaded
-        return await self.get_by_id_with_relations(new_id, session)
+        exp = await self.get_by_id_with_relations(new_id, session)
+        if exp is None:
+            raise RuntimeError("Created experiment not found")
+        return exp
 
     async def get_by_id_with_relations(
         self, id: UUID, session: AsyncSession

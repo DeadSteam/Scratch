@@ -30,19 +30,19 @@ from .redis import get_redis_client
 
 
 # Database dependencies
-async def get_main_db() -> AsyncGenerator[AsyncSession, None]:
+async def get_main_db() -> AsyncGenerator[AsyncSession]:
     """Get main database session."""
     async for session in get_db_session():
         yield session
 
 
-async def get_users_db() -> AsyncGenerator[AsyncSession, None]:
+async def get_users_db() -> AsyncGenerator[AsyncSession]:
     """Get users database session."""
     async for session in get_users_db_session():
         yield session
 
 
-async def get_knowledge_db() -> AsyncGenerator[AsyncSession, None]:
+async def get_knowledge_db() -> AsyncGenerator[AsyncSession]:
     """Get knowledge base database session."""
     async for session in get_knowledge_db_session():
         yield session

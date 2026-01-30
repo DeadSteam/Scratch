@@ -1,16 +1,17 @@
 """Base repository for knowledge base entities (UUID PK)."""
 
-from typing import Any, Generic, TypeVar
+from typing import Any, TypeVar, cast
 from uuid import UUID
 
 from sqlalchemy import delete, insert, select, update
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import DeclarativeBase
 
 T = TypeVar("T", bound=DeclarativeBase)
 
 
-class KnowledgeRepositoryBase(Generic[T]):
+class KnowledgeRepositoryBase[T]:
     """Base repository for Situation, Cause, Advice (UUID PK, no Redis)."""
 
     def __init__(self, model: type[T], pk_name: str):
@@ -58,7 +59,7 @@ class KnowledgeRepositoryBase(Generic[T]):
         stmt = delete(self.model).where(self.pk_column == id)
         result = await session.execute(stmt)
         await session.commit()
-        return result.rowcount > 0
+        return cast(CursorResult[Any], result).rowcount > 0
 
     async def exists(self, id: UUID, session: AsyncSession) -> bool:
         result = await session.execute(

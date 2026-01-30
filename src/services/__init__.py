@@ -10,7 +10,7 @@ from .exceptions import (
     AuthorizationError,
     ConflictError,
     NotFoundError,
-    ServiceException,
+    ServiceError,
     ValidationError,
 )
 from .experiment_image_service import ExperimentImageService
@@ -20,23 +20,20 @@ from .situation_service import SituationService
 from .user_service import UserService
 
 __all__ = [
-    # Exceptions
-    "ServiceException",
-    "NotFoundError",
+    "AdviceService",
     "AlreadyExistsError",
     "AuthenticationError",
     "AuthorizationError",
-    "ValidationError",
-    "ConflictError",
-    # Base
     "BaseService",
-    # Services
-    "UserService",
-    "FilmService",
-    "EquipmentConfigService",
-    "ExperimentService",
-    "ExperimentImageService",
-    "SituationService",
     "CauseService",
-    "AdviceService",
+    "ConflictError",
+    "EquipmentConfigService",
+    "ExperimentImageService",
+    "ExperimentService",
+    "FilmService",
+    "NotFoundError",
+    "ServiceError",
+    "SituationService",
+    "UserService",
+    "ValidationError",
 ]

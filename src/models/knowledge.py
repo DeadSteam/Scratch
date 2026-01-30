@@ -10,7 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..core.database import Base
 
 
-class Situation(Base):  # type: ignore[misc]
+class Situation(Base):
     """Ситуации (родительская таблица для cause)."""
 
     __tablename__ = "situation"
@@ -29,7 +29,7 @@ class Situation(Base):  # type: ignore[misc]
     )
 
 
-class Cause(Base):  # type: ignore[misc]
+class Cause(Base):
     """Причины (родитель для advice, дочерняя для situation)."""
 
     __tablename__ = "cause"
@@ -51,7 +51,7 @@ class Cause(Base):  # type: ignore[misc]
     )
 
 
-class Advice(Base):  # type: ignore[misc]
+class Advice(Base):
     """Рекомендации (дочерняя таблица для cause)."""
 
     __tablename__ = "advice"

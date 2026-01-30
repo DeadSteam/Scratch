@@ -6,8 +6,6 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .base import BaseService
-from .exceptions import AlreadyExistsError, AuthenticationError, NotFoundError
 from ..core.security import (
     create_access_token,
     create_refresh_token,
@@ -17,6 +15,8 @@ from ..core.security import (
 from ..models.user import User
 from ..repositories.user_repository import UserRepository
 from ..schemas.user import UserCreate, UserRead, UserUpdate
+from .base import BaseService
+from .exceptions import AlreadyExistsError, AuthenticationError, NotFoundError
 
 logger = logging.getLogger(__name__)
 
@@ -90,7 +90,7 @@ class UserService(BaseService[User, UserCreate, UserUpdate, UserRead]):
     ) -> dict[str, Any]:
         """Authenticate user and return tokens."""
         logger.info(
-            f"DEBUG: authenticate() called with username='{username}', password length={len(password)}"
+            "authenticate() username=%r password_len=%d", username, len(password)
         )
         # Get user by username
         user = await self.user_repo.get_by_username(username, session)

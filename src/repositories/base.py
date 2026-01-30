@@ -1,7 +1,8 @@
-from typing import Any, Generic, TypeVar
+from typing import Any, TypeVar, cast
 from uuid import UUID
 
 from sqlalchemy import delete, insert, select, update
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import DeclarativeBase
 
@@ -11,7 +12,7 @@ from .interfaces import BaseRepository
 T = TypeVar("T", bound=DeclarativeBase)
 
 
-class BaseRepositoryImpl(BaseRepository[T], Generic[T]):
+class BaseRepositoryImpl[T](BaseRepository[T]):
     """Base repository implementation with common CRUD operations."""
 
     def __init__(self, model: type[T]) -> None:
@@ -73,7 +74,7 @@ class BaseRepositoryImpl(BaseRepository[T], Generic[T]):
         stmt = delete(self.model).where(pk == id)
         result = await session.execute(stmt)
         await session.commit()
-        return result.rowcount > 0
+        return cast(CursorResult[Any], result).rowcount > 0
 
     async def exists(self, id: UUID, session: AsyncSession) -> bool:
         """Check if entity exists by ID."""
@@ -88,7 +89,7 @@ class BaseRepositoryImpl(BaseRepository[T], Generic[T]):
         return len(result.scalars().all())
 
 
-class CachedRepositoryImpl(BaseRepositoryImpl[T], Generic[T]):
+class CachedRepositoryImpl[T](BaseRepositoryImpl[T]):
     """Repository implementation with Redis caching."""
 
     async def get_by_id_cached(self, id: UUID, session: AsyncSession) -> T | None:
@@ -105,10 +106,13 @@ class CachedRepositoryImpl(BaseRepositoryImpl[T], Generic[T]):
         # Get from database
         entity = await self.get_by_id(id, session)
         if entity:
-            # Cache the entity
-            entity_dict = {
-                c.name: getattr(entity, c.name) for c in entity.__table__.columns
-            }
+            # Cache the entity (DeclarativeBase instances have __table__)
+            table = getattr(entity, "__table__", None)
+            entity_dict = (
+                {c.name: getattr(entity, c.name) for c in table.columns}
+                if table is not None
+                else {}
+            )
             await redis_client.set(cache_key, entity_dict)
 
         return entity
@@ -128,11 +132,15 @@ class CachedRepositoryImpl(BaseRepositoryImpl[T], Generic[T]):
         # Get from database
         entities = await self.get_all(session, skip, limit)
         if entities:
-            # Cache the entities
-            entities_dict = [
-                {c.name: getattr(entity, c.name) for c in entity.__table__.columns}
-                for entity in entities
-            ]
+            # Cache the entities (DeclarativeBase instances have __table__)
+            entities_dict = []
+            for entity in entities:
+                table = getattr(entity, "__table__", None)
+                entities_dict.append(
+                    {c.name: getattr(entity, c.name) for c in table.columns}
+                    if table is not None
+                    else {}
+                )
             await redis_client.set(cache_key, entities_dict)
 
         return entities

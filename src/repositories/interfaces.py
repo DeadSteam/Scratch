@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Generic, TypeVar
+from typing import Any, TypeVar
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 T = TypeVar("T")
 
 
-class BaseRepository(ABC, Generic[T]):
+class BaseRepository[T](ABC):
     """Base repository interface following Repository pattern."""
 
     @abstractmethod

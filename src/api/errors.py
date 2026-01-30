@@ -10,14 +10,14 @@ from ..services.exceptions import (
     AuthorizationError,
     ConflictError,
     NotFoundError,
-    ServiceException,
+    ServiceError,
     ValidationError,
 )
 from .responses import ErrorDetail, ErrorResponse
 
 
 async def service_exception_handler(
-    request: Request, exc: ServiceException
+    request: Request, exc: ServiceError
 ) -> JSONResponse:
     """Handle service layer exceptions."""
     status_code = status.HTTP_500_INTERNAL_SERVER_ERROR

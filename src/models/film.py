@@ -25,7 +25,7 @@ class Film(UUIDBase):
     coating_name: Mapped[str | None] = mapped_column(String(100))
     coating_thickness: Mapped[float | None] = mapped_column(Float)
 
-    # связь с экспериментами
+    # relation to experiments
     experiments: Mapped[list[Experiment]] = relationship(
         back_populates="film", cascade="all, delete-orphan"
     )

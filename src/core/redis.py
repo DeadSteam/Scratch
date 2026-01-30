@@ -14,14 +14,14 @@ from .config import settings
 class CustomJSONEncoder(json.JSONEncoder):
     """Custom JSON encoder for handling UUID and datetime objects."""
 
-    def default(self, obj: Any) -> Any:
-        if isinstance(obj, uuid.UUID):
-            return str(obj)
-        elif isinstance(obj, (datetime.datetime, datetime.date)):
-            return obj.isoformat()
-        elif isinstance(obj, datetime.timedelta):
-            return obj.total_seconds()
-        return super().default(obj)
+    def default(self, o: Any) -> Any:
+        if isinstance(o, uuid.UUID):
+            return str(o)
+        elif isinstance(o, (datetime.datetime, datetime.date)):
+            return o.isoformat()
+        elif isinstance(o, datetime.timedelta):
+            return o.total_seconds()
+        return super().default(o)
 
 
 # Regex for ISO date format detection
@@ -56,7 +56,7 @@ class RedisClient:
     def __init__(
         self, url: str, encoding: str = "utf-8", decode_responses: bool = True
     ) -> None:
-        self.client = aioredis.from_url(  # type: ignore[no-untyped-call]
+        self.client = aioredis.from_url(
             url,
             encoding=encoding,
             decode_responses=decode_responses,
@@ -141,7 +141,7 @@ async def close_redis_connection() -> None:
 
 
 @asynccontextmanager
-async def redis_transaction() -> AsyncGenerator["RedisClient", None]:
+async def redis_transaction() -> AsyncGenerator["RedisClient"]:
     """Context manager for Redis operations."""
     client = await get_redis_client()
     try:

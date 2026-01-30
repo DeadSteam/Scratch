@@ -61,8 +61,7 @@ class ExperimentService(
         self, data: ExperimentCreate, session: AsyncSession
     ) -> ExperimentRead:
         """Create experiment with validation of foreign keys."""
-        # Note: We don't validate user exists because users are in a different database (users_db)
-        # The user_id is verified by the JWT authentication middleware
+        # User is in users_db; user_id is verified by JWT.
 
         # Validate film exists
         if not await self.film_repo.exists(data.film_id, session):
@@ -79,7 +78,7 @@ class ExperimentService(
         self, entity_id: UUID, data: ExperimentUpdate, session: AsyncSession
     ) -> ExperimentRead:
         """Update experiment with validation of foreign keys."""
-        # Note: We don't validate user_id because users are in a different database (users_db)
+        # User is in users_db; we don't validate user_id here.
 
         # Validate foreign keys if provided
         if data.film_id and not await self.film_repo.exists(data.film_id, session):
@@ -122,13 +121,12 @@ class ExperimentService(
         self, user_id: UUID, session: AsyncSession, skip: int = 0, limit: int = 100
     ) -> list[ExperimentRead]:
         """Get experiments by user ID."""
-        # Note: We don't validate user exists here because users are in a different database (users_db)
-        # If user doesn't exist, we'll just return an empty list of experiments
+        # User is in users_db; if missing we just return [].
         try:
             experiments = await self.experiment_repo.get_by_user_id(
                 user_id, session, skip, limit
             )
-            # Convert to read schema, handling cases where related objects might not be loaded
+            # Convert to read schema; relations may be unloaded
             result = []
             for exp in experiments:
                 try:

@@ -119,7 +119,7 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     """Get cached settings instance. Loads from env via pydantic-settings."""
-    return Settings()  # type: ignore[call-arg]
+    return Settings()
 
 
 # Global settings instance

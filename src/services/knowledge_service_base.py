@@ -1,8 +1,9 @@
 """Base service for knowledge base entities (UUID)."""
 
-from typing import Any, Generic, TypeVar, cast
+from typing import Any, TypeVar, cast
 from uuid import UUID
 
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..repositories.knowledge_repository_base import KnowledgeRepositoryBase
@@ -15,7 +16,7 @@ UpdateSchema = TypeVar("UpdateSchema", bound=SchemaBase)
 ReadSchema = TypeVar("ReadSchema", bound=SchemaBase)
 
 
-class KnowledgeServiceBase(Generic[T, CreateSchema, UpdateSchema, ReadSchema]):
+class KnowledgeServiceBase[T, CreateSchema, UpdateSchema, ReadSchema]:
     """Base service for Situation, Cause, Advice (UUID PK)."""
 
     def __init__(
@@ -45,7 +46,7 @@ class KnowledgeServiceBase(Generic[T, CreateSchema, UpdateSchema, ReadSchema]):
         return [self.read_schema.model_validate(e) for e in entities]
 
     async def create(self, data: CreateSchema, session: AsyncSession) -> ReadSchema:
-        entity_data = data.model_dump(exclude_unset=True)
+        entity_data = cast(BaseModel, data).model_dump(exclude_unset=True)
         await self._check_constraints(entity_data, session)
         entity = await self.repository.create(entity_data, session)
         return cast(ReadSchema, self.read_schema.model_validate(entity))
@@ -55,7 +56,7 @@ class KnowledgeServiceBase(Generic[T, CreateSchema, UpdateSchema, ReadSchema]):
     ) -> ReadSchema:
         if not await self.repository.exists(entity_id, session):
             raise NotFoundError(self.entity_name, entity_id)
-        entity_data = data.model_dump(exclude_unset=True)
+        entity_data = cast(BaseModel, data).model_dump(exclude_unset=True)
         if not entity_data:
             return await self.get_by_id(entity_id, session)
         await self._check_constraints(entity_data, session, entity_id)

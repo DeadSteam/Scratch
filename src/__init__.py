@@ -1,0 +1,1 @@
+"""Scratch application package."""

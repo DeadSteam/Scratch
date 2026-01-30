@@ -4,7 +4,7 @@ from typing import Any
 from uuid import UUID
 
 
-class ServiceException(Exception):
+class ServiceError(Exception):
     """Base exception for service layer."""
 
     def __init__(self, message: str, details: dict[str, Any] | None = None):
@@ -13,7 +13,7 @@ class ServiceException(Exception):
         super().__init__(self.message)
 
 
-class NotFoundError(ServiceException):
+class NotFoundError(ServiceError):
     """Entity not found exception."""
 
     def __init__(self, entity_name: str, entity_id: UUID):
@@ -21,7 +21,7 @@ class NotFoundError(ServiceException):
         super().__init__(message, {"entity": entity_name, "id": str(entity_id)})
 
 
-class AlreadyExistsError(ServiceException):
+class AlreadyExistsError(ServiceError):
     """Entity already exists exception."""
 
     def __init__(self, entity_name: str, field: str, value: Any):
@@ -31,21 +31,21 @@ class AlreadyExistsError(ServiceException):
         )
 
 
-class AuthenticationError(ServiceException):
+class AuthenticationError(ServiceError):
     """Authentication failed exception."""
 
     def __init__(self, message: str = "Authentication failed"):
         super().__init__(message)
 
 
-class AuthorizationError(ServiceException):
+class AuthorizationError(ServiceError):
     """Authorization failed exception."""
 
     def __init__(self, message: str = "Insufficient permissions"):
         super().__init__(message)
 
 
-class ValidationError(ServiceException):
+class ValidationError(ServiceError):
     """Business logic validation error."""
 
     def __init__(self, message: str, field: str | None = None):
@@ -53,7 +53,7 @@ class ValidationError(ServiceException):
         super().__init__(message, details)
 
 
-class ConflictError(ServiceException):
+class ConflictError(ServiceError):
     """Conflict in business logic."""
 
     def __init__(self, message: str):

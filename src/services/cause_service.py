@@ -5,11 +5,11 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .exceptions import NotFoundError
-from .knowledge_service_base import KnowledgeServiceBase
 from ..repositories.cause_repository import CauseRepository
 from ..repositories.situation_repository import SituationRepository
 from ..schemas.cause import CauseCreate, CauseRead, CauseUpdate
+from .exceptions import NotFoundError
+from .knowledge_service_base import KnowledgeServiceBase
 
 
 class CauseService(KnowledgeServiceBase[object, CauseCreate, CauseUpdate, CauseRead]):

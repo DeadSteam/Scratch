@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
@@ -43,14 +43,15 @@ class Experiment(UUIDBase):
 
     name: Mapped[str | None] = mapped_column(String(200), nullable=True)
     date: Mapped[datetime] = mapped_column(
-        TIMESTAMP(timezone=True), default=datetime.utcnow
+        TIMESTAMP(timezone=True),
+        default=lambda: datetime.now(UTC),
     )
     rect_coords: Mapped[list[float] | None] = mapped_column(ARRAY(Float))
     weight: Mapped[float | None] = mapped_column(Float)
     has_fabric: Mapped[bool] = mapped_column(Boolean, default=False)
 
-    # Результаты анализа царапин: массив с индексом зацарапанности для каждого фото
-    # Структура: [{"image_id": "uuid", "scratch_index": 0.0342}, ...]
+    # Scratch analysis results: list of scratch_index per image.
+    # Structure: [{"image_id": "uuid", "scratch_index": 0.0342}, ...]
     scratch_results: Mapped[list[dict[str, object]] | None] = mapped_column(
         JSON, nullable=True
     )

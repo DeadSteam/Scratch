@@ -14,7 +14,7 @@ from .core.config import settings
 from .core.database import close_db_connections, get_users_db_session
 from .core.init_data import initialize_default_data
 from .core.redis import close_redis_connection
-from .services.exceptions import ServiceException
+from .services.exceptions import ServiceError
 
 # Configure logging
 logging.basicConfig(
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     """Application lifespan manager."""
     # Startup
     logger.info("Starting up application...")
@@ -57,7 +57,7 @@ app = FastAPI(
 )
 
 # Add exception handlers
-app.add_exception_handler(ServiceException, service_exception_handler)
+app.add_exception_handler(ServiceError, service_exception_handler)
 app.add_exception_handler(ValidationError, validation_exception_handler)
 
 

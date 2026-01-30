@@ -1,6 +1,8 @@
+from typing import Any, cast
 from uuid import UUID
 
 from sqlalchemy import select
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models.image import ExperimentImage
@@ -40,4 +42,4 @@ class ExperimentImageRepository(CachedRepositoryImpl[ExperimentImage]):
         )
         result = await session.execute(stmt)
         await session.commit()
-        return result.rowcount
+        return cast(CursorResult[Any], result).rowcount

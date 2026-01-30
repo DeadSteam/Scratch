@@ -8,7 +8,7 @@ from ..core.database import Base
 __all__ = ["Base", "UUIDBase"]
 
 
-class UUIDBase(Base):  # type: ignore[misc]
+class UUIDBase(Base):
     """Base class for all models with UUID primary key."""
 
     __abstract__ = True

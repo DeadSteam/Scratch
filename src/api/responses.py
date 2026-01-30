@@ -1,13 +1,13 @@
 """Common API response models."""
 
-from typing import Any, Generic, TypeVar
+from typing import Any, TypeVar
 
 from pydantic import BaseModel, Field
 
 T = TypeVar("T")
 
 
-class Response(BaseModel, Generic[T]):
+class Response[T](BaseModel):
     """Generic API response."""
 
     success: bool = Field(True, description="Operation success status")
@@ -32,7 +32,7 @@ class ErrorResponse(BaseModel):
     detail: dict[str, Any] | None = Field(None, description="Additional error details")
 
 
-class PaginatedResponse(BaseModel, Generic[T]):
+class PaginatedResponse[T](BaseModel):
     """Paginated response model."""
 
     success: bool = Field(True, description="Operation success status")

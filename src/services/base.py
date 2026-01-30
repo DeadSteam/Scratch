@@ -1,8 +1,9 @@
 """Base service class with common patterns."""
 
-from typing import Any, Generic, TypeVar, cast
+from typing import Any, TypeVar, cast
 from uuid import UUID
 
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..repositories.base import BaseRepositoryImpl
@@ -15,7 +16,7 @@ UpdateSchema = TypeVar("UpdateSchema", bound=SchemaBase)
 ReadSchema = TypeVar("ReadSchema", bound=SchemaBase)
 
 
-class BaseService(Generic[T, CreateSchema, UpdateSchema, ReadSchema]):
+class BaseService[T, CreateSchema, UpdateSchema, ReadSchema]:
     """Base service with common CRUD operations."""
 
     def __init__(
@@ -48,8 +49,8 @@ class BaseService(Generic[T, CreateSchema, UpdateSchema, ReadSchema]):
 
     async def create(self, data: CreateSchema, session: AsyncSession) -> ReadSchema:
         """Create new entity."""
-        # Convert Pydantic model to dict
-        entity_data = data.model_dump(exclude_unset=True)
+        # Convert Pydantic model to dict (SchemaBase extends BaseModel)
+        entity_data = cast(BaseModel, data).model_dump(exclude_unset=True)
 
         # Check for uniqueness if needed (override in subclass)
         await self._check_unique_constraints(entity_data, session)
@@ -66,8 +67,8 @@ class BaseService(Generic[T, CreateSchema, UpdateSchema, ReadSchema]):
         if not await self.repository.exists(entity_id, session):
             raise NotFoundError(self.entity_name, entity_id)
 
-        # Convert Pydantic model to dict, exclude unset fields
-        entity_data = data.model_dump(exclude_unset=True)
+        # Convert Pydantic model to dict (SchemaBase extends BaseModel)
+        entity_data = cast(BaseModel, data).model_dump(exclude_unset=True)
 
         if not entity_data:
             # No fields to update, just return current entity

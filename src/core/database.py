@@ -67,7 +67,7 @@ UsersSessionLocal = async_sessionmaker(
 )
 
 
-async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
+async def get_db_session() -> AsyncGenerator[AsyncSession]:
     """Dependency to get main database session."""
     async with MainSessionLocal() as session:
         try:
@@ -76,7 +76,7 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
             await session.close()
 
 
-async def get_users_db_session() -> AsyncGenerator[AsyncSession, None]:
+async def get_users_db_session() -> AsyncGenerator[AsyncSession]:
     """Dependency to get users database session."""
     logger.info(
         f"DEBUG: Creating users_db session with URL: {settings.USERS_DATABASE_URL}"
@@ -88,7 +88,7 @@ async def get_users_db_session() -> AsyncGenerator[AsyncSession, None]:
             await session.close()
 
 
-async def get_knowledge_db_session() -> AsyncGenerator[AsyncSession, None]:
+async def get_knowledge_db_session() -> AsyncGenerator[AsyncSession]:
     """Dependency to get knowledge base database session."""
     if KnowledgeSessionLocal is None:
         raise RuntimeError(
@@ -102,7 +102,7 @@ async def get_knowledge_db_session() -> AsyncGenerator[AsyncSession, None]:
 
 
 @asynccontextmanager
-async def get_db_transaction() -> AsyncGenerator[AsyncSession, None]:
+async def get_db_transaction() -> AsyncGenerator[AsyncSession]:
     """Context manager for database transactions."""
     async with MainSessionLocal() as session:
         try:
@@ -116,7 +116,7 @@ async def get_db_transaction() -> AsyncGenerator[AsyncSession, None]:
 
 
 @asynccontextmanager
-async def get_users_db_transaction() -> AsyncGenerator[AsyncSession, None]:
+async def get_users_db_transaction() -> AsyncGenerator[AsyncSession]:
     """Context manager for users database transactions."""
     async with UsersSessionLocal() as session:
         try:
