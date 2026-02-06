@@ -5,10 +5,12 @@ from uuid import UUID
 from fastapi import APIRouter, Query, status
 
 from ..core.dependencies import ExperimentSvc, MainDBSession
+from ..core.logging_config import get_logger
 from ..schemas.experiment import ExperimentCreate, ExperimentRead, ExperimentUpdate
 from .responses import PaginatedResponse, Response
 
 router = APIRouter(prefix="/experiments", tags=["Experiments"])
+logger = get_logger(__name__)
 
 
 @router.get(
@@ -24,8 +26,9 @@ async def list_experiments(
     limit: int = Query(100, ge=1, le=1000, description="Number of items to return"),
 ):
     """Get list of experiments with pagination."""
+    logger.info("list_experiments", skip=skip, limit=limit)
     experiments = await experiment_service.get_all(db, skip, limit)
-
+    logger.info("list_experiments_result", count=len(experiments))
     return PaginatedResponse(
         success=True,
         data=experiments,
@@ -50,8 +53,13 @@ async def get_experiments_by_user(
     limit: int = Query(100, ge=1, le=1000),
 ):
     """Get experiments by user ID."""
+    logger.info("get_experiments_by_user", user_id=str(user_id), skip=skip, limit=limit)
     experiments = await experiment_service.get_by_user_id(user_id, db, skip, limit)
-
+    logger.info(
+        "get_experiments_by_user_result",
+        user_id=str(user_id),
+        count=len(experiments),
+    )
     return PaginatedResponse(
         success=True,
         data=experiments,
@@ -76,8 +84,13 @@ async def get_experiments_by_film(
     limit: int = Query(100, ge=1, le=1000),
 ):
     """Get experiments by film ID."""
+    logger.info("get_experiments_by_film", film_id=str(film_id), skip=skip, limit=limit)
     experiments = await experiment_service.get_by_film_id(film_id, db, skip, limit)
-
+    logger.info(
+        "get_experiments_by_film_result",
+        film_id=str(film_id),
+        count=len(experiments),
+    )
     return PaginatedResponse(
         success=True,
         data=experiments,
@@ -102,8 +115,15 @@ async def get_experiments_by_config(
     limit: int = Query(100, ge=1, le=1000),
 ):
     """Get experiments by equipment config ID."""
+    logger.info(
+        "get_experiments_by_config", config_id=str(config_id), skip=skip, limit=limit
+    )
     experiments = await experiment_service.get_by_config_id(config_id, db, skip, limit)
-
+    logger.info(
+        "get_experiments_by_config_result",
+        config_id=str(config_id),
+        count=len(experiments),
+    )
     return PaginatedResponse(
         success=True,
         data=experiments,
@@ -127,7 +147,9 @@ async def create_experiment(
     db: MainDBSession,
 ):
     """Create a new experiment."""
+    logger.info("create_experiment_started")
     experiment = await experiment_service.create(experiment_data, db)
+    logger.info("create_experiment_success", experiment_id=str(experiment.id))
     return Response(
         success=True, message="Experiment created successfully", data=experiment
     )
@@ -143,7 +165,9 @@ async def get_experiment(
     experiment_id: UUID, experiment_service: ExperimentSvc, db: MainDBSession
 ):
     """Get experiment by ID."""
+    logger.info("get_experiment", experiment_id=str(experiment_id))
     experiment = await experiment_service.get_by_id(experiment_id, db)
+    logger.info("get_experiment_result", experiment_id=str(experiment_id))
     return Response(
         success=True, message="Experiment retrieved successfully", data=experiment
     )
@@ -159,7 +183,9 @@ async def get_experiment_with_images(
     experiment_id: UUID, experiment_service: ExperimentSvc, db: MainDBSession
 ):
     """Get experiment with all related images."""
+    logger.info("get_experiment_with_images", experiment_id=str(experiment_id))
     experiment = await experiment_service.get_with_images(experiment_id, db)
+    logger.info("get_experiment_with_images_result", experiment_id=str(experiment_id))
     return Response(
         success=True,
         message="Experiment with images retrieved successfully",
@@ -180,7 +206,9 @@ async def update_experiment(
     db: MainDBSession,
 ):
     """Update experiment information."""
+    logger.info("update_experiment_started", experiment_id=str(experiment_id))
     experiment = await experiment_service.update(experiment_id, experiment_data, db)
+    logger.info("update_experiment_success", experiment_id=str(experiment_id))
     return Response(
         success=True, message="Experiment updated successfully", data=experiment
     )
@@ -196,5 +224,7 @@ async def delete_experiment(
     experiment_id: UUID, experiment_service: ExperimentSvc, db: MainDBSession
 ):
     """Delete experiment."""
+    logger.info("delete_experiment_started", experiment_id=str(experiment_id))
     await experiment_service.delete(experiment_id, db)
+    logger.info("delete_experiment_success", experiment_id=str(experiment_id))
     return None

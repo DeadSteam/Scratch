@@ -1,4 +1,3 @@
-import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
@@ -6,8 +5,9 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.orm import DeclarativeBase
 
 from .config import settings
+from .logging_config import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class Base(DeclarativeBase):
@@ -78,19 +78,22 @@ async def get_db_session() -> AsyncGenerator[AsyncSession]:
 
 async def get_users_db_session() -> AsyncGenerator[AsyncSession]:
     """Dependency to get users database session."""
-    logger.info(
-        f"DEBUG: Creating users_db session with URL: {settings.USERS_DATABASE_URL}"
-    )
     async with UsersSessionLocal() as session:
         try:
+            logger.debug("users_db_session_opened")
             yield session
         finally:
+            logger.debug("users_db_session_closed")
             await session.close()
 
 
 async def get_knowledge_db_session() -> AsyncGenerator[AsyncSession]:
     """Dependency to get knowledge base database session."""
     if KnowledgeSessionLocal is None:
+        logger.error(
+            "knowledge_db_not_configured",
+            reason="KNOWLEDGE_DATABASE_URL is not set",
+        )
         raise RuntimeError(
             "Knowledge database is not configured (KNOWLEDGE_DATABASE_URL is not set)"
         )
@@ -106,10 +109,13 @@ async def get_db_transaction() -> AsyncGenerator[AsyncSession]:
     """Context manager for database transactions."""
     async with MainSessionLocal() as session:
         try:
+            logger.debug("db_transaction_started")
             yield session
             await session.commit()
+            logger.debug("db_transaction_committed")
         except Exception:
             await session.rollback()
+            logger.error("db_transaction_rolled_back")
             raise
         finally:
             await session.close()
@@ -120,10 +126,13 @@ async def get_users_db_transaction() -> AsyncGenerator[AsyncSession]:
     """Context manager for users database transactions."""
     async with UsersSessionLocal() as session:
         try:
+            logger.debug("users_db_transaction_started")
             yield session
             await session.commit()
+            logger.debug("users_db_transaction_committed")
         except Exception:
             await session.rollback()
+            logger.error("users_db_transaction_rolled_back")
             raise
         finally:
             await session.close()
@@ -131,6 +140,7 @@ async def get_users_db_transaction() -> AsyncGenerator[AsyncSession]:
 
 async def close_db_connections() -> None:
     """Close all database connections."""
+    logger.info("closing_db_connections")
     await main_engine.dispose()
     await users_engine.dispose()
     if knowledge_engine is not None:

@@ -9,6 +9,7 @@ from typing import Any, cast
 import redis.asyncio as aioredis
 
 from .config import settings
+from .logging_config import get_logger
 
 
 class CustomJSONEncoder(json.JSONEncoder):
@@ -56,6 +57,7 @@ class RedisClient:
     def __init__(
         self, url: str, encoding: str = "utf-8", decode_responses: bool = True
     ) -> None:
+        self._logger = get_logger(__name__)
         self.client = aioredis.from_url(
             url,
             encoding=encoding,
@@ -75,8 +77,10 @@ class RedisClient:
                 expire = self.default_timeout
 
             result = await self.client.set(key, to_store, ex=expire)
+            self._logger.debug("redis_set", key=key, expire=expire)
             return cast(bool, result) if result is not None else False
-        except Exception:
+        except Exception as exc:
+            self._logger.warning("redis_set_failed", key=key, error=str(exc))
             return False
 
     async def get(self, key: str) -> Any | None:
@@ -84,6 +88,7 @@ class RedisClient:
         try:
             value = await self.client.get(key)
             if value is None:
+                self._logger.debug("redis_get_miss", key=key)
                 return None
 
             # Try to deserialize JSON
@@ -91,32 +96,41 @@ class RedisClient:
                 if isinstance(value, str) and (
                     value.startswith("{") or value.startswith("[")
                 ):
-                    return parse_json_with_dates(value)
+                    decoded = parse_json_with_dates(value)
+                    self._logger.debug("redis_get_hit", key=key, decoded_json=True)
+                    return decoded
+                self._logger.debug("redis_get_hit", key=key, decoded_json=False)
                 return value
             except (TypeError, json.JSONDecodeError):
+                self._logger.debug("redis_get_deserialize_failed", key=key)
                 return value
-        except Exception:
-            # print(f"Redis get error for key '{key}': {e}")
+        except Exception as exc:
+            self._logger.warning("redis_get_failed", key=key, error=str(exc))
             return None
 
     async def delete(self, key: str) -> bool:
         """Delete key from Redis."""
         try:
             result = await self.client.delete(key) > 0
+            self._logger.debug("redis_delete", key=key, deleted=result)
             return cast(bool, result)
-        except Exception:
+        except Exception as exc:
+            self._logger.warning("redis_delete_failed", key=key, error=str(exc))
             return False
 
     async def exists(self, key: str) -> bool:
         """Check if key exists in Redis."""
         try:
             result = await self.client.exists(key) > 0
+            self._logger.debug("redis_exists", key=key, exists=result)
             return cast(bool, result)
-        except Exception:
+        except Exception as exc:
+            self._logger.warning("redis_exists_failed", key=key, error=str(exc))
             return False
 
     async def close(self) -> None:
         """Close Redis connection."""
+        self._logger.info("redis_client_close")
         await self.client.close()
 
 

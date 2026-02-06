@@ -6,6 +6,7 @@ from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import DeclarativeBase
 
+from ..core.logging_config import get_logger
 from ..core.redis import RedisClient, get_redis_client
 from .interfaces import BaseRepository
 
@@ -18,10 +19,12 @@ class BaseRepositoryImpl[T](BaseRepository[T]):
     def __init__(self, model: type[T]) -> None:
         self.model = model
         self._redis_client: RedisClient | None = None
+        self._logger = get_logger(f"repo.{self.model.__tablename__}")
 
     async def _get_redis_client(self) -> RedisClient:
         """Lazy initialization of Redis client."""
         if self._redis_client is None:
+            self._logger.debug("redis_client_init")
             self._redis_client = await get_redis_client()
         return self._redis_client
 
@@ -40,53 +43,74 @@ class BaseRepositoryImpl[T](BaseRepository[T]):
 
     async def get_by_id(self, id: UUID, session: AsyncSession) -> T | None:
         """Get entity by ID."""
+        self._logger.debug("get_by_id", id=str(id))
         pk = self.model.id
         result = await session.execute(select(self.model).where(pk == id))
-        return result.scalar_one_or_none()
+        entity = result.scalar_one_or_none()
+        self._logger.debug("get_by_id_result", id=str(id), found=entity is not None)
+        return entity
 
     async def get_all(
         self, session: AsyncSession, skip: int = 0, limit: int = 100
     ) -> list[T]:
         """Get all entities with pagination."""
+        self._logger.debug("get_all", skip=skip, limit=limit)
         result = await session.execute(select(self.model).offset(skip).limit(limit))
-        return list(result.scalars().all())
+        entities = list(result.scalars().all())
+        self._logger.debug("get_all_result", count=len(entities))
+        return entities
 
     async def create(self, data: dict[str, Any], session: AsyncSession) -> T:
         """Create new entity."""
+        self._logger.info("create", data_keys=list(data.keys()))
         stmt = insert(self.model).values(**data).returning(self.model)
         result = await session.execute(stmt)
         await session.commit()
-        return result.scalar_one()
+        entity = result.scalar_one()
+        self._logger.info("create_result")
+        return entity
 
     async def update(
         self, id: UUID, data: dict[str, Any], session: AsyncSession
     ) -> T | None:
         """Update entity by ID."""
+        self._logger.info("update", id=str(id), data_keys=list(data.keys()))
         pk = self.model.id
         stmt = update(self.model).where(pk == id).values(**data).returning(self.model)
         result = await session.execute(stmt)
         await session.commit()
-        return result.scalar_one_or_none()
+        entity = result.scalar_one_or_none()
+        self._logger.info("update_result", id=str(id), found=entity is not None)
+        return entity
 
     async def delete(self, id: UUID, session: AsyncSession) -> bool:
         """Delete entity by ID."""
+        self._logger.info("delete", id=str(id))
         pk = self.model.id
         stmt = delete(self.model).where(pk == id)
         result = await session.execute(stmt)
         await session.commit()
-        return cast(CursorResult[Any], result).rowcount > 0
+        deleted = cast(CursorResult[Any], result).rowcount > 0
+        self._logger.info("delete_result", id=str(id), deleted=deleted)
+        return deleted
 
     async def exists(self, id: UUID, session: AsyncSession) -> bool:
         """Check if entity exists by ID."""
+        self._logger.debug("exists", id=str(id))
         pk = self.model.id
         result = await session.execute(select(pk).where(pk == id))
-        return result.scalar_one_or_none() is not None
+        exists = result.scalar_one_or_none() is not None
+        self._logger.debug("exists_result", id=str(id), exists=exists)
+        return exists
 
     async def count(self, session: AsyncSession) -> int:
         """Get total count of entities."""
+        self._logger.debug("count_started")
         pk = self.model.id
         result = await session.execute(select(pk))
-        return len(result.scalars().all())
+        count = len(result.scalars().all())
+        self._logger.debug("count_result", count=count)
+        return count
 
 
 class CachedRepositoryImpl[T](BaseRepositoryImpl[T]):

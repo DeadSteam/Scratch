@@ -1,0 +1,47 @@
+server:
+  http_listen_port: 3200
+  # gRPC сервер для внутренней коммуникации компонентов
+  # Используем отдельный порт от OTLP receiver (4317)
+  grpc_listen_port: 9095
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+
+ingester:
+  trace_idle_period: 10s
+  max_block_bytes: 1_000_000
+  max_block_duration: 5m
+
+compactor:
+  compaction:
+    compaction_window: 1h
+    max_block_bytes: 10_000_000
+    block_retention: 24h
+
+# Querier для запросов трассировок
+# В режиме all-in-one нужно явно указать frontend адрес для worker
+querier:
+  frontend_worker:
+    # В single binary mode указываем localhost с grpc портом
+    frontend_address: 127.0.0.1:9095
+
+storage:
+  trace:
+    backend: local
+    local:
+      path: /var/tempo/traces
+
+# overrides с metrics_generator_processors отключены: в single binary mode
+# без полной конфигурации metrics_generator (ring, storage, remote_write)
+# distributor пытается форвардить в несуществующий ring → "InstancesCount <= 0".
+# Для включения: добавьте блок metrics_generator с storage и remote_write в Prometheus.
+# overrides:
+#   metrics_generator_processors:
+#     - service-graphs
+#     - span-metrics

@@ -20,6 +20,15 @@ dependencies = [
     "uvicorn[standard]>=0.27.0",
     "ruff>=0.14.14",
     "ty>=0.0.14",
+    "structlog>=25.5.0",
+    "prometheus-client>=0.24.1",
+    "opentelemetry-api>=1.39.1",
+    "opentelemetry-sdk>=1.39.1",
+    "opentelemetry-instrumentation-redis>=0.60b1",
+    "opentelemetry-exporter-otlp>=1.39.1",
+    "opentelemetry-instrumentation-fastapi>=0.48b0",
+    "opentelemetry-instrumentation-logging>=0.48b0",
+    "opentelemetry-instrumentation-sqlalchemy>=0.48b0",
 ]
 
 [tool.ruff]
@@ -54,7 +63,7 @@ allowed-unresolved-imports = []
 
 # Relax strict checks for Starlette/FastAPI app wiring and generic services
 [[tool.ty.overrides]]
-include = ["src/main.py"]
+include = ["src/main.py", "src/core/middleware.py"]
 [tool.ty.overrides.rules]
 invalid-argument-type = "ignore"
 

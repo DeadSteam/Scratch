@@ -1,10 +1,7 @@
-import logging
-import traceback
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, status
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
@@ -13,14 +10,16 @@ from .api.errors import service_exception_handler, validation_exception_handler
 from .core.config import settings
 from .core.database import close_db_connections, get_users_db_session
 from .core.init_data import initialize_default_data
+from .core.logging_config import configure_logging, get_logger
+from .core.metrics import init_metrics, record_exception
+from .core.middleware import register_middlewares
 from .core.redis import close_redis_connection
+from .core.tracing import init_tracing
 from .services.exceptions import ServiceError
 
-# Configure logging
-logging.basicConfig(
-    level=getattr(logging, settings.LOG_LEVEL.upper()), format=settings.LOG_FORMAT
-)
-logger = logging.getLogger(__name__)
+# Configure structured logging
+configure_logging()
+logger = get_logger(__name__)
 
 
 @asynccontextmanager
@@ -56,6 +55,12 @@ app = FastAPI(
     openapi_url="/api/openapi.json",
 )
 
+# OpenTelemetry tracing
+init_tracing(app)
+
+# Expose Prometheus metrics
+init_metrics(app)
+
 # Add exception handlers
 app.add_exception_handler(ServiceError, service_exception_handler)
 app.add_exception_handler(ValidationError, validation_exception_handler)
@@ -65,8 +70,13 @@ app.add_exception_handler(ValidationError, validation_exception_handler)
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Global exception handler that ensures CORS headers are present."""
-    logger.error(f"Unhandled exception: {exc}", exc_info=True)
-    logger.error(f"Traceback: {traceback.format_exc()}")
+    record_exception()
+    logger.error(
+        "unhandled_exception",
+        error=str(exc),
+        path=str(request.url.path),
+        exc_info=True,
+    )
 
     # Create error response
     error_response = {
@@ -94,14 +104,8 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
     return response
 
 
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=settings.CORS_CREDENTIALS,
-    allow_methods=settings.CORS_METHODS,
-    allow_headers=settings.CORS_HEADERS,
-)
+# Register all middlewares in a single place
+register_middlewares(app)
 
 # Include API routers
 app.include_router(api_router, prefix="/api/v1")
