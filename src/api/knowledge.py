@@ -7,6 +7,7 @@ from fastapi import APIRouter, Query, status
 from ..core.dependencies import (
     AdviceSvc,
     CauseSvc,
+    CurrentAdmin,
     KnowledgeDBSession,
     SituationSvc,
 )
@@ -28,13 +29,14 @@ async def list_situations(
     limit: int = Query(100, ge=1, le=1000),
 ):
     items = await situation_service.get_all(db, skip, limit)
+    total = await situation_service.count(db)
     return PaginatedResponse(
         success=True,
         data=items,
-        total=len(items),
+        total=total,
         skip=skip,
         limit=limit,
-        has_more=len(items) == limit,
+        has_more=(skip + len(items)) < total,
     )
 
 
@@ -57,6 +59,7 @@ async def create_situation(
     data: SituationCreate,
     situation_service: SituationSvc,
     db: KnowledgeDBSession,
+    admin: CurrentAdmin,
 ):
     item = await situation_service.create(data, db)
     return Response(success=True, message="Создано", data=item)
@@ -68,6 +71,7 @@ async def update_situation(
     data: SituationUpdate,
     situation_service: SituationSvc,
     db: KnowledgeDBSession,
+    admin: CurrentAdmin,
 ):
     item = await situation_service.update(situation_id, data, db)
     return Response(success=True, message="Обновлено", data=item)
@@ -78,6 +82,7 @@ async def delete_situation(
     situation_id: UUID,
     situation_service: SituationSvc,
     db: KnowledgeDBSession,
+    admin: CurrentAdmin,
 ):
     await situation_service.delete(situation_id, db)
     return None
@@ -118,13 +123,14 @@ async def list_causes(
     limit: int = Query(100, ge=1, le=1000),
 ):
     items = await cause_service.get_all(db, skip, limit)
+    total = await cause_service.count(db)
     return PaginatedResponse(
         success=True,
         data=items,
-        total=len(items),
+        total=total,
         skip=skip,
         limit=limit,
-        has_more=len(items) == limit,
+        has_more=(skip + len(items)) < total,
     )
 
 
@@ -147,6 +153,7 @@ async def create_cause(
     data: CauseCreate,
     cause_service: CauseSvc,
     db: KnowledgeDBSession,
+    admin: CurrentAdmin,
 ):
     item = await cause_service.create(data, db)
     return Response(success=True, message="Создано", data=item)
@@ -158,6 +165,7 @@ async def update_cause(
     data: CauseUpdate,
     cause_service: CauseSvc,
     db: KnowledgeDBSession,
+    admin: CurrentAdmin,
 ):
     item = await cause_service.update(cause_id, data, db)
     return Response(success=True, message="Обновлено", data=item)
@@ -168,6 +176,7 @@ async def delete_cause(
     cause_id: UUID,
     cause_service: CauseSvc,
     db: KnowledgeDBSession,
+    admin: CurrentAdmin,
 ):
     await cause_service.delete(cause_id, db)
     return None
@@ -208,13 +217,14 @@ async def list_advices(
     limit: int = Query(100, ge=1, le=1000),
 ):
     items = await advice_service.get_all(db, skip, limit)
+    total = await advice_service.count(db)
     return PaginatedResponse(
         success=True,
         data=items,
-        total=len(items),
+        total=total,
         skip=skip,
         limit=limit,
-        has_more=len(items) == limit,
+        has_more=(skip + len(items)) < total,
     )
 
 
@@ -237,6 +247,7 @@ async def create_advice(
     data: AdviceCreate,
     advice_service: AdviceSvc,
     db: KnowledgeDBSession,
+    admin: CurrentAdmin,
 ):
     item = await advice_service.create(data, db)
     return Response(success=True, message="Создано", data=item)
@@ -248,6 +259,7 @@ async def update_advice(
     data: AdviceUpdate,
     advice_service: AdviceSvc,
     db: KnowledgeDBSession,
+    admin: CurrentAdmin,
 ):
     item = await advice_service.update(advice_id, data, db)
     return Response(success=True, message="Обновлено", data=item)
@@ -258,6 +270,7 @@ async def delete_advice(
     advice_id: UUID,
     advice_service: AdviceSvc,
     db: KnowledgeDBSession,
+    admin: CurrentAdmin,
 ):
     await advice_service.delete(advice_id, db)
     return None

@@ -31,11 +31,6 @@ export const SCRATCH_INDEX_THRESHOLDS = {
   POOR: 0.35,
 };
 
-export const PAGINATION = {
-  DEFAULT_LIMIT: 20,
-  MAX_LIMIT: 100,
-};
-
 export const IMAGE_CONFIG = {
   MAX_SIZE_MB: 10,
   MAX_SIZE_BYTES: 10 * 1024 * 1024,

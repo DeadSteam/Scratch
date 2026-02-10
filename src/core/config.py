@@ -51,7 +51,7 @@ class Settings(BaseSettings):
         default="admin@example.com", description="Default admin email"
     )
     ADMIN_PASSWORD: str = Field(
-        default="Akrawer1", description="Default admin password"
+        ..., description="Admin password (required, set via ADMIN_PASSWORD env var)"
     )
 
     # CORS
@@ -108,11 +108,25 @@ class Settings(BaseSettings):
         description="Allowed image MIME types",
     )
 
-    # Logging
+    # Celery / RabbitMQ
+    CELERY_BROKER_URL: str = Field(
+        default="amqp://guest:guest@rabbitmq:5672//",
+        description="Celery broker URL (RabbitMQ)",
+    )
+    CELERY_RESULT_BACKEND: str = Field(
+        default="redis://redis:6379/1",
+        description="Celery result backend URL",
+    )
+
+    # Logging & Observability
     LOG_LEVEL: str = Field(default="INFO", description="Logging level")
     LOG_FORMAT: str = Field(
         default="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         description="Log format",
+    )
+    OTLP_ENDPOINT: str = Field(
+        default="http://tempo:4317",
+        description="OTLP collector endpoint",
     )
 
 

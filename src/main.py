@@ -1,18 +1,24 @@
+"""FastAPI application entry point."""
+
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 from .api import api_router
 from .api.errors import service_exception_handler, validation_exception_handler
+from .api.health import router as health_router
 from .core.config import settings
-from .core.database import close_db_connections, get_users_db_session
+from .core.database import close_db_connections, get_users_db_transaction
 from .core.init_data import initialize_default_data
 from .core.logging_config import configure_logging, get_logger
 from .core.metrics import init_metrics, record_exception
 from .core.middleware import register_middlewares
+from .core.rate_limit import limiter
 from .core.redis import close_redis_connection
 from .core.tracing import init_tracing
 from .services.exceptions import ServiceError
@@ -26,20 +32,19 @@ logger = get_logger(__name__)
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     """Application lifespan manager."""
     # Startup
-    logger.info("Starting up application...")
+    logger.info("application_starting")
 
-    # Initialize default data (admin user, etc.)
+    # Initialize default data (admin user, etc.) in a single transaction
     try:
-        async for session in get_users_db_session():
+        async with get_users_db_transaction() as session:
             await initialize_default_data(session)
-            break  # Only need one session
-    except Exception as e:
-        logger.error(f"Failed to initialize default data: {e}")
+    except Exception:
+        logger.exception("failed_to_initialize_default_data")
 
     yield
 
     # Shutdown
-    logger.info("Shutting down application...")
+    logger.info("application_shutting_down")
     await close_db_connections()
     await close_redis_connection()
 
@@ -55,6 +60,10 @@ app = FastAPI(
     openapi_url="/api/openapi.json",
 )
 
+# Rate limiting
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 # OpenTelemetry tracing
 init_tracing(app)
 
@@ -68,7 +77,9 @@ app.add_exception_handler(ValidationError, validation_exception_handler)
 
 # Global exception handler to ensure CORS headers are always present
 @app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+async def global_exception_handler(
+    request: Request, exc: Exception
+) -> JSONResponse:
     """Global exception handler that ensures CORS headers are present."""
     record_exception()
     logger.error(
@@ -78,20 +89,24 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
         exc_info=True,
     )
 
-    # Create error response
     error_response = {
+        "success": False,
         "message": "Internal server error",
-        "detail": str(exc) if settings.DEBUG else "An internal error occurred",
+        "detail": (
+            str(exc) if settings.DEBUG else "An internal error occurred"
+        ),
     }
 
-    # Create JSONResponse with CORS headers
     response = JSONResponse(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content=error_response
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content=error_response,
     )
 
-    # Add CORS headers manually
+    # Add CORS headers manually for unhandled exceptions
     origin = request.headers.get("origin")
-    if origin and origin in settings.CORS_ORIGINS:
+    if origin and (
+        origin in settings.CORS_ORIGINS or "*" in settings.CORS_ORIGINS
+    ):
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Access-Control-Allow-Credentials"] = "true"
         response.headers["Access-Control-Allow-Methods"] = ", ".join(
@@ -107,6 +122,10 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
 # Register all middlewares in a single place
 register_middlewares(app)
 
+# Health / readiness / liveness (outside /api/v1 — must be reachable
+# without auth by load balancers and orchestrators).
+app.include_router(health_router)
+
 # Include API routers
 app.include_router(api_router, prefix="/api/v1")
 
@@ -119,9 +138,3 @@ async def root() -> dict[str, str]:
         "version": settings.APP_VERSION,
         "environment": settings.ENVIRONMENT,
     }
-
-
-@app.get("/health")
-async def health_check() -> dict[str, str]:
-    """Health check endpoint."""
-    return {"status": "healthy", "environment": settings.ENVIRONMENT}

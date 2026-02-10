@@ -10,6 +10,7 @@ from . import (
     image_analysis,
     images,
     knowledge,
+    tasks,
     users,
 )
 
@@ -27,5 +28,6 @@ api_router.include_router(image_analysis.router)
 api_router.include_router(knowledge.router_situations)
 api_router.include_router(knowledge.router_causes)
 api_router.include_router(knowledge.router_advices)
+api_router.include_router(tasks.router)
 
 __all__ = ["api_router"]

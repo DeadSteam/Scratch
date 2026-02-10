@@ -340,29 +340,27 @@ body {
 }
 
 .interactive:hover {
-  transform: translateY(-2px);
+  opacity: 0.9;
 }
 
 .interactive:active {
-  transform: translateY(0);
+  opacity: 1;
 }
 
 .hover-lift {
-  transition: transform var(--transition-base) var(--ease-out), 
-              box-shadow var(--transition-base) var(--ease-out);
+  transition: transform var(--transition-base) var(--ease-out);
 }
 
 .hover-lift:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
+  /* subtle background change instead of lift */
 }
 
 .hover-glow {
-  transition: box-shadow var(--transition-base) var(--ease-out);
+  transition: opacity var(--transition-base) var(--ease-out);
 }
 
 .hover-glow:hover {
-  box-shadow: var(--shadow-glow-sm);
+  opacity: 0.9;
 }
 
 .hover-scale {

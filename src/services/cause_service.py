@@ -5,14 +5,15 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..models.knowledge import Cause
 from ..repositories.cause_repository import CauseRepository
 from ..repositories.situation_repository import SituationRepository
 from ..schemas.cause import CauseCreate, CauseRead, CauseUpdate
+from .base import BaseService
 from .exceptions import NotFoundError
-from .knowledge_service_base import KnowledgeServiceBase
 
 
-class CauseService(KnowledgeServiceBase[object, CauseCreate, CauseUpdate, CauseRead]):
+class CauseService(BaseService[Cause, CauseCreate, CauseUpdate, CauseRead]):
     def __init__(
         self,
         repository: CauseRepository,
@@ -27,12 +28,13 @@ class CauseService(KnowledgeServiceBase[object, CauseCreate, CauseUpdate, CauseR
         )
         self.situation_repo = situation_repository
 
-    async def _check_constraints(
+    async def _check_unique_constraints(
         self,
         data: dict[str, Any],
         session: AsyncSession,
         exclude_id: UUID | None = None,
     ) -> None:
+        """Check that referenced Situation exists."""
         situation_id = data.get("situation_id")
         if situation_id is not None and not await self.situation_repo.exists(
             situation_id, session

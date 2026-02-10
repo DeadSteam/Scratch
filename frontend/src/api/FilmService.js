@@ -16,15 +16,6 @@ class FilmService {
   }
 
   /**
-   * Search films by name
-   */
-  async search(name, params = {}) {
-    const { skip = 0, limit = 50 } = params;
-    const response = await httpClient.get('/films/search', { name, skip, limit });
-    return response;
-  }
-
-  /**
    * Get film by ID
    */
   async getById(id) {

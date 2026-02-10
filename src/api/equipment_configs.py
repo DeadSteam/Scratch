@@ -4,7 +4,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Query, status
 
-from ..core.dependencies import EquipmentConfigSvc, MainDBSession
+from ..core.dependencies import CurrentAdmin, EquipmentConfigSvc, MainDBSession
 from ..schemas.equipment_config import (
     EquipmentConfigCreate,
     EquipmentConfigRead,
@@ -29,14 +29,15 @@ async def list_configs(
 ):
     """Get list of equipment configurations."""
     configs = await config_service.get_all(db, skip, limit)
+    total = await config_service.count(db)
 
     return PaginatedResponse(
         success=True,
         data=configs,
-        total=len(configs),
+        total=total,
         skip=skip,
         limit=limit,
-        has_more=len(configs) == limit,
+        has_more=(skip + len(configs)) < total,
     )
 
 
@@ -121,6 +122,7 @@ async def create_config(
     config_data: EquipmentConfigCreate,
     config_service: EquipmentConfigSvc,
     db: MainDBSession,
+    admin: CurrentAdmin,
 ):
     """Create a new equipment configuration."""
     config = await config_service.create(config_data, db)
@@ -142,6 +144,7 @@ async def update_config(
     config_data: EquipmentConfigUpdate,
     config_service: EquipmentConfigSvc,
     db: MainDBSession,
+    admin: CurrentAdmin,
 ):
     """Update equipment configuration."""
     config = await config_service.update(config_id, config_data, db)
@@ -159,7 +162,7 @@ async def update_config(
     description="Permanently delete an equipment configuration",
 )
 async def delete_config(
-    config_id: UUID, config_service: EquipmentConfigSvc, db: MainDBSession
+    config_id: UUID, config_service: EquipmentConfigSvc, db: MainDBSession, admin: CurrentAdmin
 ):
     """Delete equipment configuration."""
     await config_service.delete(config_id, db)

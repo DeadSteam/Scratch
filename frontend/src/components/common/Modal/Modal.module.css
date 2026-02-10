@@ -28,16 +28,6 @@
   overflow: hidden;
 }
 
-/* Top accent bar */
-.modal::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--color-accent-primary), var(--color-secondary));
-}
 
 /* ═══════════════════════════════════════════════════════════
    SIZES

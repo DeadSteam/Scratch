@@ -5,15 +5,16 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..models.knowledge import Advice
 from ..repositories.advice_repository import AdviceRepository
 from ..repositories.cause_repository import CauseRepository
 from ..schemas.advice import AdviceCreate, AdviceRead, AdviceUpdate
+from .base import BaseService
 from .exceptions import NotFoundError
-from .knowledge_service_base import KnowledgeServiceBase
 
 
 class AdviceService(
-    KnowledgeServiceBase[object, AdviceCreate, AdviceUpdate, AdviceRead]
+    BaseService[Advice, AdviceCreate, AdviceUpdate, AdviceRead]
 ):
     def __init__(
         self,
@@ -29,12 +30,13 @@ class AdviceService(
         )
         self.cause_repo = cause_repository
 
-    async def _check_constraints(
+    async def _check_unique_constraints(
         self,
         data: dict[str, Any],
         session: AsyncSession,
         exclude_id: UUID | None = None,
     ) -> None:
+        """Check that referenced Cause exists."""
         cause_id = data.get("cause_id")
         if cause_id is not None and not await self.cause_repo.exists(cause_id, session):
             raise NotFoundError("Cause", cause_id)

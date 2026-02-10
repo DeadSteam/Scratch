@@ -74,7 +74,7 @@ export function SituationsManagement() {
         await situationService.create(data);
         success('Ситуация создана');
       } else {
-        await situationService.update(selected.situation_id, data);
+        await situationService.update(selected.id, data);
         success('Ситуация обновлена');
       }
       setIsModalOpen(false);
@@ -126,7 +126,7 @@ export function SituationsManagement() {
           </thead>
           <tbody>
             {items.map((row) => (
-              <tr key={row.situation_id}>
+              <tr key={row.id}>
                 <td className={styles.primaryCell}>{row.controlled_param || '—'}</td>
                 <td>{row.min_value != null ? row.min_value : '—'}</td>
                 <td>{row.max_value != null ? row.max_value : '—'}</td>
@@ -134,7 +134,7 @@ export function SituationsManagement() {
                 <td>
                   <div className={styles.actions}>
                     <Button variant="ghost" size="sm" onClick={() => handleEdit(row)}>Изменить</Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleDelete(row.situation_id)}>Удалить</Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleDelete(row.id)}>Удалить</Button>
                   </div>
                 </td>
               </tr>

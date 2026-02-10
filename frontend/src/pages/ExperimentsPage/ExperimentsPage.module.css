@@ -1,12 +1,10 @@
-/* Experiments Page - Laboratory Precision Theme */
+/* Experiments Page */
 
 .page {
-  animation: fadeInUp 0.4s var(--ease-out) both;
+  animation: fadeIn 0.3s ease both;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   HEADER
-   ═══════════════════════════════════════════════════════════ */
+/* HEADER */
 
 .header {
   display: flex;
@@ -14,12 +12,6 @@
   justify-content: space-between;
   margin-bottom: var(--space-10);
   gap: var(--space-4);
-}
-
-.titleSection {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
 }
 
 .title {
@@ -30,34 +22,13 @@
   letter-spacing: var(--tracking-tight);
 }
 
-.titleAccent {
-  color: var(--color-accent-primary);
-}
-
 .subtitle {
   font-size: var(--text-base);
   color: var(--color-text-muted);
   margin: 0;
 }
 
-.count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 24px;
-  height: 24px;
-  padding: 0 var(--space-2);
-  margin-left: var(--space-2);
-  font-size: var(--text-xs);
-  font-weight: var(--font-semibold);
-  color: var(--color-accent-primary);
-  background: var(--color-accent-subtle);
-  border-radius: var(--radius-full);
-}
-
-/* ═══════════════════════════════════════════════════════════
-   LOADING & ERROR STATES
-   ═══════════════════════════════════════════════════════════ */
+/* LOADING & ERROR */
 
 .loadingContainer,
 .errorContainer {
@@ -88,9 +59,7 @@
   color: var(--color-error);
 }
 
-/* ═══════════════════════════════════════════════════════════
-   GRID
-   ═══════════════════════════════════════════════════════════ */
+/* GRID */
 
 .grid {
   display: grid;
@@ -98,9 +67,7 @@
   gap: var(--space-6);
 }
 
-/* ═══════════════════════════════════════════════════════════
-   EXPERIMENT CARD
-   ═══════════════════════════════════════════════════════════ */
+/* EXPERIMENT CARD */
 
 .experimentCard {
   position: relative;
@@ -108,59 +75,46 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
-  transition: all var(--transition-base) var(--ease-out);
-  animation: fadeInUp 0.4s var(--ease-out) both;
+  transition: border-color 0.2s ease, background 0.2s ease;
+  animation: fadeIn 0.3s ease both;
 }
 
 .experimentCard:hover {
-  transform: translateY(-4px);
   border-color: var(--color-border-light);
-  box-shadow: var(--shadow-lg);
+  background: var(--color-surface-hover, rgba(255, 255, 255, 0.03));
 }
 
 .experimentCard:nth-child(1) { animation-delay: 0ms; }
-.experimentCard:nth-child(2) { animation-delay: 50ms; }
-.experimentCard:nth-child(3) { animation-delay: 100ms; }
-.experimentCard:nth-child(4) { animation-delay: 150ms; }
-.experimentCard:nth-child(5) { animation-delay: 200ms; }
-.experimentCard:nth-child(6) { animation-delay: 250ms; }
+.experimentCard:nth-child(2) { animation-delay: 40ms; }
+.experimentCard:nth-child(3) { animation-delay: 80ms; }
+.experimentCard:nth-child(4) { animation-delay: 120ms; }
+.experimentCard:nth-child(5) { animation-delay: 160ms; }
+.experimentCard:nth-child(6) { animation-delay: 200ms; }
 
-/* Top indicator bar */
+/* Top indicator bar — solid colors, no gradients */
 .cardIndicator {
   height: 3px;
   width: 100%;
-  opacity: 0.8;
 }
 
-.cardIndicator.success {
-  background: linear-gradient(90deg, var(--color-success), #34d399);
-}
-
-.cardIndicator.warning {
-  background: linear-gradient(90deg, var(--color-warning), #fbbf24);
-}
-
-.cardIndicator.error {
-  background: linear-gradient(90deg, var(--color-error), #f87171);
-}
-
-.cardIndicator.muted {
-  background: linear-gradient(90deg, var(--color-text-muted), var(--color-border-light));
-}
+.cardIndicator.success { background: var(--color-success); }
+.cardIndicator.warning { background: var(--color-warning); }
+.cardIndicator.error { background: var(--color-error); }
+.cardIndicator.muted { background: var(--color-text-muted); }
 
 /* Card content */
 .cardContent {
-  padding: var(--space-6);
+  padding: var(--space-5) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
 }
 
+/* Row 1: Name + delete button + date (all in one line) */
 .cardHeader {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-3);
-  margin-bottom: var(--space-1);
-  position: relative;
-  z-index: 2;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 .filmName {
@@ -169,24 +123,11 @@
   color: var(--color-text-primary);
   margin: 0;
   letter-spacing: var(--tracking-tight);
-}
-
-.headerRight {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  position: relative;
-  z-index: 2;
-}
-
-.date {
-  font-size: var(--text-xs);
-  color: var(--color-text-muted);
   white-space: nowrap;
-  font-family: var(--font-mono);
 }
 
 .deleteButton {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -198,8 +139,10 @@
   border-radius: var(--radius-md);
   color: var(--color-text-muted);
   cursor: pointer;
-  transition: all var(--transition-fast) var(--ease-out);
+  transition: color 0.15s ease, background 0.15s ease, opacity 0.15s ease;
   opacity: 0;
+  position: relative;
+  z-index: 2;
 }
 
 .experimentCard:hover .deleteButton {
@@ -211,33 +154,39 @@
   color: var(--color-error);
 }
 
-.deleteButton:active {
-  transform: scale(0.95);
+/* Date styling */
+.date {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
-.configRow {
+/* Row 2: Film coating info */
+.filmRow {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  margin-bottom: var(--space-5);
+  gap: var(--space-2);
+  flex-wrap: wrap;
 }
 
-.configName {
-  font-size: var(--text-sm);
+.filmTag {
+  font-size: var(--text-xs);
   color: var(--color-text-secondary);
-  margin: 0;
-  flex: 1;
+  background: var(--color-bg-tertiary);
+  padding: 4px var(--space-3);
+  border-radius: var(--radius-md);
+  white-space: nowrap;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   STATS
-   ═══════════════════════════════════════════════════════════ */
-
+/* Row 3: Stats + quality badge */
 .stats {
   display: flex;
+  align-items: flex-end;
   gap: var(--space-6);
-  padding-top: var(--space-5);
+  padding-top: var(--space-4);
   border-top: 1px solid var(--color-border);
 }
 
@@ -262,23 +211,13 @@
   font-family: var(--font-mono);
 }
 
-.statValue.success {
-  color: var(--color-success);
-}
+.statValue.success { color: var(--color-success); }
+.statValue.warning { color: var(--color-warning); }
+.statValue.error { color: var(--color-error); }
 
-.statValue.warning {
-  color: var(--color-warning);
-}
-
-.statValue.error {
-  color: var(--color-error);
-}
-
-/* ═══════════════════════════════════════════════════════════
-   QUALITY BADGE
-   ═══════════════════════════════════════════════════════════ */
-
+/* Quality badge — right-aligned at bottom */
 .qualityBadge {
+  margin-left: auto;
   padding: var(--space-1-5) var(--space-3);
   font-size: var(--text-xs);
   font-weight: var(--font-semibold);
@@ -288,6 +227,7 @@
   border: 1px solid transparent;
   white-space: nowrap;
   flex-shrink: 0;
+  align-self: flex-end;
 }
 
 .qualityBadge.success {
@@ -308,28 +248,14 @@
   border-color: var(--color-error-border);
 }
 
-/* ═══════════════════════════════════════════════════════════
-   ANIMATIONS
-   ═══════════════════════════════════════════════════════════ */
+/* ANIMATIONS */
 
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(16px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-/* ═══════════════════════════════════════════════════════════
-   RESPONSIVE
-   ═══════════════════════════════════════════════════════════ */
-
-/* ═══════════════════════════════════════════════════════════
-   DELETE MODAL
-   ═══════════════════════════════════════════════════════════ */
+/* DELETE MODAL */
 
 .deleteModalContent {
   display: flex;
@@ -368,9 +294,7 @@
   flex: 1;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   RESPONSIVE
-   ═══════════════════════════════════════════════════════════ */
+/* RESPONSIVE */
 
 @media (max-width: 640px) {
   .header {
@@ -386,15 +310,5 @@
   .stats {
     flex-wrap: wrap;
     gap: var(--space-4);
-  }
-  
-  .configRow {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-2);
-  }
-  
-  .qualityBadge {
-    align-self: flex-start;
   }
 }

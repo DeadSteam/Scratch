@@ -4,7 +4,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Query, status
 
-from ..core.dependencies import UsersDBSession, UserSvc
+from ..core.dependencies import CurrentAdmin, UsersDBSession, UserSvc
 from ..schemas.user import UserCreate, UserRead, UserUpdate
 from .responses import PaginatedResponse, Response
 
@@ -20,19 +20,21 @@ router = APIRouter(prefix="/users", tags=["Users"])
 async def list_users(
     user_service: UserSvc,
     db: UsersDBSession,
+    admin: CurrentAdmin,
     skip: int = Query(0, ge=0, description="Number of items to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Number of items to return"),
 ):
     """Get list of users with pagination."""
     users = await user_service.get_all(db, skip, limit)
+    total = await user_service.count(db)
 
     return PaginatedResponse(
         success=True,
         data=users,
-        total=len(users),  # TODO: Add count method to service
+        total=total,
         skip=skip,
         limit=limit,
-        has_more=len(users) == limit,
+        has_more=(skip + len(users)) < total,
     )
 
 
@@ -50,14 +52,15 @@ async def list_active_users(
 ):
     """Get list of active users."""
     users = await user_service.get_active_users(db, skip, limit)
+    total = await user_service.count_active(db)
 
     return PaginatedResponse(
         success=True,
         data=users,
-        total=len(users),
+        total=total,
         skip=skip,
         limit=limit,
-        has_more=len(users) == limit,
+        has_more=(skip + len(users)) < total,
     )
 
 
@@ -68,7 +71,9 @@ async def list_active_users(
     summary="Create user",
     description="Create a new user account",
 )
-async def create_user(user_data: UserCreate, user_service: UserSvc, db: UsersDBSession):
+async def create_user(
+    user_data: UserCreate, user_service: UserSvc, db: UsersDBSession, admin: CurrentAdmin
+):
     """Create new user."""
     user = await user_service.create(user_data, db)
     return Response(success=True, message="User created successfully", data=user)
@@ -107,7 +112,11 @@ async def get_user_by_username(
     description="Update user information",
 )
 async def update_user(
-    user_id: UUID, user_data: UserUpdate, user_service: UserSvc, db: UsersDBSession
+    user_id: UUID,
+    user_data: UserUpdate,
+    user_service: UserSvc,
+    db: UsersDBSession,
+    admin: CurrentAdmin,
 ):
     """Update user information."""
     user = await user_service.update(user_id, user_data, db)
@@ -120,7 +129,9 @@ async def update_user(
     summary="Deactivate user",
     description="Deactivate a user account",
 )
-async def deactivate_user(user_id: UUID, user_service: UserSvc, db: UsersDBSession):
+async def deactivate_user(
+    user_id: UUID, user_service: UserSvc, db: UsersDBSession, admin: CurrentAdmin
+):
     """Deactivate user account."""
     user = await user_service.deactivate_user(user_id, db)
     return Response(success=True, message="User deactivated successfully", data=user)
@@ -132,7 +143,9 @@ async def deactivate_user(user_id: UUID, user_service: UserSvc, db: UsersDBSessi
     summary="Activate user",
     description="Activate a user account",
 )
-async def activate_user(user_id: UUID, user_service: UserSvc, db: UsersDBSession):
+async def activate_user(
+    user_id: UUID, user_service: UserSvc, db: UsersDBSession, admin: CurrentAdmin
+):
     """Activate user account."""
     user = await user_service.activate_user(user_id, db)
     return Response(success=True, message="User activated successfully", data=user)
@@ -144,7 +157,9 @@ async def activate_user(user_id: UUID, user_service: UserSvc, db: UsersDBSession
     summary="Delete user",
     description="Permanently delete a user account",
 )
-async def delete_user(user_id: UUID, user_service: UserSvc, db: UsersDBSession):
+async def delete_user(
+    user_id: UUID, user_service: UserSvc, db: UsersDBSession, admin: CurrentAdmin
+):
     """Delete user."""
     await user_service.delete(user_id, db)
     return None

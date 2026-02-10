@@ -6,6 +6,26 @@ from pydantic import EmailStr, Field, field_validator
 from .base import SchemaBase
 
 
+def _validate_password_strength(v: str) -> str:
+    """Validate password meets strength requirements.
+
+    Rules:
+    - At least 8 characters
+    - At least one uppercase letter
+    - At least one lowercase letter
+    - At least one digit
+    """
+    if len(v) < 8:
+        raise ValueError("Password must be at least 8 characters")
+    if not any(c.isupper() for c in v):
+        raise ValueError("Password must contain at least one uppercase letter")
+    if not any(c.islower() for c in v):
+        raise ValueError("Password must contain at least one lowercase letter")
+    if not any(c.isdigit() for c in v):
+        raise ValueError("Password must contain at least one digit")
+    return v
+
+
 class RoleRead(SchemaBase):
     id: UUID
     name: str
@@ -50,15 +70,7 @@ class UserCreate(UserBase):
     @classmethod
     def password_strength(cls, v: str) -> str:
         """Validate password strength."""
-        if len(v) < 8:
-            raise ValueError("Password must be at least 8 characters")
-        if not any(c.isupper() for c in v):
-            raise ValueError("Password must contain at least one uppercase letter")
-        if not any(c.islower() for c in v):
-            raise ValueError("Password must contain at least one lowercase letter")
-        if not any(c.isdigit() for c in v):
-            raise ValueError("Password must contain at least one digit")
-        return v
+        return _validate_password_strength(v)
 
 
 class UserUpdate(SchemaBase):
@@ -73,15 +85,7 @@ class UserUpdate(SchemaBase):
         """Validate password strength if provided."""
         if v is None:
             return v
-        if len(v) < 8:
-            raise ValueError("Password must be at least 8 characters")
-        if not any(c.isupper() for c in v):
-            raise ValueError("Password must contain at least one uppercase letter")
-        if not any(c.islower() for c in v):
-            raise ValueError("Password must contain at least one lowercase letter")
-        if not any(c.isdigit() for c in v):
-            raise ValueError("Password must contain at least one digit")
-        return v
+        return _validate_password_strength(v)
 
 
 class UserRead(UserBase):

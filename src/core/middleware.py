@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from structlog.contextvars import bind_contextvars, clear_contextvars
 
+from .audit import AuditLogMiddleware
 from .config import settings
 from .logging_config import get_logger
 from .metrics import (
@@ -84,6 +85,9 @@ def register_middlewares(app: FastAPI) -> None:
         allow_methods=settings.CORS_METHODS,
         allow_headers=settings.CORS_HEADERS,
     )
+
+    # Audit logging (mutating API requests)
+    app.add_middleware(AuditLogMiddleware)
 
     # Metrics
     app.add_middleware(MetricsMiddleware)

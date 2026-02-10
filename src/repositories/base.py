@@ -1,7 +1,13 @@
+"""Base repository implementations.
+
+IMPORTANT: Repositories must NOT call session.commit(). Transaction
+management is handled by the session dependency (one commit per request).
+"""
+
 from typing import Any, TypeVar, cast
 from uuid import UUID
 
-from sqlalchemy import delete, insert, select, update
+from sqlalchemy import delete, func, insert, select, update
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import DeclarativeBase
@@ -61,35 +67,32 @@ class BaseRepositoryImpl[T](BaseRepository[T]):
         return entities
 
     async def create(self, data: dict[str, Any], session: AsyncSession) -> T:
-        """Create new entity."""
+        """Create new entity (no commit — managed by session dependency)."""
         self._logger.info("create", data_keys=list(data.keys()))
         stmt = insert(self.model).values(**data).returning(self.model)
         result = await session.execute(stmt)
-        await session.commit()
         entity = result.scalar_one()
-        self._logger.info("create_result")
+        self._logger.info("create_success")
         return entity
 
     async def update(
         self, id: UUID, data: dict[str, Any], session: AsyncSession
     ) -> T | None:
-        """Update entity by ID."""
+        """Update entity by ID (no commit — managed by session dependency)."""
         self._logger.info("update", id=str(id), data_keys=list(data.keys()))
         pk = self.model.id
         stmt = update(self.model).where(pk == id).values(**data).returning(self.model)
         result = await session.execute(stmt)
-        await session.commit()
         entity = result.scalar_one_or_none()
         self._logger.info("update_result", id=str(id), found=entity is not None)
         return entity
 
     async def delete(self, id: UUID, session: AsyncSession) -> bool:
-        """Delete entity by ID."""
+        """Delete entity by ID (no commit — managed by session dependency)."""
         self._logger.info("delete", id=str(id))
         pk = self.model.id
         stmt = delete(self.model).where(pk == id)
         result = await session.execute(stmt)
-        await session.commit()
         deleted = cast(CursorResult[Any], result).rowcount > 0
         self._logger.info("delete_result", id=str(id), deleted=deleted)
         return deleted
@@ -107,8 +110,8 @@ class BaseRepositoryImpl[T](BaseRepository[T]):
         """Get total count of entities."""
         self._logger.debug("count_started")
         pk = self.model.id
-        result = await session.execute(select(pk))
-        count = len(result.scalars().all())
+        result = await session.execute(select(func.count(pk)))
+        count = result.scalar() or 0
         self._logger.debug("count_result", count=count)
         return count
 
@@ -124,13 +127,11 @@ class CachedRepositoryImpl[T](BaseRepositoryImpl[T]):
         # Try cache first
         cached_data = await redis_client.get(cache_key)
         if cached_data:
-            # Reconstruct entity from cached data
             return self.model(**cached_data)
 
         # Get from database
         entity = await self.get_by_id(id, session)
         if entity:
-            # Cache the entity (DeclarativeBase instances have __table__)
             table = getattr(entity, "__table__", None)
             entity_dict = (
                 {c.name: getattr(entity, c.name) for c in table.columns}
@@ -156,7 +157,6 @@ class CachedRepositoryImpl[T](BaseRepositoryImpl[T]):
         # Get from database
         entities = await self.get_all(session, skip, limit)
         if entities:
-            # Cache the entities (DeclarativeBase instances have __table__)
             entities_dict = []
             for entity in entities:
                 table = getattr(entity, "__table__", None)
@@ -174,13 +174,12 @@ class CachedRepositoryImpl[T](BaseRepositoryImpl[T]):
         redis_client = await self._get_redis_client()
 
         if id:
-            # Invalidate specific entity cache
             cache_key = self._generate_cache_key(id=id)
             await redis_client.delete(cache_key)
 
-        # Always invalidate "all" cache
-        all_cache_key = self._generate_cache_key(query_type="all")
-        await redis_client.delete(all_cache_key)
+        # Invalidate all query caches for this model
+        pattern = f"{self.model.__tablename__}:*"
+        await redis_client.delete_pattern(pattern)
 
     async def create(self, data: dict[str, Any], session: AsyncSession) -> T:
         """Create entity and invalidate cache."""

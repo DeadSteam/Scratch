@@ -16,24 +16,6 @@ class ConfigService {
   }
 
   /**
-   * Search configs by name
-   */
-  async search(name, params = {}) {
-    const { skip = 0, limit = 50 } = params;
-    const response = await httpClient.get('/equipment-configs/search', { name, skip, limit });
-    return response;
-  }
-
-  /**
-   * Get configs by head type
-   */
-  async getByHeadType(headType, params = {}) {
-    const { skip = 0, limit = 50 } = params;
-    const response = await httpClient.get(`/equipment-configs/head-type/${headType}`, { skip, limit });
-    return response;
-  }
-
-  /**
    * Get config by ID
    */
   async getById(id) {

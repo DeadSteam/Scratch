@@ -3,10 +3,12 @@
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, File, Query, UploadFile, status
+from fastapi import APIRouter, File, HTTPException, Query, Request, UploadFile, status
 from fastapi.responses import Response as FastAPIResponse
 
+from ..core.config import settings
 from ..core.dependencies import ExperimentImageSvc, MainDBSession
+from ..core.rate_limit import limiter
 from ..schemas.image import ExperimentImageCreate, ExperimentImageRead
 from .responses import PaginatedResponse, Response
 
@@ -28,14 +30,15 @@ async def get_images_by_experiment(
 ):
     """Get all images for an experiment."""
     images = await image_service.get_by_experiment_id(experiment_id, db, skip, limit)
+    total = await image_service.count_by_experiment_id(experiment_id, db)
 
     return PaginatedResponse(
         success=True,
         data=images,
-        total=len(images),
+        total=total,
         skip=skip,
         limit=limit,
-        has_more=len(images) == limit,
+        has_more=(skip + len(images)) < total,
     )
 
 
@@ -96,7 +99,9 @@ async def get_image_data(
     summary="Upload experiment image",
     description="Upload a new experiment image",
 )
+@limiter.limit("20/minute")
 async def upload_image(
+    request: Request,
     image_service: ExperimentImageSvc,
     db: MainDBSession,
     experiment_id: UUID = Query(..., description="Experiment ID"),
@@ -106,12 +111,27 @@ async def upload_image(
     file: UploadFile = File(..., description="Image file"),
 ):
     """Upload a new experiment image."""
-    # Read file content
-    image_data = await file.read()
+    # 1. Validate file type
+    if file.content_type not in settings.ALLOWED_IMAGE_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid file type: {file.content_type}. Allowed: {settings.ALLOWED_IMAGE_TYPES}"
+        )
 
+    # 2. Validate file size
+    content = await file.read()
+    if len(content) > settings.MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"File too large: {len(content)} bytes. Max allowed: {settings.MAX_FILE_SIZE}"
+        )
+
+    # Reset file pointer if we need to read it again, 
+    # but here we already have 'content', so we use it.
+    
     # Create image
     image_create = ExperimentImageCreate(
-        experiment_id=experiment_id, image_data=image_data, passes=passes
+        experiment_id=experiment_id, image_data=content, passes=passes
     )
 
     image = await image_service.create(image_create, db)
@@ -126,7 +146,9 @@ async def upload_image(
     summary="Create experiment image",
     description="Create a new experiment image from raw data",
 )
+@limiter.limit("20/minute")
 async def create_image(
+    request: Request,
     image_data: ExperimentImageCreate,
     image_service: ExperimentImageSvc,
     db: MainDBSession,

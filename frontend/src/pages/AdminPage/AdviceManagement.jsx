@@ -26,8 +26,8 @@ export function AdviceManagement() {
   const causeOptions = [
     EMPTY_OPTION,
     ...causes.map((c) => ({
-      value: c.cause_id,
-      label: (c.description || '').trim() || c.cause_id,
+      value: c.id,
+      label: (c.description || '').trim() || c.id,
     })),
   ];
 
@@ -93,7 +93,7 @@ export function AdviceManagement() {
         await adviceService.create(data);
         success('Рекомендация создана');
       } else {
-        await adviceService.update(selected.advice_id, data);
+        await adviceService.update(selected.id, data);
         success('Рекомендация обновлена');
       }
       setIsModalOpen(false);
@@ -118,7 +118,7 @@ export function AdviceManagement() {
 
   const getCauseLabel = (causeId) => {
     if (!causeId) return '—';
-    const c = causes.find((x) => x.cause_id === causeId);
+    const c = causes.find((x) => x.id === causeId);
     return c ? (c.description || causeId) : causeId;
   };
 
@@ -149,13 +149,13 @@ export function AdviceManagement() {
           </thead>
           <tbody>
             {items.map((row) => (
-              <tr key={row.advice_id}>
+              <tr key={row.id}>
                 <td className={styles.primaryCell}>{getCauseLabel(row.cause_id)}</td>
                 <td className={styles.descriptionCell}>{row.description || '—'}</td>
                 <td>
                   <div className={styles.actions}>
                     <Button variant="ghost" size="sm" onClick={() => handleEdit(row)}>Изменить</Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleDelete(row.advice_id)}>Удалить</Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleDelete(row.id)}>Удалить</Button>
                   </div>
                 </td>
               </tr>

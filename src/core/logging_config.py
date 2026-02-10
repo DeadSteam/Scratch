@@ -37,9 +37,6 @@ def _extract_stdlib_args(
 def configure_logging() -> None:
     """Configure stdlib logging and structlog for JSON output."""
     
-def configure_logging() -> None:
-    """Configure stdlib logging and structlog for JSON output."""
-    
     # Processors that are safe to run in both structlog and stdlib formatter (foreign_pre_chain)
     # filter_by_level is NOT safe for stdlib formatter as logger is None there
     shared_processors = [

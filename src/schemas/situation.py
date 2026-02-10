@@ -28,4 +28,4 @@ class SituationUpdate(SchemaBase):
 
 
 class SituationRead(SituationBase):
-    situation_id: UUID
+    id: UUID

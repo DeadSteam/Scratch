@@ -7,10 +7,10 @@ from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 from .config import settings
 from .database import knowledge_engine, main_engine, users_engine
-from sqlalchemy.ext.asyncio import AsyncEngine
 
 
 def init_tracing(app: FastAPI) -> None:
@@ -24,7 +24,7 @@ def init_tracing(app: FastAPI) -> None:
     )
 
     provider = TracerProvider(resource=resource)
-    span_exporter = OTLPSpanExporter(endpoint="http://tempo:4317", insecure=True)
+    span_exporter = OTLPSpanExporter(endpoint=settings.OTLP_ENDPOINT, insecure=True)
     span_processor = BatchSpanProcessor(span_exporter)
     provider.add_span_processor(span_processor)
 

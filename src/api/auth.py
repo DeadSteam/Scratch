@@ -1,9 +1,12 @@
 """Authentication endpoints."""
 
-from fastapi import APIRouter, status
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Request, status
 from pydantic import BaseModel, Field
 
-from ..core.dependencies import UsersDBSession, UserSvc
+from ..core.dependencies import AuthSvc, UsersDBSession, UserSvc, get_current_user
+from ..core.rate_limit import limiter
 from ..schemas.user import UserCreate, UserRead
 from .responses import Response
 
@@ -33,7 +36,10 @@ class TokenResponse(BaseModel):
     summary="Register new user",
     description="Create a new user account with username, email, and password",
 )
-async def register(user_data: UserCreate, user_service: UserSvc, db: UsersDBSession):
+@limiter.limit("5/minute")
+async def register(
+    request: Request, user_data: UserCreate, user_service: UserSvc, db: UsersDBSession
+):
     """Register a new user."""
     user = await user_service.create(user_data, db)
     return Response(success=True, message="User registered successfully", data=user)
@@ -45,14 +51,18 @@ async def register(user_data: UserCreate, user_service: UserSvc, db: UsersDBSess
     summary="Login user",
     description="Authenticate user and receive JWT tokens",
 )
-async def login(credentials: LoginRequest, user_service: UserSvc, db: UsersDBSession):
+@limiter.limit("10/minute")
+async def login(
+    request: Request,
+    credentials: LoginRequest,
+    auth_service: AuthSvc,
+    db: UsersDBSession,
+):
     """Authenticate user and return JWT tokens."""
-    auth_result = await user_service.authenticate(
+    auth_result = await auth_service.authenticate(
         credentials.username, credentials.password, db
     )
-
     token_response = TokenResponse(**auth_result)
-
     return Response(success=True, message="Login successful", data=token_response)
 
 
@@ -62,11 +72,8 @@ async def login(credentials: LoginRequest, user_service: UserSvc, db: UsersDBSes
     summary="Get current user",
     description="Get current authenticated user information",
 )
-async def get_current_user(
-    # TODO: Add JWT authentication dependency
-    user_service: UserSvc,
-    db: UsersDBSession,
+async def get_current_user_info(
+    current_user: Annotated[UserRead, Depends(get_current_user)],
 ):
     """Get current user information."""
-    # Placeholder - will be implemented with JWT auth middleware
-    return Response(success=True, message="Current user retrieved", data=None)
+    return Response(success=True, message="Current user retrieved", data=current_user)

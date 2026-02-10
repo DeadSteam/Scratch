@@ -24,4 +24,4 @@ class AdviceUpdate(SchemaBase):
 
 
 class AdviceRead(AdviceBase):
-    advice_id: UUID
+    id: UUID

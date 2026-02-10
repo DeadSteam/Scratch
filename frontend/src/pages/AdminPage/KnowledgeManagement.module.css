@@ -32,14 +32,11 @@
 .card:hover {
   border-color: var(--color-accent-primary);
   background: var(--color-accent-subtle);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
 }
 
 .card.active {
   border-color: var(--color-accent-primary);
   background: var(--color-accent-subtle);
-  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25);
 }
 
 .cardTitle {

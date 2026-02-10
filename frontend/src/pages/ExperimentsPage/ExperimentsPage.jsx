@@ -157,41 +157,39 @@ export function ExperimentsPage() {
                   <div className={`${styles.cardIndicator} ${styles[quality.color]}`} />
                   
                   <div className={styles.cardContent}>
-                    {/* Film info */}
+                    {/* Row 1: Name + delete button + date */}
                     <div className={styles.cardHeader}>
                       <h3 className={styles.filmName}>
                         {experiment.name || experiment.film?.name || 'Без названия'}
                       </h3>
-                      <div className={styles.headerRight}>
-                        <span className={styles.date}>
-                          {formatDate(experiment.date)}
+                      <button
+                        className={styles.deleteButton}
+                        onClick={(e) => handleDeleteClick(e, experiment.id)}
+                        aria-label="Удалить эксперимент"
+                        title="Удалить эксперимент"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                        </svg>
+                      </button>
+                      <span className={styles.date}>{formatDate(experiment.date)}</span>
+                    </div>
+
+                    {/* Row 2: Film coating info */}
+                    {experiment.film?.coating_name && (
+                      <div className={styles.filmRow}>
+                        <span className={styles.filmTag}>
+                          Покрытие: {experiment.film.coating_name}
                         </span>
-                        <button
-                          className={styles.deleteButton}
-                          onClick={(e) => handleDeleteClick(e, experiment.id)}
-                          aria-label="Удалить эксперимент"
-                          title="Удалить эксперимент"
-                        >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-                          </svg>
-                        </button>
+                        {experiment.film.coating_thickness && (
+                          <span className={styles.filmTag}>
+                            Толщина: {experiment.film.coating_thickness} мкм
+                          </span>
+                        )}
                       </div>
-                    </div>
+                    )}
                     
-                    {/* Config info with quality badge */}
-                    <div className={styles.configRow}>
-                      <p className={styles.configName}>
-                        {experiment.config?.name || 'Конфигурация не указана'}
-                      </p>
-                      {scratchIndex !== null && (
-                        <div className={`${styles.qualityBadge} ${styles[quality.color]}`}>
-                          {quality.label}
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* Stats */}
+                    {/* Row 3: Stats + badge */}
                     <div className={styles.stats}>
                       <div className={styles.stat}>
                         <span className={styles.statLabel}>Вес</span>
@@ -213,6 +211,11 @@ export function ExperimentsPage() {
                             : '—'}
                         </span>
                       </div>
+                      {scratchIndex !== null && (
+                        <div className={`${styles.qualityBadge} ${styles[quality.color]}`}>
+                          {quality.label}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </Card>

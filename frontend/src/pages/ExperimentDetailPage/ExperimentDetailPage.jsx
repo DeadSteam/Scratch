@@ -9,10 +9,10 @@ import { useNotification } from '@context/NotificationContext';
 import { experimentService, imageService, analysisService } from '@api';
 import { Layout } from '@components/layout';
 import { Button, Spinner, Modal, Input } from '@components/common';
-import { ImageCarousel, ScratchChart, HistogramChart } from '@components/features';
+import { ImageCarousel, ScratchChart, HistogramChart, ROISelector } from '@components/features';
 import { formatDate, formatWeight, formatScratchIndex, getScratchQuality } from '@utils/formatters';
 import { validateImageFile } from '@utils/validators';
-import { ROUTES } from '@utils/constants';
+import { ROUTES, IMAGE_CONFIG, API_BASE_URL } from '@utils/constants';
 import styles from './ExperimentDetailPage.module.css';
 
 export function ExperimentDetailPage() {
@@ -38,9 +38,20 @@ export function ExperimentDetailPage() {
   const [editedName, setEditedName] = useState('');
   const [isUpdatingName, setIsUpdatingName] = useState(false);
 
-  // Fetch experiment data
-  const fetchExperiment = useCallback(async () => {
-    setIsLoading(true);
+  // ROI modal (analysis area)
+  const [isRoiModalOpen, setIsRoiModalOpen] = useState(false);
+  const [roiCoords, setRoiCoords] = useState(null); // [x, y, w, h] | null
+  const [isSavingRoi, setIsSavingRoi] = useState(false);
+
+  const latestImage = images.length > 0
+    ? [...images].sort((a, b) => (b.passes ?? 0) - (a.passes ?? 0))[0]
+    : null;
+  const latestImageUrl = latestImage ? `${API_BASE_URL}/images/${latestImage.id}/data` : null;
+
+  // Fetch experiment data.  `silent` skips the full-page spinner so the
+  // UI doesn't flash when refreshing after add/delete/recalculate.
+  const fetchExperiment = useCallback(async (silent = false) => {
+    if (!silent) setIsLoading(true);
     try {
       const [expData, imagesResponse] = await Promise.all([
         experimentService.getById(id),
@@ -52,7 +63,7 @@ export function ExperimentDetailPage() {
       showError('Ошибка загрузки эксперимента');
       navigate(ROUTES.EXPERIMENTS);
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   }, [id, navigate, showError]);
 
@@ -173,13 +184,56 @@ export function ExperimentDetailPage() {
     setIsEditingName(false);
   };
 
-  // Handle image delete
+  const handleOpenRoiModal = () => {
+    if (!latestImageUrl) {
+      showError('Нет изображений для выбора области анализа');
+      return;
+    }
+    setRoiCoords(experiment?.rect_coords ? [...experiment.rect_coords] : null);
+    setIsRoiModalOpen(true);
+  };
+
+  const handleSaveRoi = async () => {
+    if (!roiCoords || roiCoords.length !== 4) {
+      showError('Выберите область анализа');
+      return;
+    }
+
+    setIsSavingRoi(true);
+    try {
+      await experimentService.update(id, { rect_coords: roiCoords });
+
+      setIsAnalyzing(true);
+      try {
+        await analysisService.recalculateExperiment(id);
+        await fetchExperiment(true);
+        success('Область обновлена, пересчёт выполнен');
+      } finally {
+        setIsAnalyzing(false);
+      }
+
+      setIsRoiModalOpen(false);
+    } catch (err) {
+      showError(err.message || 'Ошибка сохранения области анализа');
+    } finally {
+      setIsSavingRoi(false);
+    }
+  };
+
+  // Handle image delete + recalculate so chart stays in sync
   const handleImageDelete = async (imageId) => {
     try {
       await imageService.delete(imageId);
       success('Изображение удалено');
-      // Update images list
       setImages((prev) => prev.filter((img) => img.id !== imageId));
+
+      // Recalculate experiment so scratch_results stays consistent
+      try {
+        await analysisService.recalculateExperiment(id);
+        await fetchExperiment(true);
+      } catch {
+        // Recalculation is best-effort after delete
+      }
     } catch (err) {
       showError(err.message || 'Ошибка удаления изображения');
     }
@@ -199,39 +253,28 @@ export function ExperimentDetailPage() {
 
     setIsUploading(true);
     try {
-      await imageService.upload(newImageFile, id, passes);
+      // Upload and get the new image object (contains id)
+      const uploadedImage = await imageService.upload(newImageFile, id, passes);
       success('Изображение добавлено');
       setIsAddModalOpen(false);
       setNewImageFile(null);
       setNewImagePasses('');
-      
-      // Обновляем данные эксперимента и изображения
-      await fetchExperiment();
-      
-      // Получаем обновленный список изображений для автоматического анализа
-      const imagesResponse = await imageService.getByExperimentId(id);
-      const updatedImages = imagesResponse.data || [];
-      const referenceImage = updatedImages.find((img) => img.passes === 0);
-      const scratchedImages = updatedImages.filter((img) => img.passes > 0);
-      
-      // Автоматически запускаем анализ, если есть все необходимые условия
-      if (referenceImage && scratchedImages.length > 0) {
+
+      // Incremental analysis: analyze ONLY the newly uploaded image
+      if (uploadedImage?.id) {
         setIsAnalyzing(true);
         try {
-          await analysisService.analyzeScratchResistance({
-            experiment_id: id,
-            reference_image_id: referenceImage.id,
-            scratched_image_ids: scratchedImages.map((img) => img.id),
-          });
-          success('Анализ выполнен автоматически');
-          await fetchExperiment();
+          await analysisService.analyzeSingleImage(uploadedImage.id);
+          success('Анализ нового изображения выполнен');
         } catch (err) {
-          // Не показываем ошибку анализа, так как это автоматический запуск
           console.error('Ошибка автоматического анализа:', err);
         } finally {
           setIsAnalyzing(false);
         }
       }
+
+      // Single silent refresh after everything is done
+      await fetchExperiment(true);
     } catch (err) {
       showError(err.message || 'Ошибка загрузки изображения');
     } finally {
@@ -239,55 +282,43 @@ export function ExperimentDetailPage() {
     }
   };
 
-  // Handle analysis
+  // Handle full recalculation of all images
   const handleRunAnalysis = async () => {
-    if (images.length < 2) {
-      showError('Необходимо минимум 2 изображения (эталон + царапины)');
-      return;
-    }
-
-    const referenceImage = images.find((img) => img.passes === 0);
-    const scratchedImages = images.filter((img) => img.passes > 0);
-
-    if (!referenceImage) {
-      showError('Не найдено эталонное изображение (passes = 0)');
-      return;
-    }
-
-    if (scratchedImages.length === 0) {
-      showError('Добавьте изображения с царапинами');
+    if (images.length === 0) {
+      showError('Добавьте хотя бы одно изображение');
       return;
     }
 
     setIsAnalyzing(true);
     try {
-      await analysisService.analyzeScratchResistance({
-        experiment_id: id,
-        reference_image_id: referenceImage.id,
-        scratched_image_ids: scratchedImages.map((img) => img.id),
-      });
-      success('Анализ завершен');
-      fetchExperiment();
+      await analysisService.recalculateExperiment(id);
+      success('Пересчёт завершён');
+      await fetchExperiment(true);
     } catch (err) {
-      showError(err.message || 'Ошибка анализа');
+      showError(err.message || 'Ошибка пересчёта');
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  // Prepare chart data (including reference image with passes = 0)
+  // Prepare chart data — passes is now stored in scratch_results directly
   const chartData = experiment?.scratch_results?.map((result) => {
     const image = images.find((img) => img.id === result.image_id);
     return {
-      passes: image?.passes ?? 0,
+      passes: result.passes ?? image?.passes ?? 0,
       scratch_index: result.scratch_index,
     };
   }) || [];
 
-  // Get latest scratch index
-  const latestResult = experiment?.scratch_results?.length > 0
-    ? experiment.scratch_results[experiment.scratch_results.length - 1]
-    : null;
+  // Get latest scratch index (highest passes, excluding reference)
+  const latestResult = (() => {
+    const results = experiment?.scratch_results;
+    if (!results || results.length === 0) return null;
+    // Find result with highest passes (most damaged image)
+    const scratched = results.filter((r) => r.passes > 0);
+    if (scratched.length === 0) return results[results.length - 1]; // only reference
+    return scratched.reduce((a, b) => (a.passes > b.passes ? a : b));
+  })();
   const quality = getScratchQuality(latestResult?.scratch_index);
 
   if (isLoading) {
@@ -400,9 +431,9 @@ export function ExperimentDetailPage() {
               variant="primary" 
               onClick={handleRunAnalysis}
               loading={isAnalyzing}
-              disabled={images.length < 2}
+              disabled={images.length === 0}
             >
-              Запустить анализ
+              Пересчитать всё
             </Button>
           </div>
         </div>
@@ -416,7 +447,7 @@ export function ExperimentDetailPage() {
                 <h2 className={styles.sectionTitle}>Изображения</h2>
                 <span className={styles.imageCount}>{images.length} шт.</span>
               </div>
-              <ImageCarousel images={images} onImageDelete={handleImageDelete} />
+              <ImageCarousel images={images} onImageDelete={handleImageDelete} onAddImage={() => setIsAddModalOpen(true)} />
             </div>
           </div>
 
@@ -509,6 +540,27 @@ export function ExperimentDetailPage() {
                 </div>
               </div>
             </div>
+
+            {/* Row 3: Analysis area (compact card) */}
+            <div className={styles.analysisCard}>
+              <div className={styles.analysisRow}>
+                <span className={styles.paramLabel}>Область анализа</span>
+                <span className={styles.analysisCoords}>
+                  {experiment.rect_coords
+                    ? `${experiment.rect_coords[0]}, ${experiment.rect_coords[1]}, ${experiment.rect_coords[2]}×${experiment.rect_coords[3]}`
+                    : 'Не задана'}
+                </span>
+                <button
+                  type="button"
+                  className={styles.analysisButton}
+                  onClick={handleOpenRoiModal}
+                  disabled={!latestImageUrl}
+                  title={latestImageUrl ? 'Изменить область анализа' : 'Добавьте изображение для выбора области'}
+                >
+                  Изменить
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -540,7 +592,7 @@ export function ExperimentDetailPage() {
                     Гистограмма
                   </button>
                 </div>
-                {chartMode === 'index' && quality && latestResult && (
+                {quality && latestResult && (
                   <span className={`${styles.qualityBadge} ${styles[quality.color]}`}>
                     {quality.label}
                   </span>
@@ -549,7 +601,7 @@ export function ExperimentDetailPage() {
             </div>
 
             {chartMode === 'index' && chartData.length > 0 && (
-              <div className={styles.chartWrapper}>
+              <div key="chart-index" className={styles.chartWrapper}>
                 <ScratchChart data={chartData} title="" />
               </div>
             )}
@@ -563,21 +615,16 @@ export function ExperimentDetailPage() {
                   </svg>
                 </div>
                 <p>Запустите анализ для отображения графика</p>
-                <span>Необходимо минимум 2 изображения</span>
+                <span>Добавьте изображения и они будут проанализированы автоматически</span>
               </div>
             )}
 
             {chartMode === 'histogram' && (
-              <div className={styles.chartWrapper}>
-                {isHistogramLoading && (
-                  <div className={styles.emptyChart}>
-                    <Spinner size="md" />
-                  </div>
-                )}
-                {!isHistogramLoading && histogramData.length > 0 && histogramSeries.length > 0 && (
+              <div key="chart-histogram" className={styles.chartWrapper}>
+                {histogramData.length > 0 && histogramSeries.length > 0 && (
                   <HistogramChart data={histogramData} series={histogramSeries} title="" />
                 )}
-                {!isHistogramLoading && (histogramData.length === 0 || histogramSeries.length === 0) && (
+                {histogramData.length === 0 || histogramSeries.length === 0 && (
                   <div className={styles.emptyChart}>
                     <p>Нет данных для отображения гистограммы</p>
                   </div>
@@ -601,10 +648,11 @@ export function ExperimentDetailPage() {
               </div>
               {experiment.scratch_results.map((result) => {
                 const image = images.find((img) => img.id === result.image_id);
+                const passes = result.passes ?? image?.passes ?? 0;
                 const resultQuality = getScratchQuality(result.scratch_index);
                 return (
                   <div key={result.image_id} className={styles.tableRow}>
-                    <span className={styles.mono}>{image?.passes || '—'}</span>
+                    <span className={styles.mono}>{passes === 0 ? 'Эталон' : passes}</span>
                     <span className={styles.mono}>
                       {formatScratchIndex(result.scratch_index)}
                     </span>
@@ -631,7 +679,7 @@ export function ExperimentDetailPage() {
             <input
               type="file"
               id="addImageUpload"
-              accept="image/jpeg,image/png,image/webp"
+              accept={IMAGE_CONFIG.ALLOWED_TYPES.join(',')}
               onChange={handleImageChange}
               className={styles.fileInput}
             />
@@ -685,6 +733,47 @@ export function ExperimentDetailPage() {
               disabled={!newImageFile || !newImagePasses}
             >
               Добавить
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ROI modal */}
+      <Modal
+        isOpen={isRoiModalOpen}
+        onClose={() => setIsRoiModalOpen(false)}
+        title="Область анализа"
+        size="lg"
+      >
+        <div className={styles.roiModalContent}>
+          {latestImageUrl ? (
+            <ROISelector
+              imageSrc={latestImageUrl}
+              onSelectionChange={setRoiCoords}
+              initialSelection={roiCoords ? {
+                x: roiCoords[0],
+                y: roiCoords[1],
+                width: roiCoords[2],
+                height: roiCoords[3],
+              } : null}
+            />
+          ) : (
+            <div className={styles.emptyChart}>
+              <p>Нет изображений для выбора области анализа</p>
+            </div>
+          )}
+
+          <div className={styles.modalActions}>
+            <Button variant="secondary" onClick={() => setIsRoiModalOpen(false)}>
+              Отмена
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleSaveRoi}
+              loading={isSavingRoi || isAnalyzing}
+              disabled={!latestImageUrl || !roiCoords}
+            >
+              Сохранить и пересчитать
             </Button>
           </div>
         </div>

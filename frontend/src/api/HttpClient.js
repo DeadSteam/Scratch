@@ -63,7 +63,7 @@ class HttpClient {
     if (!response.ok) {
       // Extract error message from validation errors if present
       let errorMessage = data.message || 'Произошла ошибка';
-      
+
       // Handle FastAPI validation errors (errors array)
       if (data.errors && Array.isArray(data.errors)) {
         errorMessage = data.errors.map(err => err.message || err.msg || JSON.stringify(err)).join(', ');
@@ -75,8 +75,22 @@ class HttpClient {
         } else if (typeof data.detail === 'string') {
           errorMessage = data.detail;
         }
+      } else if (response.status === 401) {
+        errorMessage = 'Сессия истекла. Пожалуйста, войдите снова.';
+        // Auto-logout on 401
+        sessionStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+        sessionStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+        sessionStorage.removeItem(STORAGE_KEYS.USER);
+        // Redirect to login after a short delay
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 1500);
+      } else if (response.status === 429) {
+        errorMessage = 'Слишком много запросов. Пожалуйста, подождите немного.';
+      } else if (response.status === 403) {
+        errorMessage = 'Доступ запрещен. У вас недостаточно прав для выполнения этого действия.';
       }
-      
+
       const error = new Error(errorMessage);
       error.status = response.status;
       error.data = data;

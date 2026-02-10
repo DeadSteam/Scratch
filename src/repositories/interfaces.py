@@ -44,6 +44,11 @@ class BaseRepository[T](ABC):
         """Check if entity exists by ID."""
         pass
 
+    @abstractmethod
+    async def count(self, session: AsyncSession) -> int:
+        """Get total count of entities."""
+        pass
+
 
 class CachedRepository(BaseRepository[T], ABC):
     """Repository with caching capabilities."""
@@ -86,6 +91,11 @@ class UserRepositoryInterface(BaseRepository[T], ABC):
         """Get active users only."""
         pass
 
+    @abstractmethod
+    async def count_active(self, session: AsyncSession) -> int:
+        """Count active users."""
+        pass
+
 
 class ExperimentRepositoryInterface(BaseRepository[T], ABC):
     """Experiment-specific repository interface."""
@@ -114,4 +124,19 @@ class ExperimentRepositoryInterface(BaseRepository[T], ABC):
     @abstractmethod
     async def get_with_images(self, id: UUID, session: AsyncSession) -> T | None:
         """Get experiment with related images."""
+        pass
+
+    @abstractmethod
+    async def count_by_user_id(self, user_id: UUID, session: AsyncSession) -> int:
+        """Count experiments by user ID."""
+        pass
+
+    @abstractmethod
+    async def count_by_film_id(self, film_id: UUID, session: AsyncSession) -> int:
+        """Count experiments by film ID."""
+        pass
+
+    @abstractmethod
+    async def count_by_config_id(self, config_id: UUID, session: AsyncSession) -> int:
+        """Count experiments by config ID."""
         pass

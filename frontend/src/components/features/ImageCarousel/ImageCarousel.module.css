@@ -95,8 +95,7 @@
   background: var(--color-accent-primary);
   color: var(--color-text-inverse);
   border-color: transparent;
-  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3);
-  transform: translateY(-50%) scale(1.05);
+  transform: translateY(-50%);
 }
 
 .prevButton {
@@ -154,6 +153,7 @@
   background: var(--color-bg-tertiary);
   border-radius: var(--radius-xl);
   padding: var(--space-3);
+  overflow: visible;
 }
 
 .thumbnailsNavButton {
@@ -178,7 +178,6 @@
   background: var(--color-accent-primary);
   color: var(--color-text-inverse);
   border-color: transparent;
-  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
 }
 
 .thumbnailsNavButton:disabled {
@@ -194,29 +193,17 @@
   display: flex;
   gap: var(--space-2);
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: visible;
   flex: 1;
-  scrollbar-width: thin;
+  scrollbar-width: none;
   scroll-behavior: smooth;
+  padding-top: 8px;
   /* Limit visible thumbnails */
-  max-width: calc((72px + var(--space-2)) * 6);
+  max-width: calc((72px + var(--space-2)) * 7);
 }
 
 .thumbnails::-webkit-scrollbar {
-  height: 6px;
-}
-
-.thumbnails::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.thumbnails::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: var(--radius-full);
-}
-
-.thumbnails::-webkit-scrollbar-thumb:hover {
-  background: var(--color-border-light);
+  display: none;
 }
 
 .thumbnail {
@@ -239,7 +226,6 @@
 
 .thumbnail:hover {
   border-color: var(--color-border-light);
-  transform: translateY(-2px);
 }
 
 .thumbnail.active {
@@ -316,6 +302,31 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
+   ADD THUMBNAIL BUTTON
+   ═══════════════════════════════════════════════════════════ */
+
+.addThumbnail {
+  flex-shrink: 0;
+  width: 72px;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all var(--transition-base) var(--ease-out);
+}
+
+.addThumbnail:hover {
+  border-color: var(--color-accent-primary);
+  color: var(--color-accent-primary);
+  background: rgba(245, 158, 11, 0.05);
+}
+
+/* ═══════════════════════════════════════════════════════════
    DELETE BUTTON ON MAIN IMAGE
    ═══════════════════════════════════════════════════════════ */
 
@@ -347,7 +358,6 @@
   background: var(--color-error);
   border-color: transparent;
   color: white;
-  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.4);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -436,7 +446,6 @@
 
 .confirmButton:hover {
   background: #dc2626;
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
 @keyframes fadeIn {

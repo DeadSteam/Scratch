@@ -78,7 +78,7 @@
   background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary));
   border-color: transparent;
   color: var(--color-text-inverse);
-  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.35);
+  /* no glow */
 }
 
 .step.completed .stepIndicator {
@@ -232,7 +232,7 @@
 .uploadLabel:hover .uploadIcon {
   border-color: var(--color-accent-primary);
   color: var(--color-accent-primary);
-  box-shadow: 0 0 20px rgba(245, 158, 11, 0.15);
+  /* no glow */
 }
 
 .uploadText {
@@ -293,12 +293,10 @@
   font-weight: var(--font-medium);
   cursor: pointer;
   transition: all var(--transition-fast) var(--ease-spring);
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
 }
 
 .changeButton:hover {
-  transform: scale(1.05);
-  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+  filter: brightness(1.1);
 }
 
 /* ═══════════════════════════════════════════════════════════

@@ -24,14 +24,6 @@ class UserService {
   }
 
   /**
-   * Get user by username
-   */
-  async getByUsername(username) {
-    const response = await httpClient.get(`/users/username/${username}`);
-    return response.data;
-  }
-
-  /**
    * Update user
    */
   async update(id, updateData) {

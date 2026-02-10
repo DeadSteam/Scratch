@@ -142,7 +142,7 @@
   justify-content: center;
   font-size: var(--text-sm);
   font-weight: var(--font-semibold);
-  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25);
+  /* clean look, no glow */
 }
 
 .userMeta {

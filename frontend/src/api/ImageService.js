@@ -36,14 +36,6 @@ class ImageService {
   }
 
   /**
-   * Create image (base64)
-   */
-  async create(imageData) {
-    const response = await httpClient.post('/images', imageData);
-    return response.data;
-  }
-
-  /**
    * Delete image
    */
   async delete(id) {
@@ -59,28 +51,6 @@ class ImageService {
     return response;
   }
 
-  /**
-   * Convert file to base64
-   */
-  fileToBase64(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => {
-        // Remove data URL prefix (data:image/...;base64,)
-        const base64 = reader.result.split(',')[1];
-        resolve(base64);
-      };
-      reader.onerror = (error) => reject(error);
-    });
-  }
-
-  /**
-   * Create image URL from base64 data
-   */
-  createImageUrl(base64Data, mimeType = 'image/png') {
-    return `data:${mimeType};base64,${base64Data}`;
-  }
 }
 
 export const imageService = new ImageService();

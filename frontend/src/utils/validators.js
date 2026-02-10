@@ -2,6 +2,8 @@
  * Validation Utilities
  */
 
+import { IMAGE_CONFIG } from './constants';
+
 /**
  * Validate email format
  */
@@ -58,64 +60,28 @@ export const validateUsername = (username) => {
 };
 
 /**
- * Validate required field
- */
-export const isRequired = (value) => {
-  if (value === null || value === undefined) return false;
-  if (typeof value === 'string') return value.trim().length > 0;
-  return true;
-};
-
-/**
  * Validate image file
  */
 export const validateImageFile = (file) => {
   const errors = [];
-  const maxSize = 10 * 1024 * 1024; // 10MB
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-  
+
   if (!file) {
     errors.push('Файл не выбран');
     return { isValid: false, errors };
   }
-  
-  if (file.size > maxSize) {
-    errors.push('Размер файла не должен превышать 10 МБ');
+
+  if (file.size > IMAGE_CONFIG.MAX_SIZE_BYTES) {
+    errors.push(`Размер файла не должен превышать ${IMAGE_CONFIG.MAX_SIZE_MB} МБ`);
   }
-  
-  if (!allowedTypes.includes(file.type)) {
+
+  if (!IMAGE_CONFIG.ALLOWED_TYPES.includes(file.type)) {
     errors.push('Допустимые форматы: JPEG, PNG, WebP');
   }
-  
+
   return {
     isValid: errors.length === 0,
     errors,
   };
-};
-
-/**
- * Validate rectangle coordinates
- */
-export const validateRectCoords = (coords) => {
-  if (!Array.isArray(coords) || coords.length !== 4) {
-    return { isValid: false, error: 'Координаты должны содержать 4 значения' };
-  }
-  
-  const [x, y, width, height] = coords;
-  
-  if (x < 0 || y < 0 || width <= 0 || height <= 0) {
-    return { isValid: false, error: 'Недопустимые координаты области' };
-  }
-  
-  return { isValid: true, error: null };
-};
-
-/**
- * Validate positive number
- */
-export const isPositiveNumber = (value) => {
-  const num = parseFloat(value);
-  return !isNaN(num) && num > 0;
 };
 
 

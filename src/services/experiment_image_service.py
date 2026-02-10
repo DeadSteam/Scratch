@@ -89,3 +89,9 @@ class ExperimentImageService(
         if not entity:
             raise NotFoundError(self.entity_name, entity_id)
         return entity
+
+    async def count_by_experiment_id(
+        self, experiment_id: UUID, session: AsyncSession
+    ) -> int:
+        """Count images for an experiment."""
+        return await self.image_repo.count_by_experiment_id(experiment_id, session)

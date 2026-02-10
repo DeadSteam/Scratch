@@ -1,5 +1,8 @@
-from sqlalchemy import select
+from uuid import UUID
+
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from ..models.user import User
 from .base import CachedRepositoryImpl
@@ -11,6 +14,20 @@ class UserRepository(CachedRepositoryImpl[User], UserRepositoryInterface[User]):
 
     def __init__(self) -> None:
         super().__init__(User)
+
+    async def get_by_id_with_roles(
+        self, user_id: UUID, session: AsyncSession
+    ) -> User | None:
+        """Get user by ID with roles eagerly loaded (bypasses cache).
+
+        Used for authentication checks where roles must be present.
+        """
+        result = await session.execute(
+            select(User)
+            .where(User.id == user_id)
+            .options(selectinload(User.roles))
+        )
+        return result.scalar_one_or_none()
 
     async def get_by_username(
         self, username: str, session: AsyncSession
@@ -74,3 +91,8 @@ class UserRepository(CachedRepositoryImpl[User], UserRepositoryInterface[User]):
             await redis_client.set(cache_key, user_dict)
 
         return user
+
+    async def count_active(self, session: AsyncSession) -> int:
+        """Count active users."""
+        result = await session.execute(select(func.count(User.id)).where(User.is_active))
+        return result.scalar() or 0

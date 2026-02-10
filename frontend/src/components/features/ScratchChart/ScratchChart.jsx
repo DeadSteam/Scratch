@@ -38,7 +38,7 @@ export function ScratchChart({ data, title = 'Индекс царапины' }) 
     return { chartData: mapped, maxValue };
   }, [data]);
 
-  const CustomTooltip = ({ active, payload, label }) => {
+  const CustomTooltip = ({ active, payload, label: _label }) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (

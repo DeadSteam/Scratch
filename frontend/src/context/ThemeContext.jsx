@@ -26,7 +26,7 @@ export function ThemeProvider({ children }) {
     }
     try {
       localStorage.setItem(STORAGE_KEYS.THEME, theme);
-    } catch {}
+    } catch { /* localStorage unavailable */ }
   }, [theme]);
 
   const setTheme = (value) => {

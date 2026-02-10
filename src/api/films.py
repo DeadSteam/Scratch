@@ -4,7 +4,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Query, status
 
-from ..core.dependencies import FilmSvc, MainDBSession
+from ..core.dependencies import CurrentAdmin, FilmSvc, MainDBSession
 from ..schemas.film import FilmCreate, FilmRead, FilmUpdate
 from .responses import PaginatedResponse, Response
 
@@ -25,14 +25,15 @@ async def list_films(
 ):
     """Get list of films with pagination."""
     films = await film_service.get_all(db, skip, limit)
+    total = await film_service.count(db)
 
     return PaginatedResponse(
         success=True,
         data=films,
-        total=len(films),
+        total=total,
         skip=skip,
         limit=limit,
-        has_more=len(films) == limit,
+        has_more=(skip + len(films)) < total,
     )
 
 
@@ -81,7 +82,12 @@ async def get_film(film_id: UUID, film_service: FilmSvc, db: MainDBSession):
     summary="Create film",
     description="Create a new film entry",
 )
-async def create_film(film_data: FilmCreate, film_service: FilmSvc, db: MainDBSession):
+async def create_film(
+    film_data: FilmCreate,
+    film_service: FilmSvc,
+    db: MainDBSession,
+    admin: CurrentAdmin,
+):
     """Create a new film."""
     film = await film_service.create(film_data, db)
     return Response(success=True, message="Film created successfully", data=film)
@@ -94,7 +100,11 @@ async def create_film(film_data: FilmCreate, film_service: FilmSvc, db: MainDBSe
     description="Update film information",
 )
 async def update_film(
-    film_id: UUID, film_data: FilmUpdate, film_service: FilmSvc, db: MainDBSession
+    film_id: UUID,
+    film_data: FilmUpdate,
+    film_service: FilmSvc,
+    db: MainDBSession,
+    admin: CurrentAdmin,
 ):
     """Update film information."""
     film = await film_service.update(film_id, film_data, db)
@@ -107,7 +117,9 @@ async def update_film(
     summary="Delete film",
     description="Permanently delete a film",
 )
-async def delete_film(film_id: UUID, film_service: FilmSvc, db: MainDBSession):
+async def delete_film(
+    film_id: UUID, film_service: FilmSvc, db: MainDBSession, admin: CurrentAdmin
+):
     """Delete film."""
     await film_service.delete(film_id, db)
     return None

@@ -26,8 +26,8 @@ export function CausesManagement() {
   const situationOptions = [
     EMPTY_OPTION,
     ...situations.map((s) => ({
-      value: s.situation_id,
-      label: [s.controlled_param, s.description].filter(Boolean).join(' — ') || s.situation_id,
+      value: s.id,
+      label: [s.controlled_param, s.description].filter(Boolean).join(' — ') || s.id,
     })),
   ];
 
@@ -89,7 +89,7 @@ export function CausesManagement() {
         await causeService.create(data);
         success('Причина создана');
       } else {
-        await causeService.update(selected.cause_id, data);
+        await causeService.update(selected.id, data);
         success('Причина обновлена');
       }
       setIsModalOpen(false);
@@ -114,7 +114,7 @@ export function CausesManagement() {
 
   const getSituationLabel = (situationId) => {
     if (!situationId) return '—';
-    const s = situations.find((x) => x.situation_id === situationId);
+    const s = situations.find((x) => x.id === situationId);
     if (!s) return situationId;
     return [s.controlled_param, s.description].filter(Boolean).join(' — ') || situationId;
   };
@@ -146,13 +146,13 @@ export function CausesManagement() {
           </thead>
           <tbody>
             {items.map((row) => (
-              <tr key={row.cause_id}>
+              <tr key={row.id}>
                 <td className={styles.primaryCell}>{getSituationLabel(row.situation_id)}</td>
                 <td className={styles.descriptionCell}>{row.description || '—'}</td>
                 <td>
                   <div className={styles.actions}>
                     <Button variant="ghost" size="sm" onClick={() => handleEdit(row)}>Изменить</Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleDelete(row.cause_id)}>Удалить</Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleDelete(row.id)}>Удалить</Button>
                   </div>
                 </td>
               </tr>

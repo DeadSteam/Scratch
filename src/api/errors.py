@@ -4,42 +4,27 @@ from fastapi import Request, status
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError as PydanticValidationError
 
-from ..services.exceptions import (
-    AlreadyExistsError,
-    AuthenticationError,
-    AuthorizationError,
-    ConflictError,
-    NotFoundError,
-    ServiceError,
-    ValidationError,
-)
+from ..services.exceptions import ServiceError
 from .responses import ErrorDetail, ErrorResponse
 
 
 async def service_exception_handler(
     request: Request, exc: ServiceError
 ) -> JSONResponse:
-    """Handle service layer exceptions."""
-    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-
-    if isinstance(exc, NotFoundError):
-        status_code = status.HTTP_404_NOT_FOUND
-    elif isinstance(exc, AlreadyExistsError):
-        status_code = status.HTTP_409_CONFLICT
-    elif isinstance(exc, AuthenticationError):
-        status_code = status.HTTP_401_UNAUTHORIZED
-    elif isinstance(exc, AuthorizationError):
-        status_code = status.HTTP_403_FORBIDDEN
-    elif isinstance(exc, ValidationError):
-        status_code = status.HTTP_400_BAD_REQUEST
-    elif isinstance(exc, ConflictError):
-        status_code = status.HTTP_409_CONFLICT
-
+    """Handle service layer exceptions using status_code from exception class."""
     error_response = ErrorResponse(
         success=False, message=exc.message, detail=exc.details, errors=None
     )
 
-    return JSONResponse(status_code=status_code, content=error_response.model_dump())
+    response = JSONResponse(
+        status_code=exc.status_code, content=error_response.model_dump()
+    )
+
+    # Attach headers (e.g. WWW-Authenticate for 401)
+    for key, value in exc.headers.items():
+        response.headers[key] = value
+
+    return response
 
 
 async def validation_exception_handler(

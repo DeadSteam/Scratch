@@ -1,12 +1,13 @@
 """Situation service."""
 
+from ..models.knowledge import Situation
 from ..repositories.situation_repository import SituationRepository
 from ..schemas.situation import SituationCreate, SituationRead, SituationUpdate
-from .knowledge_service_base import KnowledgeServiceBase
+from .base import BaseService
 
 
 class SituationService(
-    KnowledgeServiceBase[object, SituationCreate, SituationUpdate, SituationRead]
+    BaseService[Situation, SituationCreate, SituationUpdate, SituationRead]
 ):
     def __init__(self, repository: SituationRepository):
         super().__init__(

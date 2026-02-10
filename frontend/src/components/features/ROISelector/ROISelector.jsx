@@ -111,9 +111,13 @@ export function ROISelector({
     canvas.height = image.height;
     canvas.style.width = `${displayWidth}px`;
     canvas.style.height = `${displayHeight}px`;
-    
+  }, [imageLoaded, drawSelection]);
+
+  // Redraw selection without пересчёт размеров, чтобы не было "прыжков"
+  useEffect(() => {
+    if (!imageLoaded) return;
     drawSelection(selection);
-  }, [imageLoaded, selection, drawSelection]);
+  }, [selection, imageLoaded, drawSelection]);
 
   // Mouse handlers
   const handleMouseDown = (e) => {
@@ -186,9 +190,6 @@ export function ROISelector({
             <span className={styles.coordValue}>Y: {Math.round(selection.y)}</span>
             <span className={styles.coordValue}>Ширина: {Math.round(selection.width)}</span>
             <span className={styles.coordValue}>Высота: {Math.round(selection.height)}</span>
-            <Button variant="ghost" size="sm" onClick={handleClear}>
-              Очистить выбор
-            </Button>
           </div>
         ) : (
           <p className={styles.hint}>

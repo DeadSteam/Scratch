@@ -4,7 +4,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Query, status
 
-from ..core.dependencies import ExperimentSvc, MainDBSession
+from ..core.dependencies import CurrentUser, ExperimentSvc, MainDBSession
 from ..core.logging_config import get_logger
 from ..schemas.experiment import ExperimentCreate, ExperimentRead, ExperimentUpdate
 from .responses import PaginatedResponse, Response
@@ -22,20 +22,22 @@ logger = get_logger(__name__)
 async def list_experiments(
     experiment_service: ExperimentSvc,
     db: MainDBSession,
+    current_user: CurrentUser,
     skip: int = Query(0, ge=0, description="Number of items to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Number of items to return"),
 ):
     """Get list of experiments with pagination."""
-    logger.info("list_experiments", skip=skip, limit=limit)
+    logger.info("list_experiments", user_id=str(current_user.id), skip=skip, limit=limit)
     experiments = await experiment_service.get_all(db, skip, limit)
-    logger.info("list_experiments_result", count=len(experiments))
+    total = await experiment_service.count(db)
+    logger.info("list_experiments_result", count=len(experiments), total=total)
     return PaginatedResponse(
         success=True,
         data=experiments,
-        total=len(experiments),
+        total=total,
         skip=skip,
         limit=limit,
-        has_more=len(experiments) == limit,
+        has_more=(skip + len(experiments)) < total,
     )
 
 
@@ -60,13 +62,14 @@ async def get_experiments_by_user(
         user_id=str(user_id),
         count=len(experiments),
     )
+    total = await experiment_service.count_by_user_id(user_id, db)
     return PaginatedResponse(
         success=True,
         data=experiments,
-        total=len(experiments),
+        total=total,
         skip=skip,
         limit=limit,
-        has_more=len(experiments) == limit,
+        has_more=(skip + len(experiments)) < total,
     )
 
 
@@ -91,13 +94,14 @@ async def get_experiments_by_film(
         film_id=str(film_id),
         count=len(experiments),
     )
+    total = await experiment_service.count_by_film_id(film_id, db)
     return PaginatedResponse(
         success=True,
         data=experiments,
-        total=len(experiments),
+        total=total,
         skip=skip,
         limit=limit,
-        has_more=len(experiments) == limit,
+        has_more=(skip + len(experiments)) < total,
     )
 
 
@@ -124,13 +128,14 @@ async def get_experiments_by_config(
         config_id=str(config_id),
         count=len(experiments),
     )
+    total = await experiment_service.count_by_config_id(config_id, db)
     return PaginatedResponse(
         success=True,
         data=experiments,
-        total=len(experiments),
+        total=total,
         skip=skip,
         limit=limit,
-        has_more=len(experiments) == limit,
+        has_more=(skip + len(experiments)) < total,
     )
 
 
@@ -145,9 +150,12 @@ async def create_experiment(
     experiment_data: ExperimentCreate,
     experiment_service: ExperimentSvc,
     db: MainDBSession,
+    current_user: CurrentUser,
 ):
     """Create a new experiment."""
-    logger.info("create_experiment_started")
+    logger.info("create_experiment_started", user_id=str(current_user.id))
+    # Ensure experiment is created for the authenticated user
+    experiment_data.user_id = current_user.id
     experiment = await experiment_service.create(experiment_data, db)
     logger.info("create_experiment_success", experiment_id=str(experiment.id))
     return Response(

@@ -16,11 +16,6 @@ class CauseService {
     return res.data;
   }
 
-  async getBySituationId(situationId, params = {}) {
-    const { skip = 0, limit = 100 } = params;
-    return httpClient.get(`/situations/${situationId}/causes`, { skip, limit });
-  }
-
   async create(data) {
     const res = await httpClient.post('/causes', data);
     return res.data;

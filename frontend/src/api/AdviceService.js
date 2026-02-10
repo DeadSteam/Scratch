@@ -16,11 +16,6 @@ class AdviceService {
     return res.data;
   }
 
-  async getByCauseId(causeId, params = {}) {
-    const { skip = 0, limit = 100 } = params;
-    return httpClient.get(`/causes/${causeId}/advices`, { skip, limit });
-  }
-
   async create(data) {
     const res = await httpClient.post('/advices', data);
     return res.data;

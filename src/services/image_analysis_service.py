@@ -1,4 +1,15 @@
-"""Image analysis service for scratch resistance calculation."""
+"""Image analysis service for scratch resistance calculation.
+
+Supports two modes of operation:
+
+1. **Incremental** (preferred): ``analyze_and_save_single()`` calculates the
+   scratch index for ONE image and appends the result to the experiment's
+   ``scratch_results`` JSON array.  No existing entries are recalculated.
+
+2. **Full recalculation**: ``recalculate_experiment()`` recomputes scratch
+   indices for every image in the experiment.  Use when the ROI
+   (``rect_coords``) changes or when a full audit is needed.
+"""
 
 from io import BytesIO
 from typing import Any, cast
@@ -8,14 +19,17 @@ import numpy as np
 from numpy.typing import NDArray
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..core.logging_config import get_logger
 from ..repositories.experiment_repository import ExperimentRepository
 from ..repositories.image_repository import ExperimentImageRepository
 from .exceptions import NotFoundError
 from .exceptions import ValidationError as ServiceValidationError
 
+logger = get_logger(__name__)
+
 
 class ImageAnalysisService:
-    """Service for analyzing experiment images and calculating scratch index."""
+    """Service for analyzing experiment images."""
 
     def __init__(
         self,
@@ -25,45 +39,39 @@ class ImageAnalysisService:
         self.image_repo = image_repository
         self.experiment_repo = experiment_repository
 
-    def convert_to_grayscale(self, image_array: NDArray[Any]) -> NDArray[np.uint8]:
-        """
-        Convert RGB image to Grayscale using the formula:
-        Grayscale(i,j) = 0.3 * R(i,j) + 0.59 * G(i,j) + 0.11 * B(i,j)
+    # ------------------------------------------------------------------
+    # Pure computation (no I/O)
+    # ------------------------------------------------------------------
 
-        Args:
-            image_array: RGB image as numpy array (H, W, 3)
+    def convert_to_grayscale(
+        self, image_array: NDArray[Any]
+    ) -> NDArray[np.uint8]:
+        """Convert RGB image to Grayscale.
 
-        Returns:
-            Grayscale image as numpy array (H, W)
+        Formula: Grayscale(i,j) = 0.3*R + 0.59*G + 0.11*B
         """
         if len(image_array.shape) != 3 or image_array.shape[2] != 3:
-            raise ServiceValidationError("Image must be RGB format (H, W, 3)")
-
-        # Extract RGB channels
+            raise ServiceValidationError(
+                "Image must be RGB format (H, W, 3)"
+            )
         r = image_array[:, :, 0].astype(np.float32)
         g = image_array[:, :, 1].astype(np.float32)
         b = image_array[:, :, 2].astype(np.float32)
-
-        # Apply grayscale formula
         grayscale = 0.3 * r + 0.59 * g + 0.11 * b
-
         return cast(NDArray[np.uint8], grayscale.astype(np.uint8))
 
-    def calculate_histogram(self, grayscale_image: NDArray[Any]) -> dict[int, int]:
-        """
-        Calculate histogram for grayscale image.
-
-        Args:
-            grayscale_image: Grayscale image (H, W)
-
-        Returns:
-            Dictionary mapping brightness level (0-255) to pixel count
-        """
-        # Flatten image and calculate histogram
-        histogram, _ = np.histogram(grayscale_image.flatten(), bins=256, range=(0, 256))
-
-        # Convert to dict for easier handling
-        return {q: int(count) for q, count in enumerate(histogram) if count > 0}
+    def calculate_histogram(
+        self, grayscale_image: NDArray[Any]
+    ) -> dict[int, int]:
+        """Brightness histogram (level 0-255 → pixel count)."""
+        histogram, _ = np.histogram(
+            grayscale_image.flatten(), bins=256, range=(0, 256)
+        )
+        return {
+            q: int(count)
+            for q, count in enumerate(histogram)
+            if count > 0
+        }
 
     def calculate_scratch_index(
         self,
@@ -71,223 +79,275 @@ class ImageAnalysisService:
         total_pixels: int,
         weights: dict[int, float] | None = None,
     ) -> float:
-        """
-        Calculate scratch index for a single image using linear convolution of criteria.
-        Formula: U(X) = Σ(w_q * (count_q / total_pixels))
+        """Scratch index via linear convolution.
 
-        Args:
-            histogram: Brightness histogram for a single image
-            total_pixels: Total number of pixels in the analyzed region (ROI)
-            weights: Custom weights per brightness (0-255).
-                    If None, use q/255 (whiter = higher weight).
-
-        Returns:
-            Scratch index value (normalized ratio, independent of ROI size)
+        U(X) = sum( w_q * (count_q / total_pixels) )
         """
         if total_pixels == 0:
             return 0.0
-
         if weights is None:
             weights = {q: q / 255.0 for q in range(256)}
-
         scratch_index = 0.0
         for q, count in histogram.items():
             w = weights.get(q, q / 255.0)
-            pixel_ratio = count / total_pixels
-            scratch_index += w * pixel_ratio
-
+            scratch_index += w * (count / total_pixels)
         return scratch_index
 
     def analyze_image(
-        self, image_data: bytes, rect_coords: list[float] | None = None
+        self,
+        image_data: bytes,
+        rect_coords: list[float] | None = None,
     ) -> dict[str, Any]:
-        """
-        Analyze a single image: convert to grayscale and calculate histogram.
-
-        Args:
-            image_data: Raw image bytes
-            rect_coords: Optional ROI [x, y, width, height] to crop before analysis
-
-        Returns:
-            Analysis results with grayscale data, histogram, and statistics
-        """
+        """Analyze a single image: grayscale + histogram + stats."""
         try:
-            # Try to import PIL for image loading
             from PIL import Image
         except ImportError:
             raise ServiceValidationError(
                 "PIL (Pillow) is required for image processing"
             ) from None
 
-        # Load image from bytes
         image = Image.open(BytesIO(image_data))
-
-        # Convert to RGB if needed
         if image.mode != "RGB":
             image = image.convert("RGB")
 
-        # Apply ROI cropping if coordinates are provided
+        # ROI crop
         if rect_coords and len(rect_coords) == 4:
-            x, y, width, height = rect_coords
-            # Convert to integers (PIL requires int coordinates)
-            x = int(x)
-            y = int(y)
-            width = int(width)
-            height = int(height)
-
-            # Validate coordinates
-            img_width, img_height = image.size
-            if x < 0 or y < 0 or x + width > img_width or y + height > img_height:
+            x, y, w, h = (int(v) for v in rect_coords)
+            img_w, img_h = image.size
+            if x < 0 or y < 0 or x + w > img_w or y + h > img_h:
                 raise ServiceValidationError(
-                    f"ROI coordinates out of bounds: "
-                    f"image size ({img_width}x{img_height}), "
-                    f"ROI ({x}, {y}, {width}, {height})"
+                    f"ROI out of bounds: image {img_w}x{img_h}, "
+                    f"ROI ({x}, {y}, {w}, {h})"
                 )
+            image = image.crop((x, y, x + w, y + h))
 
-            # Crop image to ROI
-            image = image.crop((x, y, x + width, y + height))
-
-        # Convert to numpy array
         image_array = np.array(image)
-
-        # Convert to grayscale
         grayscale = self.convert_to_grayscale(image_array)
-
-        # Calculate histogram
         histogram = self.calculate_histogram(grayscale)
 
-        total_pixels = int(grayscale.size)
-        if total_pixels == 0:
-            total_pixels = 1  # avoid division by zero
-
-        if histogram:
-            dominant_brightness, dominant_count = max(
-                histogram.items(), key=lambda item: item[1]
-            )
-        else:
-            dominant_brightness, dominant_count = 0, 0
-
-        average_brightness_ratio = dominant_count / total_pixels
-        weighted_average_brightness = sum(
-            q * (count / total_pixels) for q, count in histogram.items()
-        )
+        total_pixels = int(grayscale.size) or 1
 
         return {
             "grayscale_shape": grayscale.shape,
             "histogram": histogram,
             "total_pixels": total_pixels,
             "brightness_levels_count": len(histogram),
-            "dominant_brightness": dominant_brightness,
-            "average_brightness_ratio": average_brightness_ratio,
-            "weighted_average_brightness": weighted_average_brightness,
         }
 
-    async def analyze_experiment_images(
+    # ------------------------------------------------------------------
+    # Incremental: analyze ONE image and append to scratch_results
+    # ------------------------------------------------------------------
+
+    async def analyze_and_save_single(
         self,
-        experiment_id: UUID,
-        reference_image_id: UUID,
-        scratched_image_ids: list[UUID],
+        image_id: UUID,
         session: AsyncSession,
     ) -> dict[str, Any]:
-        """
-        Analyze experiment images and calculate scratch resistance metrics.
+        """Analyze a single image and append its scratch index
+        to the experiment's ``scratch_results`` array.
 
-        Args:
-            experiment_id: Experiment ID
-            reference_image_id: ID of reference (non-scratched) image
-            scratched_image_ids: List of scratched image IDs
-            session: Database session
+        If an entry for this ``image_id`` already exists in the array
+        it is **replaced** (idempotent).
 
-        Returns:
-            Complete analysis results with scratch indices
+        Returns the computed entry dict.
         """
-        # Validate experiment exists and get ROI coordinates
-        experiment = await self.experiment_repo.get_by_id(experiment_id, session)
+        image = await self.image_repo.get_by_id(image_id, session)
+        if not image:
+            raise NotFoundError("ExperimentImage", image_id)
+
+        experiment = await self.experiment_repo.get_by_id(
+            image.experiment_id, session
+        )
+        if not experiment:
+            raise NotFoundError("Experiment", image.experiment_id)
+
+        rect_coords = experiment.rect_coords
+
+        # Analyze (fallback to full image if ROI is out of bounds)
+        try:
+            analysis = self.analyze_image(image.image_data, rect_coords)
+        except ServiceValidationError:
+            analysis = self.analyze_image(image.image_data, None)
+
+        scratch_index = self.calculate_scratch_index(
+            analysis["histogram"], analysis["total_pixels"]
+        )
+
+        # Build the entry
+        entry: dict[str, Any] = {
+            "image_id": str(image_id),
+            "passes": image.passes,
+            "scratch_index": scratch_index,
+            "total_pixels": analysis["total_pixels"],
+        }
+
+        # Append / replace in scratch_results
+        existing: list[dict[str, Any]] = list(
+            experiment.scratch_results or []
+        )
+        # Remove previous entry for same image (idempotent)
+        existing = [
+            e for e in existing if e.get("image_id") != str(image_id)
+        ]
+        existing.append(entry)
+
+        await self.experiment_repo.update(
+            experiment.id,
+            {"scratch_results": existing},
+            session,
+        )
+
+        logger.info(
+            "single_image_analyzed",
+            image_id=str(image_id),
+            experiment_id=str(experiment.id),
+            scratch_index=scratch_index,
+        )
+
+        return entry
+
+    # ------------------------------------------------------------------
+    # Full recalculation (when ROI changes or on explicit request)
+    # ------------------------------------------------------------------
+
+    async def recalculate_experiment(
+        self,
+        experiment_id: UUID,
+        session: AsyncSession,
+    ) -> dict[str, Any]:
+        """Recalculate scratch indices for ALL images in experiment.
+
+        Overwrites the entire ``scratch_results`` array.
+        Use when ``rect_coords`` changes or for a full audit.
+        """
+        experiment = await self.experiment_repo.get_by_id(
+            experiment_id, session
+        )
         if not experiment:
             raise NotFoundError("Experiment", experiment_id)
 
-        # Get ROI coordinates from experiment (rect_coords: [x, y, width, height])
-        rect_coords = (
-            experiment.rect_coords if hasattr(experiment, "rect_coords") else None
+        rect_coords = experiment.rect_coords
+        images = await self.image_repo.get_by_experiment_id(
+            experiment_id, session, skip=0, limit=10000
         )
 
-        # Get reference image
-        reference_image = await self.image_repo.get_by_id(reference_image_id, session)
-        if not reference_image:
-            raise NotFoundError("ExperimentImage", reference_image_id)
-
-        if reference_image.experiment_id != experiment_id:
-            raise ServiceValidationError(
-                "Reference image does not belong to this experiment"
-            )
-
-        # Analyze reference image with ROI cropping
-        reference_analysis = self.analyze_image(reference_image.image_data, rect_coords)
-
-        # Analyze scratched images
-        scratched_analyses = []
-        scratch_indices = []
-
-        for scratched_id in scratched_image_ids:
-            # Get scratched image
-            scratched_image = await self.image_repo.get_by_id(scratched_id, session)
-            if not scratched_image:
-                raise NotFoundError("ExperimentImage", scratched_id)
-
-            if scratched_image.experiment_id != experiment_id:
-                raise ServiceValidationError(
-                    f"Image {scratched_id} does not belong to this experiment"
+        results: list[dict[str, Any]] = []
+        for image in images:
+            try:
+                analysis = self.analyze_image(
+                    image.image_data, rect_coords
                 )
+            except ServiceValidationError:
+                analysis = self.analyze_image(image.image_data, None)
 
-            # Analyze scratched image with ROI (same coords for all images)
-            scratched_analysis = self.analyze_image(
-                scratched_image.image_data, rect_coords
+            si = self.calculate_scratch_index(
+                analysis["histogram"], analysis["total_pixels"]
             )
-
-            # Calculate scratch index for this scratched image
-            # Using pixel ratio (count_q / total_pixels) instead of absolute count
-            scratch_index = self.calculate_scratch_index(
-                scratched_analysis["histogram"], scratched_analysis["total_pixels"]
-            )
-
-            scratched_analyses.append(
+            results.append(
                 {
-                    "image_id": str(scratched_id),
-                    "passes": scratched_image.passes,
-                    "analysis": scratched_analysis,
-                    "scratch_index": scratch_index,
+                    "image_id": str(image.id),
+                    "passes": image.passes,
+                    "scratch_index": si,
+                    "total_pixels": analysis["total_pixels"],
                 }
             )
 
-            scratch_indices.append(scratch_index)
+        # Sort by passes for consistent ordering
+        results.sort(key=lambda r: r.get("passes", 0))
 
-        # Scratch index for reference image (same formula, no comparison).
-        # Uses pixel ratio (count_q / total_pixels).
-        reference_scratch_index = self.calculate_scratch_index(
-            reference_analysis["histogram"], reference_analysis["total_pixels"]
+        await self.experiment_repo.update(
+            experiment_id,
+            {"scratch_results": results},
+            session,
         )
 
-        # Include reference index in statistics
-        scratch_indices.insert(0, reference_scratch_index)
+        # Summary stats
+        indices = [r["scratch_index"] for r in results]
+        summary = {
+            "count": len(results),
+            "average": float(np.mean(indices)) if indices else 0.0,
+            "max": float(np.max(indices)) if indices else 0.0,
+            "min": float(np.min(indices)) if indices else 0.0,
+        }
 
-        # Calculate summary statistics (includes reference image)
-        avg_scratch_index = np.mean(scratch_indices) if scratch_indices else 0.0
-        max_scratch_index = np.max(scratch_indices) if scratch_indices else 0.0
-        min_scratch_index = np.min(scratch_indices) if scratch_indices else 0.0
+        logger.info(
+            "experiment_recalculated",
+            experiment_id=str(experiment_id),
+            image_count=len(results),
+        )
 
         return {
             "experiment_id": str(experiment_id),
-            "reference_image": {
-                "image_id": str(reference_image_id),
-                "passes": reference_image.passes,
-                "analysis": reference_analysis,
-                "scratch_index": reference_scratch_index,
+            "scratch_results": results,
+            "summary": summary,
+        }
+
+    # ------------------------------------------------------------------
+    # Read-only helpers (no writes)
+    # ------------------------------------------------------------------
+
+    async def get_image_histogram(
+        self, image_id: UUID, session: AsyncSession
+    ) -> dict[str, Any]:
+        """Get brightness histogram for a single image."""
+        image = await self.image_repo.get_by_id(image_id, session)
+        if not image:
+            raise NotFoundError("ExperimentImage", image_id)
+        experiment = await self.experiment_repo.get_by_id(
+            image.experiment_id, session
+        )
+        rect_coords = experiment.rect_coords if experiment else None
+        try:
+            analysis = self.analyze_image(image.image_data, rect_coords)
+        except ServiceValidationError:
+            analysis = self.analyze_image(image.image_data, None)
+        return {
+            "image_id": str(image_id),
+            "histogram": analysis["histogram"],
+            "statistics": {
+                "total_pixels": analysis["total_pixels"],
+                "brightness_levels_count": analysis[
+                    "brightness_levels_count"
+                ],
             },
-            "scratched_images": scratched_analyses,
-            "summary": {
-                "average_scratch_index": float(avg_scratch_index),
-                "max_scratch_index": float(max_scratch_index),
-                "min_scratch_index": float(min_scratch_index),
-                "num_scratched_images": len(scratched_analyses),
-            },
+        }
+
+    async def quick_analysis(
+        self,
+        experiment_id: UUID,
+        session: AsyncSession,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> dict[str, Any]:
+        """Quick per-image stats (no write, no recalculation)."""
+        experiment = await self.experiment_repo.get_by_id(
+            experiment_id, session
+        )
+        rect_coords = experiment.rect_coords if experiment else None
+        images = await self.image_repo.get_by_experiment_id(
+            experiment_id, session, skip, limit
+        )
+        if not images:
+            return {
+                "experiment_id": str(experiment_id),
+                "images": [],
+                "count": 0,
+            }
+        results = []
+        for image in images:
+            try:
+                a = self.analyze_image(image.image_data, rect_coords)
+            except ServiceValidationError:
+                a = self.analyze_image(image.image_data, None)
+            results.append(
+                {
+                    "image_id": str(image.id),
+                    "passes": image.passes,
+                    "total_pixels": a["total_pixels"],
+                }
+            )
+        return {
+            "experiment_id": str(experiment_id),
+            "images": results,
+            "count": len(results),
         }

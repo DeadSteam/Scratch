@@ -10,7 +10,7 @@ import styles from './ImageCarousel.module.css';
 
 const MAX_VISIBLE_THUMBNAILS = 6;
 
-export function ImageCarousel({ images = [], onImageClick, onImageDelete }) {
+export function ImageCarousel({ images = [], onImageClick, onImageDelete, onAddImage }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const thumbnailsRef = useRef(null);
@@ -283,6 +283,18 @@ export function ImageCarousel({ images = [], onImageClick, onImageDelete }) {
                 )}
               </div>
             ))}
+            {onAddImage && (
+              <button
+                className={styles.addThumbnail}
+                onClick={onAddImage}
+                aria-label="Добавить фото"
+                title="Добавить фото"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                </svg>
+              </button>
+            )}
           </div>
           {sortedImages.length > MAX_VISIBLE_THUMBNAILS && (
             <button
@@ -309,6 +321,7 @@ ImageCarousel.propTypes = {
   })),
   onImageClick: PropTypes.func,
   onImageDelete: PropTypes.func,
+  onAddImage: PropTypes.func,
 };
 
 export default ImageCarousel;

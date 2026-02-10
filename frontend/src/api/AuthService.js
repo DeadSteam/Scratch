@@ -38,14 +38,6 @@ class AuthService {
   }
 
   /**
-   * Get current user
-   */
-  async getCurrentUser() {
-    const response = await httpClient.get('/auth/me');
-    return response.data;
-  }
-
-  /**
    * Save tokens to session storage
    */
   saveTokens(authData) {

@@ -24,4 +24,4 @@ class CauseUpdate(SchemaBase):
 
 
 class CauseRead(CauseBase):
-    cause_id: UUID
+    id: UUID

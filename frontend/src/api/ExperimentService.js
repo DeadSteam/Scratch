@@ -64,23 +64,6 @@ class ExperimentService {
     return response;
   }
 
-  /**
-   * Get experiments by film ID
-   */
-  async getByFilmId(filmId, params = {}) {
-    const { skip = 0, limit = 50 } = params;
-    const response = await httpClient.get(`/experiments/film/${filmId}`, { skip, limit });
-    return response;
-  }
-
-  /**
-   * Get experiments by config ID
-   */
-  async getByConfigId(configId, params = {}) {
-    const { skip = 0, limit = 50 } = params;
-    const response = await httpClient.get(`/experiments/config/${configId}`, { skip, limit });
-    return response;
-  }
 }
 
 export const experimentService = new ExperimentService();

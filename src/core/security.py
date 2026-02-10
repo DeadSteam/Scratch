@@ -1,14 +1,28 @@
+"""Security utilities: password hashing and JWT token management.
+
+This module is HTTP-independent — it raises domain exceptions,
+not HTTPException. The HTTP layer (dependencies.py) catches and converts them.
+"""
+
 from datetime import UTC, datetime, timedelta
-from typing import Any, cast
+from typing import Any
 
 import bcrypt
-from fastapi import HTTPException, status
-from jose import JWTError, jwt
+import jwt
+from jwt.exceptions import PyJWTError
 
 from .config import settings
 
 # Bcrypt accepts at most 72 bytes; truncate to avoid ValueError with bcrypt 4+
 BCRYPT_MAX_PASSWORD_BYTES = 72
+
+
+class TokenValidationError(Exception):
+    """Raised when JWT token validation fails."""
+
+    def __init__(self, message: str = "Could not validate credentials"):
+        self.message = message
+        super().__init__(message)
 
 
 def _password_bytes(password: str) -> bytes:
@@ -43,10 +57,9 @@ def create_access_token(
         )
 
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(
+    return jwt.encode(
         to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
     )
-    return cast(str, encoded_jwt)
 
 
 def create_refresh_token(data: dict[str, Any]) -> str:
@@ -54,33 +67,32 @@ def create_refresh_token(data: dict[str, Any]) -> str:
     to_encode = data.copy()
     expire = datetime.now(UTC) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     to_encode.update({"exp": expire, "type": "refresh"})
-    encoded_jwt = jwt.encode(
+    return jwt.encode(
         to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
     )
-    return cast(str, encoded_jwt)
 
 
 def verify_token(token: str) -> dict[str, Any]:
-    """Verify and decode JWT token."""
+    """Verify and decode JWT token.
+
+    Raises:
+        TokenValidationError: If the token is invalid or expired.
+    """
     try:
-        payload = jwt.decode(
+        return jwt.decode(
             token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
-        return cast(dict[str, Any], payload)
-    except JWTError as err:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        ) from err
+    except PyJWTError as err:
+        raise TokenValidationError("Could not validate credentials") from err
 
 
 def verify_refresh_token(token: str) -> dict[str, Any]:
-    """Verify refresh token."""
+    """Verify refresh token.
+
+    Raises:
+        TokenValidationError: If the token is invalid or not a refresh token.
+    """
     payload = verify_token(token)
     if payload.get("type") != "refresh":
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token type",
-        )
+        raise TokenValidationError("Invalid token type")
     return payload

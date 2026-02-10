@@ -1,7 +1,7 @@
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import insert, select
+from sqlalchemy import func, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -19,16 +19,24 @@ class ExperimentRepository(
         super().__init__(Experiment)
 
     async def create(self, data: dict[str, Any], session: AsyncSession) -> Experiment:
-        """Create experiment and load relationships."""
+        """Create experiment and load relationships.
+
+        No commit — managed by session dependency.
+        """
         stmt = insert(Experiment).values(**data).returning(Experiment.id)
         result = await session.execute(stmt)
-        await session.commit()
         new_id = result.scalar_one()
+
+        # Flush to ensure the INSERT is visible for the relationship query
+        await session.flush()
 
         # Re-fetch with relationships loaded
         exp = await self.get_by_id_with_relations(new_id, session)
         if exp is None:
             raise RuntimeError("Created experiment not found")
+
+        # Invalidate cache after successful creation
+        await self.invalidate_cache()
         return exp
 
     async def get_by_id_with_relations(
@@ -111,23 +119,28 @@ class ExperimentRepository(
     async def get_by_user_id_cached(
         self, user_id: UUID, session: AsyncSession, skip: int = 0, limit: int = 100
     ) -> list[Experiment]:
-        """Get experiments by user ID with cache check."""
-        redis_client = await self._get_redis_client()
-        cache_key = f"experiment:user_id:{user_id}:skip:{skip}:limit:{limit}"
+        """Get experiments by user ID - always load with relationships."""
+        # Always load from database with relationships to ensure film and config are included
+        # Caching experiments with relationships is complex, so we skip cache for this query
+        return await self.get_by_user_id(user_id, session, skip, limit)
 
-        # Try cache first
-        cached_data = await redis_client.get(cache_key)
-        if cached_data:
-            return [Experiment(**item) for item in cached_data]
+    async def count_by_user_id(self, user_id: UUID, session: AsyncSession) -> int:
+        """Count experiments by user ID."""
+        result = await session.execute(
+            select(func.count(Experiment.id)).where(Experiment.user_id == user_id)
+        )
+        return result.scalar() or 0
 
-        # Get from database
-        experiments = await self.get_by_user_id(user_id, session, skip, limit)
-        if experiments:
-            # Cache the experiments
-            experiments_dict = [
-                {c.name: getattr(exp, c.name) for c in exp.__table__.columns}
-                for exp in experiments
-            ]
-            await redis_client.set(cache_key, experiments_dict)
+    async def count_by_film_id(self, film_id: UUID, session: AsyncSession) -> int:
+        """Count experiments by film ID."""
+        result = await session.execute(
+            select(func.count(Experiment.id)).where(Experiment.film_id == film_id)
+        )
+        return result.scalar() or 0
 
-        return experiments
+    async def count_by_config_id(self, config_id: UUID, session: AsyncSession) -> int:
+        """Count experiments by config ID."""
+        result = await session.execute(
+            select(func.count(Experiment.id)).where(Experiment.config_id == config_id)
+        )
+        return result.scalar() or 0

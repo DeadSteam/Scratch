@@ -1,6 +1,7 @@
 """Service layer exports."""
 
 from .advice_service import AdviceService
+from .auth_service import AuthService
 from .base import BaseService
 from .cause_service import CauseService
 from .equipment_config_service import EquipmentConfigService
@@ -22,6 +23,7 @@ from .user_service import UserService
 __all__ = [
     "AdviceService",
     "AlreadyExistsError",
+    "AuthService",
     "AuthenticationError",
     "AuthorizationError",
     "BaseService",

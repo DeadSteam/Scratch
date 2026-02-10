@@ -7,12 +7,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import { useNotification } from '@context/NotificationContext';
-import { experimentService, filmService, configService, imageService } from '@api';
+import { experimentService, filmService, configService, imageService, analysisService } from '@api';
 import { Layout } from '@components/layout';
 import { Button, Input, Select, Checkbox, Card, Spinner } from '@components/common';
 import { ROISelector } from '@components/features/ROISelector';
 import { validateImageFile } from '@utils/validators';
-import { ROUTES } from '@utils/constants';
+import { ROUTES, IMAGE_CONFIG } from '@utils/constants';
 import styles from './CreateExperimentPage.module.css';
 
 const STEPS = [
@@ -173,9 +173,12 @@ export function CreateExperimentPage() {
       
       const experiment = await experimentService.create(experimentData);
       
-      // Upload reference image (passes = 0)
-      await imageService.upload(imageFile, experiment.id, 0);
-      
+      // Upload reference image (passes = 0) and analyze it
+      const refImage = await imageService.upload(imageFile, experiment.id, 0);
+      if (refImage?.id) {
+        await analysisService.analyzeSingleImage(refImage.id);
+      }
+
       success('Эксперимент успешно создан');
       navigate(`/experiments/${experiment.id}`);
     } catch (err) {
@@ -321,7 +324,7 @@ export function CreateExperimentPage() {
                 <input
                   type="file"
                   id="imageUpload"
-                  accept="image/jpeg,image/png,image/webp"
+                  accept={IMAGE_CONFIG.ALLOWED_TYPES.join(',')}
                   onChange={handleImageChange}
                   className={styles.fileInput}
                 />

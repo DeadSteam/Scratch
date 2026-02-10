@@ -1,7 +1,7 @@
 from typing import Any, cast
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import delete, func, select
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -34,12 +34,24 @@ class ExperimentImageRepository(CachedRepositoryImpl[ExperimentImage]):
     async def delete_by_experiment_id(
         self, experiment_id: UUID, session: AsyncSession
     ) -> int:
-        """Delete all images for an experiment."""
-        from sqlalchemy import delete
+        """Delete all images for an experiment.
 
+        No commit — managed by session dependency.
+        """
         stmt = delete(ExperimentImage).where(
             ExperimentImage.experiment_id == experiment_id
         )
         result = await session.execute(stmt)
-        await session.commit()
         return cast(CursorResult[Any], result).rowcount
+
+    async def count_by_experiment_id(
+        self, experiment_id: UUID, session: AsyncSession
+    ) -> int:
+        """Count images for an experiment."""
+
+        result = await session.execute(
+            select(func.count(ExperimentImage.id)).where(
+                ExperimentImage.experiment_id == experiment_id
+            )
+        )
+        return result.scalar() or 0

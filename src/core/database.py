@@ -1,3 +1,9 @@
+"""Database engines, session factories, and dependency providers.
+
+Transaction management: session dependencies commit on success and
+rollback on exception. Repositories must NOT call session.commit().
+"""
+
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
@@ -16,7 +22,9 @@ class Base(DeclarativeBase):
     pass
 
 
+# ---------------------------------------------------------------------------
 # Database engines
+# ---------------------------------------------------------------------------
 main_engine = create_async_engine(
     settings.DATABASE_URL,
     echo=settings.DB_ECHO,
@@ -49,7 +57,9 @@ if settings.KNOWLEDGE_DATABASE_URL:
         autoflush=False,
     )
 
+# ---------------------------------------------------------------------------
 # Session factories
+# ---------------------------------------------------------------------------
 MainSessionLocal = async_sessionmaker(
     bind=main_engine,
     class_=AsyncSession,
@@ -67,28 +77,33 @@ UsersSessionLocal = async_sessionmaker(
 )
 
 
+# ---------------------------------------------------------------------------
+# FastAPI dependencies (one transaction per request)
+# ---------------------------------------------------------------------------
 async def get_db_session() -> AsyncGenerator[AsyncSession]:
-    """Dependency to get main database session."""
+    """Dependency: main database session with auto commit/rollback."""
     async with MainSessionLocal() as session:
         try:
             yield session
-        finally:
-            await session.close()
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
 
 
 async def get_users_db_session() -> AsyncGenerator[AsyncSession]:
-    """Dependency to get users database session."""
+    """Dependency: users database session with auto commit/rollback."""
     async with UsersSessionLocal() as session:
         try:
-            logger.debug("users_db_session_opened")
             yield session
-        finally:
-            logger.debug("users_db_session_closed")
-            await session.close()
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
 
 
 async def get_knowledge_db_session() -> AsyncGenerator[AsyncSession]:
-    """Dependency to get knowledge base database session."""
+    """Dependency: knowledge base database session with auto commit/rollback."""
     if KnowledgeSessionLocal is None:
         logger.error(
             "knowledge_db_not_configured",
@@ -100,13 +115,18 @@ async def get_knowledge_db_session() -> AsyncGenerator[AsyncSession]:
     async with KnowledgeSessionLocal() as session:
         try:
             yield session
-        finally:
-            await session.close()
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
 
 
+# ---------------------------------------------------------------------------
+# Explicit transaction context managers (for non-request code, e.g. startup)
+# ---------------------------------------------------------------------------
 @asynccontextmanager
 async def get_db_transaction() -> AsyncGenerator[AsyncSession]:
-    """Context manager for database transactions."""
+    """Context manager for main database transactions."""
     async with MainSessionLocal() as session:
         try:
             logger.debug("db_transaction_started")
@@ -117,8 +137,6 @@ async def get_db_transaction() -> AsyncGenerator[AsyncSession]:
             await session.rollback()
             logger.error("db_transaction_rolled_back")
             raise
-        finally:
-            await session.close()
 
 
 @asynccontextmanager
@@ -134,10 +152,11 @@ async def get_users_db_transaction() -> AsyncGenerator[AsyncSession]:
             await session.rollback()
             logger.error("users_db_transaction_rolled_back")
             raise
-        finally:
-            await session.close()
 
 
+# ---------------------------------------------------------------------------
+# Shutdown helper
+# ---------------------------------------------------------------------------
 async def close_db_connections() -> None:
     """Close all database connections."""
     logger.info("closing_db_connections")

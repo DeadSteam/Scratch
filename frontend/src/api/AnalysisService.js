@@ -7,12 +7,21 @@ import { httpClient } from './HttpClient';
 
 class AnalysisService {
   /**
-   * Analyze scratch resistance
+   * Analyze a single image (incremental).
+   * Calculates scratch index for ONE image and appends to scratch_results.
    */
-  async analyzeScratchResistance(analysisRequest, saveToExperiment = true) {
+  async analyzeSingleImage(imageId) {
+    const response = await httpClient.post(`/analysis/image/${imageId}`);
+    return response.data;
+  }
+
+  /**
+   * Recalculate ALL images in an experiment.
+   * Use when ROI changes or a full audit is needed.
+   */
+  async recalculateExperiment(experimentId) {
     const response = await httpClient.post(
-      `/analysis/scratch-resistance?save_to_experiment=${saveToExperiment}`,
-      analysisRequest,
+      `/analysis/experiment/${experimentId}/recalculate`,
     );
     return response.data;
   }
@@ -25,22 +34,8 @@ class AnalysisService {
     return response.data;
   }
 
-  /**
-   * Quick analysis of all experiment images
-   */
-  async quickExperimentAnalysis(experimentId, params = {}) {
-    const { skip = 0, limit = 100 } = params;
-    const response = await httpClient.get(
-      `/analysis/experiment/${experimentId}/quick-analysis`,
-      { skip, limit },
-    );
-    return response.data;
-  }
 }
 
 export const analysisService = new AnalysisService();
 
 export default AnalysisService;
-
-
-

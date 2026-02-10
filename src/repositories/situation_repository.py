@@ -1,9 +1,9 @@
 """Situation repository."""
 
 from ..models.knowledge import Situation
-from .knowledge_repository_base import KnowledgeRepositoryBase
+from .base import CachedRepositoryImpl
 
 
-class SituationRepository(KnowledgeRepositoryBase[Situation]):
+class SituationRepository(CachedRepositoryImpl[Situation]):
     def __init__(self) -> None:
-        super().__init__(Situation, "situation_id")
+        super().__init__(Situation)

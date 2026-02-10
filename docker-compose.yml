@@ -19,17 +19,9 @@ services:
       - "8000:8000"
     volumes:
       - .:/app
-      # Сохраняем .venv из образа: том не даёт хосту перезаписать /app/.venv (см. docs.astral.sh/uv/guides/integration/docker)
-      - app_venv:/app/.venv
-    depends_on:
-      experiments_db:
-        condition: service_healthy
-      users_db:
-        condition: service_healthy
-      knowledge_db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      # Anonymous volume: isolates .venv from host bind mount.
+      # entrypoint.sh runs `uv sync` to ensure packages are current.
+      - /app/.venv
     environment:
       # Application
       - APP_NAME=${APP_NAME}
@@ -87,6 +79,21 @@ services:
       - ADMIN_USERNAME=${ADMIN_USERNAME}
       - ADMIN_EMAIL=${ADMIN_EMAIL}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      
+      # Celery / RabbitMQ
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672//
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    depends_on:
+      experiments_db:
+        condition: service_healthy
+      users_db:
+        condition: service_healthy
+      knowledge_db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     networks:
       - app-network
 
@@ -176,6 +183,90 @@ services:
       retries: 5
     networks:
       - app-network
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"   # Management UI
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER:-guest}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD:-guest}
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+    networks:
+      - app-network
+
+  celery_worker:
+    build: .
+    command: >
+      python -m celery -A src.core.celery_app worker
+      --loglevel=info
+      --concurrency=4
+      --queues=default,image_analysis,experiments,cache
+    volumes:
+      - .:/app
+      - /app/.venv
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      experiments_db:
+        condition: service_healthy
+      users_db:
+        condition: service_healthy
+    environment:
+      # Databases (same as app)
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@experiments_db:5432/${EXPERIMENTS_DB}
+      - USERS_DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@users_db:5432/${USERS_DB}
+      - KNOWLEDGE_DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@knowledge_db:5432/${KNOWLEDGE_DB:-knowledge_db}
+      - DB_POOL_SIZE=${DB_POOL_SIZE}
+      - DB_MAX_OVERFLOW=${DB_MAX_OVERFLOW}
+      - DB_ECHO=${DB_ECHO}
+      # Redis
+      - REDIS_URL=redis://redis:6379/${REDIS_DB}
+      - REDIS_DEFAULT_TIMEOUT=${REDIS_DEFAULT_TIMEOUT}
+      # Celery / RabbitMQ
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672//
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      # Security (needed for config loading)
+      - SECRET_KEY=${SECRET_KEY}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      # Logging
+      - LOG_LEVEL=${LOG_LEVEL}
+    networks:
+      - app-network
+
+  celery_beat:
+    build: .
+    command: >
+      python -m celery -A src.core.celery_app beat
+      --loglevel=info
+    volumes:
+      - .:/app
+      - /app/.venv
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@experiments_db:5432/${EXPERIMENTS_DB}
+      - USERS_DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@users_db:5432/${USERS_DB}
+      - KNOWLEDGE_DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@knowledge_db:5432/${KNOWLEDGE_DB:-knowledge_db}
+      - REDIS_URL=redis://redis:6379/${REDIS_DB}
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672//
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - SECRET_KEY=${SECRET_KEY}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - LOG_LEVEL=${LOG_LEVEL}
+    networks:
+      - app-network
   
   loki:
     image: grafana/loki:2.9.0
@@ -243,4 +334,3 @@ volumes:
   experiments_data:
   users_data:
   knowledge_data:
-  app_venv:

@@ -36,9 +36,16 @@ class BaseService[T, CreateSchema, UpdateSchema, ReadSchema]:
         self._logger = get_logger(f"service.{entity_name}")
 
     async def get_by_id(self, entity_id: UUID, session: AsyncSession) -> ReadSchema:
-        """Get entity by ID."""
+        """Get entity by ID (with caching if supported)."""
         self._logger.debug("get_by_id_started", id=str(entity_id))
-        entity = await self.repository.get_by_id(entity_id, session)
+
+        # Use cache if available
+        if hasattr(self.repository, "get_by_id_cached"):
+            self._logger.debug("using_cache_get_by_id", id=str(entity_id))
+            entity = await self.repository.get_by_id_cached(entity_id, session) # type: ignore
+        else:
+            entity = await self.repository.get_by_id(entity_id, session)
+
         if not entity:
             self._logger.warning("entity_not_found", id=str(entity_id))
             raise NotFoundError(self.entity_name, entity_id)
@@ -48,11 +55,22 @@ class BaseService[T, CreateSchema, UpdateSchema, ReadSchema]:
     async def get_all(
         self, session: AsyncSession, skip: int = 0, limit: int = 100
     ) -> list[ReadSchema]:
-        """Get all entities with pagination."""
+        """Get all entities with pagination (with caching if supported)."""
         self._logger.debug("get_all_started", skip=skip, limit=limit)
-        entities = await self.repository.get_all(session, skip, limit)
+
+        # Use cache if available
+        if hasattr(self.repository, "get_all_cached"):
+            self._logger.debug("using_cache_get_all")
+            entities = await self.repository.get_all_cached(session, skip, limit) # type: ignore
+        else:
+            entities = await self.repository.get_all(session, skip, limit)
+
         self._logger.debug("get_all_success", count=len(entities))
         return [self.read_schema.model_validate(e) for e in entities]
+
+    async def count(self, session: AsyncSession) -> int:
+        """Get total count of entities."""
+        return await self.repository.count(session)
 
     async def create(self, data: CreateSchema, session: AsyncSession) -> ReadSchema:
         """Create new entity."""

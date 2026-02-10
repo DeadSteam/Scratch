@@ -13,7 +13,6 @@ dependencies = [
     "pillow>=10.0",
     "pydantic>=2.0",
     "pydantic-settings>=2.0",
-    "python-jose[cryptography]>=3.3",
     "python-multipart>=0.0.6",
     "redis>=5.0",
     "sqlalchemy[asyncio]>=2.0",
@@ -29,6 +28,10 @@ dependencies = [
     "opentelemetry-instrumentation-fastapi>=0.48b0",
     "opentelemetry-instrumentation-logging>=0.48b0",
     "opentelemetry-instrumentation-sqlalchemy>=0.48b0",
+    "pyjwt>=2.11.0",
+    "slowapi>=0.1.9",
+    "alembic>=1.18.4",
+    "celery>=5.6.2",
 ]
 
 [tool.ruff]
@@ -68,7 +71,7 @@ include = ["src/main.py", "src/core/middleware.py"]
 invalid-argument-type = "ignore"
 
 [[tool.ty.overrides]]
-include = ["src/repositories/**", "src/services/base.py", "src/services/knowledge_service_base.py", "src/services/advice_service.py", "src/services/cause_service.py"]
+include = ["src/repositories/**", "src/services/base.py", "src/services/advice_service.py", "src/services/cause_service.py"]
 [tool.ty.overrides.rules]
 # Generic T/ReadSchema bounds (DeclarativeBase, SchemaBase) have these attributes at runtime
 possibly-missing-attribute = "ignore"

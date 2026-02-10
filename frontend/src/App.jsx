@@ -27,59 +27,59 @@ export function App() {
       <ThemeProvider>
         <AuthProvider>
           <NotificationProvider>
-          {/* Toast notifications */}
-          <ToastContainer />
+            {/* Toast notifications */}
+            <ToastContainer />
           
-          {/* Routes */}
-          <Routes>
-            {/* Public routes */}
-            <Route path={ROUTES.LOGIN} element={<LoginPage />} />
+            {/* Routes */}
+            <Routes>
+              {/* Public routes */}
+              <Route path={ROUTES.LOGIN} element={<LoginPage />} />
             
-            {/* Protected routes */}
-            <Route
-              path={ROUTES.EXPERIMENTS}
-              element={
-                <ProtectedRoute>
-                  <ExperimentsPage />
-                </ProtectedRoute>
-              }
-            />
+              {/* Protected routes */}
+              <Route
+                path={ROUTES.EXPERIMENTS}
+                element={
+                  <ProtectedRoute>
+                    <ExperimentsPage />
+                  </ProtectedRoute>
+                }
+              />
             
-            <Route
-              path={ROUTES.EXPERIMENT_NEW}
-              element={
-                <ProtectedRoute>
-                  <CreateExperimentPage />
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path={ROUTES.EXPERIMENT_NEW}
+                element={
+                  <ProtectedRoute>
+                    <CreateExperimentPage />
+                  </ProtectedRoute>
+                }
+              />
             
-            <Route
-              path={ROUTES.EXPERIMENT_DETAIL}
-              element={
-                <ProtectedRoute>
-                  <ExperimentDetailPage />
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path={ROUTES.EXPERIMENT_DETAIL}
+                element={
+                  <ProtectedRoute>
+                    <ExperimentDetailPage />
+                  </ProtectedRoute>
+                }
+              />
             
-            {/* Admin routes */}
-            <Route
-              path={ROUTES.ADMIN}
-              element={
-                <ProtectedRoute requireAdmin>
-                  <AdminPage />
-                </ProtectedRoute>
-              }
-            />
+              {/* Admin routes */}
+              <Route
+                path={ROUTES.ADMIN}
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminPage />
+                  </ProtectedRoute>
+                }
+              />
             
-            {/* Redirect root to experiments */}
-            <Route path="/" element={<Navigate to={ROUTES.EXPERIMENTS} replace />} />
+              {/* Redirect root to experiments */}
+              <Route path="/" element={<Navigate to={ROUTES.EXPERIMENTS} replace />} />
             
-            {/* 404 - redirect to experiments */}
-            <Route path="*" element={<Navigate to={ROUTES.EXPERIMENTS} replace />} />
-          </Routes>
-        </NotificationProvider>
+              {/* 404 - redirect to experiments */}
+              <Route path="*" element={<Navigate to={ROUTES.EXPERIMENTS} replace />} />
+            </Routes>
+          </NotificationProvider>
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>

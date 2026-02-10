@@ -9,14 +9,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# uv — ставим зависимости и проект в этом же образе (venv не копируем из builder)
+# uv — fastest Python package manager
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-COPY pyproject.toml uv.lock ./
-COPY src ./src
-RUN uv sync --frozen --no-dev
+# Best practice: copy from cache instead of linking (required for volumes)
+ENV UV_LINK_MODE=copy
+# Compile bytecode for faster startup
+ENV UV_COMPILE_BYTECODE=1
 
+# Install dependencies first (layer caching)
+COPY pyproject.toml uv.lock ./
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --no-install-project
+
+# Copy source code and install project
 COPY . .
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev
 
 RUN dos2unix entrypoint.sh 2>/dev/null || true && chmod +x entrypoint.sh
 
@@ -24,4 +33,4 @@ ENV PATH="/app/.venv/bin:$PATH"
 EXPOSE 8000
 
 ENTRYPOINT ["./entrypoint.sh"]
-CMD ["python", "-m", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["python", "-m", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]

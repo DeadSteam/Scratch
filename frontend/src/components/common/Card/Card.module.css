@@ -67,20 +67,8 @@
 }
 
 .hoverable:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-xl);
   border-color: var(--color-border-light);
-}
-
-.hoverable:hover::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, var(--color-accent-primary), var(--color-secondary));
-  opacity: 0.6;
+  background: var(--color-surface-hover, rgba(255, 255, 255, 0.03));
 }
 
 .clickable {
@@ -88,7 +76,7 @@
 }
 
 .clickable:active {
-  transform: translateY(-2px) scale(0.995);
+  transform: scale(0.995);
 }
 
 .clickable:focus-visible {
@@ -111,5 +99,5 @@
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, var(--color-accent-primary), var(--color-accent-secondary));
+  background: var(--color-accent-primary);
 }
