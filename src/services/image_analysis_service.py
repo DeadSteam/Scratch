@@ -39,39 +39,23 @@ class ImageAnalysisService:
         self.image_repo = image_repository
         self.experiment_repo = experiment_repository
 
-    # ------------------------------------------------------------------
-    # Pure computation (no I/O)
-    # ------------------------------------------------------------------
-
-    def convert_to_grayscale(
-        self, image_array: NDArray[Any]
-    ) -> NDArray[np.uint8]:
+    def convert_to_grayscale(self, image_array: NDArray[Any]) -> NDArray[np.uint8]:
         """Convert RGB image to Grayscale.
 
         Formula: Grayscale(i,j) = 0.3*R + 0.59*G + 0.11*B
         """
         if len(image_array.shape) != 3 or image_array.shape[2] != 3:
-            raise ServiceValidationError(
-                "Image must be RGB format (H, W, 3)"
-            )
+            raise ServiceValidationError("Image must be RGB format (H, W, 3)")
         r = image_array[:, :, 0].astype(np.float32)
         g = image_array[:, :, 1].astype(np.float32)
         b = image_array[:, :, 2].astype(np.float32)
         grayscale = 0.3 * r + 0.59 * g + 0.11 * b
         return cast(NDArray[np.uint8], grayscale.astype(np.uint8))
 
-    def calculate_histogram(
-        self, grayscale_image: NDArray[Any]
-    ) -> dict[int, int]:
+    def calculate_histogram(self, grayscale_image: NDArray[Any]) -> dict[int, int]:
         """Brightness histogram (level 0-255 → pixel count)."""
-        histogram, _ = np.histogram(
-            grayscale_image.flatten(), bins=256, range=(0, 256)
-        )
-        return {
-            q: int(count)
-            for q, count in enumerate(histogram)
-            if count > 0
-        }
+        histogram, _ = np.histogram(grayscale_image.flatten(), bins=256, range=(0, 256))
+        return {q: int(count) for q, count in enumerate(histogram) if count > 0}
 
     def calculate_scratch_index(
         self,
@@ -134,10 +118,6 @@ class ImageAnalysisService:
             "brightness_levels_count": len(histogram),
         }
 
-    # ------------------------------------------------------------------
-    # Incremental: analyze ONE image and append to scratch_results
-    # ------------------------------------------------------------------
-
     async def analyze_and_save_single(
         self,
         image_id: UUID,
@@ -155,9 +135,7 @@ class ImageAnalysisService:
         if not image:
             raise NotFoundError("ExperimentImage", image_id)
 
-        experiment = await self.experiment_repo.get_by_id(
-            image.experiment_id, session
-        )
+        experiment = await self.experiment_repo.get_by_id(image.experiment_id, session)
         if not experiment:
             raise NotFoundError("Experiment", image.experiment_id)
 
@@ -182,13 +160,9 @@ class ImageAnalysisService:
         }
 
         # Append / replace in scratch_results
-        existing: list[dict[str, Any]] = list(
-            experiment.scratch_results or []
-        )
+        existing: list[dict[str, Any]] = list(experiment.scratch_results or [])
         # Remove previous entry for same image (idempotent)
-        existing = [
-            e for e in existing if e.get("image_id") != str(image_id)
-        ]
+        existing = [e for e in existing if e.get("image_id") != str(image_id)]
         existing.append(entry)
 
         await self.experiment_repo.update(
@@ -206,10 +180,6 @@ class ImageAnalysisService:
 
         return entry
 
-    # ------------------------------------------------------------------
-    # Full recalculation (when ROI changes or on explicit request)
-    # ------------------------------------------------------------------
-
     async def recalculate_experiment(
         self,
         experiment_id: UUID,
@@ -220,9 +190,7 @@ class ImageAnalysisService:
         Overwrites the entire ``scratch_results`` array.
         Use when ``rect_coords`` changes or for a full audit.
         """
-        experiment = await self.experiment_repo.get_by_id(
-            experiment_id, session
-        )
+        experiment = await self.experiment_repo.get_by_id(experiment_id, session)
         if not experiment:
             raise NotFoundError("Experiment", experiment_id)
 
@@ -234,9 +202,7 @@ class ImageAnalysisService:
         results: list[dict[str, Any]] = []
         for image in images:
             try:
-                analysis = self.analyze_image(
-                    image.image_data, rect_coords
-                )
+                analysis = self.analyze_image(image.image_data, rect_coords)
             except ServiceValidationError:
                 analysis = self.analyze_image(image.image_data, None)
 
@@ -282,10 +248,6 @@ class ImageAnalysisService:
             "summary": summary,
         }
 
-    # ------------------------------------------------------------------
-    # Read-only helpers (no writes)
-    # ------------------------------------------------------------------
-
     async def get_image_histogram(
         self, image_id: UUID, session: AsyncSession
     ) -> dict[str, Any]:
@@ -293,9 +255,7 @@ class ImageAnalysisService:
         image = await self.image_repo.get_by_id(image_id, session)
         if not image:
             raise NotFoundError("ExperimentImage", image_id)
-        experiment = await self.experiment_repo.get_by_id(
-            image.experiment_id, session
-        )
+        experiment = await self.experiment_repo.get_by_id(image.experiment_id, session)
         rect_coords = experiment.rect_coords if experiment else None
         try:
             analysis = self.analyze_image(image.image_data, rect_coords)
@@ -306,9 +266,7 @@ class ImageAnalysisService:
             "histogram": analysis["histogram"],
             "statistics": {
                 "total_pixels": analysis["total_pixels"],
-                "brightness_levels_count": analysis[
-                    "brightness_levels_count"
-                ],
+                "brightness_levels_count": analysis["brightness_levels_count"],
             },
         }
 
@@ -320,9 +278,7 @@ class ImageAnalysisService:
         limit: int = 100,
     ) -> dict[str, Any]:
         """Quick per-image stats (no write, no recalculation)."""
-        experiment = await self.experiment_repo.get_by_id(
-            experiment_id, session
-        )
+        experiment = await self.experiment_repo.get_by_id(experiment_id, session)
         rect_coords = experiment.rect_coords if experiment else None
         images = await self.image_repo.get_by_experiment_id(
             experiment_id, session, skip, limit

@@ -37,9 +37,7 @@ async def analyze_single_image(
     _current_user: CurrentUser,
 ) -> Response[dict[str, Any]]:
     """Analyze one image and save its scratch index."""
-    entry = await analysis_service.analyze_and_save_single(
-        image_id, db
-    )
+    entry = await analysis_service.analyze_and_save_single(image_id, db)
     return Response(
         success=True,
         message="Image analyzed and saved",
@@ -67,14 +65,10 @@ async def recalculate_experiment(
     _current_user: CurrentUser,
 ) -> Response[dict[str, Any]]:
     """Full recalculation of all experiment images."""
-    result = await analysis_service.recalculate_experiment(
-        experiment_id, db
-    )
+    result = await analysis_service.recalculate_experiment(experiment_id, db)
     return Response(
         success=True,
-        message=(
-            f"Recalculated {result['summary']['count']} images"
-        ),
+        message=(f"Recalculated {result['summary']['count']} images"),
         data=result,
     )
 
@@ -114,9 +108,7 @@ async def quick_experiment_analysis(
     limit: int = Query(100, ge=1, le=1000),
 ):
     """Quick per-image stats (no write)."""
-    data = await analysis_service.quick_analysis(
-        experiment_id, db, skip, limit
-    )
+    data = await analysis_service.quick_analysis(experiment_id, db, skip, limit)
     msg = (
         f"Analyzed {data['count']} images"
         if data["images"]

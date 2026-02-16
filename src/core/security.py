@@ -57,9 +57,7 @@ def create_access_token(
         )
 
     to_encode.update({"exp": expire})
-    return jwt.encode(
-        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
-    )
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
 def create_refresh_token(data: dict[str, Any]) -> str:
@@ -67,9 +65,7 @@ def create_refresh_token(data: dict[str, Any]) -> str:
     to_encode = data.copy()
     expire = datetime.now(UTC) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     to_encode.update({"exp": expire, "type": "refresh"})
-    return jwt.encode(
-        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
-    )
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
 def verify_token(token: str) -> dict[str, Any]:
@@ -79,9 +75,7 @@ def verify_token(token: str) -> dict[str, Any]:
         TokenValidationError: If the token is invalid or expired.
     """
     try:
-        return jwt.decode(
-            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
-        )
+        return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
     except PyJWTError as err:
         raise TokenValidationError("Could not validate credentials") from err
 

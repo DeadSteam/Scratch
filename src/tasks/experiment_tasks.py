@@ -46,9 +46,7 @@ def batch_analyze_and_save(
         experiment_id=experiment_id,
     )
     try:
-        result = run_async(
-            _recalculate_and_persist(UUID(experiment_id))
-        )
+        result = run_async(_recalculate_and_persist(UUID(experiment_id)))
         logger.info(
             "batch_task_completed",
             task_id=self.request.id,

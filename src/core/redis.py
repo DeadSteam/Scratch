@@ -78,9 +78,7 @@ class RedisClient:
             success_threshold=2,
         )
 
-    async def set(
-        self, key: str, value: Any, expire: int | None = None
-    ) -> bool:
+    async def set(self, key: str, value: Any, expire: int | None = None) -> bool:
         """Set value in Redis with optional expiration."""
         try:
             self._cb.ensure_closed()
@@ -90,9 +88,7 @@ class RedisClient:
 
         try:
             if not isinstance(value, (str, int, float, bool)):
-                to_store: str | int | float = json.dumps(
-                    value, cls=CustomJSONEncoder
-                )
+                to_store: str | int | float = json.dumps(value, cls=CustomJSONEncoder)
             else:
                 to_store = value
 
@@ -105,9 +101,7 @@ class RedisClient:
             return cast(bool, result) if result is not None else False
         except Exception as exc:
             self._cb.record_failure()
-            self._logger.warning(
-                "redis_set_failed", key=key, error=str(exc)
-            )
+            self._logger.warning("redis_set_failed", key=key, error=str(exc))
             return False
 
     async def get(self, key: str) -> Any | None:
@@ -133,24 +127,16 @@ class RedisClient:
                     value.startswith("{") or value.startswith("[")
                 ):
                     decoded = parse_json_with_dates(value)
-                    self._logger.debug(
-                        "redis_get_hit", key=key, decoded_json=True
-                    )
+                    self._logger.debug("redis_get_hit", key=key, decoded_json=True)
                     return decoded
-                self._logger.debug(
-                    "redis_get_hit", key=key, decoded_json=False
-                )
+                self._logger.debug("redis_get_hit", key=key, decoded_json=False)
                 return value
             except (TypeError, json.JSONDecodeError):
-                self._logger.debug(
-                    "redis_get_deserialize_failed", key=key
-                )
+                self._logger.debug("redis_get_deserialize_failed", key=key)
                 return value
         except Exception as exc:
             self._cb.record_failure()
-            self._logger.warning(
-                "redis_get_failed", key=key, error=str(exc)
-            )
+            self._logger.warning("redis_get_failed", key=key, error=str(exc))
             return None
 
     async def delete(self, key: str) -> bool:
@@ -168,9 +154,7 @@ class RedisClient:
             return deleted
         except Exception as exc:
             self._cb.record_failure()
-            self._logger.warning(
-                "redis_delete_failed", key=key, error=str(exc)
-            )
+            self._logger.warning("redis_delete_failed", key=key, error=str(exc))
             return False
 
     async def delete_pattern(self, pattern: str) -> int:
@@ -186,9 +170,7 @@ class RedisClient:
                 await self.client.delete(key)
                 count += 1
             self._cb.record_success()
-            self._logger.debug(
-                "redis_delete_pattern", pattern=pattern, count=count
-            )
+            self._logger.debug("redis_delete_pattern", pattern=pattern, count=count)
             return count
         except Exception as exc:
             self._cb.record_failure()
@@ -213,9 +195,7 @@ class RedisClient:
             return cast(bool, result)
         except Exception as exc:
             self._cb.record_failure()
-            self._logger.warning(
-                "redis_exists_failed", key=key, error=str(exc)
-            )
+            self._logger.warning("redis_exists_failed", key=key, error=str(exc))
             return False
 
     async def ping(self) -> bool:

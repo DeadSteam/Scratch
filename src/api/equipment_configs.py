@@ -162,7 +162,10 @@ async def update_config(
     description="Permanently delete an equipment configuration",
 )
 async def delete_config(
-    config_id: UUID, config_service: EquipmentConfigSvc, db: MainDBSession, admin: CurrentAdmin
+    config_id: UUID,
+    config_service: EquipmentConfigSvc,
+    db: MainDBSession,
+    admin: CurrentAdmin,
 ):
     """Delete equipment configuration."""
     await config_service.delete(config_id, db)

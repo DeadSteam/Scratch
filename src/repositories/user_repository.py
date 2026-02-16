@@ -23,9 +23,7 @@ class UserRepository(CachedRepositoryImpl[User], UserRepositoryInterface[User]):
         Used for authentication checks where roles must be present.
         """
         result = await session.execute(
-            select(User)
-            .where(User.id == user_id)
-            .options(selectinload(User.roles))
+            select(User).where(User.id == user_id).options(selectinload(User.roles))
         )
         return result.scalar_one_or_none()
 
@@ -94,5 +92,7 @@ class UserRepository(CachedRepositoryImpl[User], UserRepositoryInterface[User]):
 
     async def count_active(self, session: AsyncSession) -> int:
         """Count active users."""
-        result = await session.execute(select(func.count(User.id)).where(User.is_active))
+        result = await session.execute(
+            select(func.count(User.id)).where(User.is_active)
+        )
         return result.scalar() or 0

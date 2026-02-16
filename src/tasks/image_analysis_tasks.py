@@ -85,9 +85,7 @@ def recalculate_experiment(
         experiment_id=experiment_id,
     )
     try:
-        result = run_async(
-            _recalculate_experiment(UUID(experiment_id))
-        )
+        result = run_async(_recalculate_experiment(UUID(experiment_id)))
         logger.info(
             "recalculate_task_completed",
             task_id=self.request.id,
@@ -112,9 +110,7 @@ async def _analyze_single(image_id: Any) -> dict[str, Any]:
 
     async with MainSessionLocal() as session:
         try:
-            result = await _analysis_service.analyze_and_save_single(
-                image_id, session
-            )
+            result = await _analysis_service.analyze_and_save_single(image_id, session)
             await session.commit()
             return result
         except Exception:

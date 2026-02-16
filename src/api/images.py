@@ -115,7 +115,10 @@ async def upload_image(
     if file.content_type not in settings.ALLOWED_IMAGE_TYPES:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid file type: {file.content_type}. Allowed: {settings.ALLOWED_IMAGE_TYPES}"
+            detail=(
+                f"Invalid file type: {file.content_type}. "
+                f"Allowed: {settings.ALLOWED_IMAGE_TYPES}"
+            ),
         )
 
     # 2. Validate file size
@@ -123,12 +126,15 @@ async def upload_image(
     if len(content) > settings.MAX_FILE_SIZE:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail=f"File too large: {len(content)} bytes. Max allowed: {settings.MAX_FILE_SIZE}"
+            detail=(
+                f"File too large: {len(content)} bytes. "
+                f"Max allowed: {settings.MAX_FILE_SIZE}"
+            ),
         )
 
-    # Reset file pointer if we need to read it again, 
+    # Reset file pointer if we need to read it again,
     # but here we already have 'content', so we use it.
-    
+
     # Create image
     image_create = ExperimentImageCreate(
         experiment_id=experiment_id, image_data=content, passes=passes

@@ -42,7 +42,7 @@ class BaseService[T, CreateSchema, UpdateSchema, ReadSchema]:
         # Use cache if available
         if hasattr(self.repository, "get_by_id_cached"):
             self._logger.debug("using_cache_get_by_id", id=str(entity_id))
-            entity = await self.repository.get_by_id_cached(entity_id, session) # type: ignore
+            entity = await self.repository.get_by_id_cached(entity_id, session)  # type: ignore
         else:
             entity = await self.repository.get_by_id(entity_id, session)
 
@@ -61,7 +61,7 @@ class BaseService[T, CreateSchema, UpdateSchema, ReadSchema]:
         # Use cache if available
         if hasattr(self.repository, "get_all_cached"):
             self._logger.debug("using_cache_get_all")
-            entities = await self.repository.get_all_cached(session, skip, limit) # type: ignore
+            entities = await self.repository.get_all_cached(session, skip, limit)  # type: ignore
         else:
             entities = await self.repository.get_all(session, skip, limit)
 

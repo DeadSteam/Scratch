@@ -26,12 +26,8 @@ class ErrorResponse(BaseModel):
 
     success: bool = Field(False, description="Operation success status")
     message: str = Field(..., description="Error message")
-    errors: list[ErrorDetail] | None = Field(
-        None, description="Detailed errors"
-    )
-    detail: dict[str, Any] | None = Field(
-        None, description="Additional error details"
-    )
+    errors: list[ErrorDetail] | None = Field(None, description="Detailed errors")
+    detail: dict[str, Any] | None = Field(None, description="Additional error details")
 
 
 class PaginatedResponse[T](BaseModel):

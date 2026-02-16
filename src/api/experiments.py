@@ -27,7 +27,9 @@ async def list_experiments(
     limit: int = Query(100, ge=1, le=1000, description="Number of items to return"),
 ):
     """Get list of experiments with pagination."""
-    logger.info("list_experiments", user_id=str(current_user.id), skip=skip, limit=limit)
+    logger.info(
+        "list_experiments", user_id=str(current_user.id), skip=skip, limit=limit
+    )
     experiments = await experiment_service.get_all(db, skip, limit)
     total = await experiment_service.count(db)
     logger.info("list_experiments_result", count=len(experiments), total=total)

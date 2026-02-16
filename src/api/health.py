@@ -22,9 +22,7 @@ logger = get_logger(__name__)
 router = APIRouter(tags=["health"])
 
 
-async def _check_db(
-    name: str, session_factory: Any
-) -> dict[str, Any]:
+async def _check_db(name: str, session_factory: Any) -> dict[str, Any]:
     """Ping a database and return component status."""
     start = time.monotonic()
     try:
@@ -78,13 +76,9 @@ async def health_check() -> dict[str, Any]:
     components: dict[str, dict[str, Any]] = {}
 
     # Check all databases in parallel-style (sequential but fast)
-    components["experiments_db"] = await _check_db(
-        "experiments", MainSessionLocal
-    )
+    components["experiments_db"] = await _check_db("experiments", MainSessionLocal)
     components["users_db"] = await _check_db("users", UsersSessionLocal)
-    components["knowledge_db"] = await _check_db(
-        "knowledge", KnowledgeSessionLocal
-    )
+    components["knowledge_db"] = await _check_db("knowledge", KnowledgeSessionLocal)
     components["redis"] = await _check_redis()
 
     # Overall status is healthy only if all configured components are ok
@@ -114,10 +108,7 @@ async def readiness() -> dict[str, Any]:
     db_status = await _check_db("experiments", MainSessionLocal)
     redis_status = await _check_redis()
 
-    ready = (
-        db_status["status"] == "healthy"
-        and redis_status["status"] == "healthy"
-    )
+    ready = db_status["status"] == "healthy" and redis_status["status"] == "healthy"
     return {
         "status": "ready" if ready else "not_ready",
         "experiments_db": db_status["status"],

@@ -120,8 +120,9 @@ class ExperimentRepository(
         self, user_id: UUID, session: AsyncSession, skip: int = 0, limit: int = 100
     ) -> list[Experiment]:
         """Get experiments by user ID - always load with relationships."""
-        # Always load from database with relationships to ensure film and config are included
-        # Caching experiments with relationships is complex, so we skip cache for this query
+        # Always load from database with relationships to ensure film and
+        # config are included. Caching experiments with relationships is
+        # complex, so we skip cache for this query
         return await self.get_by_user_id(user_id, session, skip, limit)
 
     async def count_by_user_id(self, user_id: UUID, session: AsyncSession) -> int:

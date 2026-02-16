@@ -38,8 +38,8 @@ def init_tracing(app: FastAPI) -> None:
     if knowledge_engine:
         engines_async.append(knowledge_engine)
 
-    # SQLAlchemy instrumentation работает с синхронными Engine;
-    # для AsyncEngine используем их sync_engine.
+    # SQLAlchemy instrumentation works with synchronous Engine;
+    # for AsyncEngine we use their sync_engine.
     engines = [
         e.sync_engine if isinstance(e, AsyncEngine) else e for e in engines_async
     ]

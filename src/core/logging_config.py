@@ -18,7 +18,7 @@ def _add_trace_context(
     if ctx and ctx.is_valid:
         event_dict["trace_id"] = trace.format_trace_id(ctx.trace_id)
         event_dict["span_id"] = trace.format_span_id(ctx.span_id)
-    
+
     event_dict.setdefault("service_name", settings.APP_NAME)
     return event_dict
 
@@ -36,9 +36,10 @@ def _extract_stdlib_args(
 
 def configure_logging() -> None:
     """Configure stdlib logging and structlog for JSON output."""
-    
-    # Processors that are safe to run in both structlog and stdlib formatter (foreign_pre_chain)
-    # filter_by_level is NOT safe for stdlib formatter as logger is None there
+
+    # Processors safe to run in both structlog and stdlib formatter
+    # (foreign_pre_chain). filter_by_level is NOT safe for stdlib formatter
+    # as logger is None there
     shared_processors = [
         structlog.contextvars.merge_contextvars,
         structlog.stdlib.add_logger_name,
@@ -54,8 +55,8 @@ def configure_logging() -> None:
     # Structlog configuration
     structlog.configure(
         processors=[
-            structlog.stdlib.filter_by_level, # Filter by level is safe here
-        ] + shared_processors + [
+            structlog.stdlib.filter_by_level,  # Filter by level is safe here
+            *shared_processors,
             structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
         ],
         logger_factory=structlog.stdlib.LoggerFactory(),
@@ -66,7 +67,7 @@ def configure_logging() -> None:
     # Stdlib formatter that renders as JSON
     formatter = structlog.stdlib.ProcessorFormatter(
         # These run on logs NOT from structlog (e.g. uvicorn)
-        foreign_pre_chain=shared_processors,
+        foreign_pre_chain=shared_processors,  # type: ignore[arg-type]
         # These run on ALL logs (after structlog processors or foreign_pre_chain)
         processors=[
             structlog.stdlib.ProcessorFormatter.remove_processors_meta,
@@ -88,8 +89,9 @@ def configure_logging() -> None:
         logger = logging.getLogger(_log)
         logger.handlers = [handler]
         logger.propagate = False
-    
-    # Silence uvicorn.access as it is redundant with middleware logging and hard to format as JSON
+
+    # Silence uvicorn.access as it is redundant with middleware logging
+    # and hard to format as JSON
     logging.getLogger("uvicorn.access").handlers = []
     logging.getLogger("uvicorn.access").propagate = False
 

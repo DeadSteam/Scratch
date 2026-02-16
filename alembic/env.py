@@ -11,7 +11,9 @@ Without ``-x db=...`` the main (experiments) database is used by default.
 import asyncio
 import os
 import sys
+from collections.abc import MutableMapping
 from logging.config import fileConfig
+from typing import Literal
 
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
@@ -43,15 +45,12 @@ DB_CONFIG = {
 _db_name_arg = context.get_x_argument(as_dictionary=True).get("db", "main")
 if _db_name_arg not in DB_CONFIG:
     raise ValueError(
-        f"Unknown database '{_db_name_arg}'. "
-        f"Choose from: {', '.join(DB_CONFIG)}"
+        f"Unknown database '{_db_name_arg}'. Choose from: {', '.join(DB_CONFIG)}"
     )
 
 target_url: str = DB_CONFIG[_db_name_arg]
 if not target_url:
-    raise RuntimeError(
-        f"Database URL for '{_db_name_arg}' is not configured."
-    )
+    raise RuntimeError(f"Database URL for '{_db_name_arg}' is not configured.")
 
 # Alembic Config object (provides access to alembic.ini values).
 config = context.config
@@ -77,7 +76,21 @@ _USERS_TABLES = {"user", "role", "user_roles"}
 _KNOWLEDGE_TABLES = {"situation", "cause", "advice"}
 
 
-def include_name(name: str | None, type_: str, parent_names: dict) -> bool:  # type: ignore[type-arg]
+def include_name(
+    name: str | None,
+    type_: Literal[
+        "schema",
+        "table",
+        "column",
+        "index",
+        "unique_constraint",
+        "foreign_key_constraint",
+    ],
+    parent_names: MutableMapping[
+        Literal["schema_name", "table_name", "schema_qualified_table_name"],
+        str | None,
+    ],
+) -> bool:
     """Filter tables per database during autogenerate."""
     if type_ != "table" or name is None:
         return True
@@ -105,7 +118,7 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
-def do_run_migrations(connection) -> None:  # type: ignore[type-arg]
+def do_run_migrations(connection: context.Connection) -> None:
     """Configure context and run migrations inside a connection."""
     context.configure(
         connection=connection,

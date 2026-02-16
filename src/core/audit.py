@@ -76,9 +76,8 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
         call_next: RequestResponseEndpoint,
     ) -> Response:
         # Only audit mutating requests targeting the API.
-        if (
-            request.method not in _MUTATING_METHODS
-            or not request.url.path.startswith("/api/")
+        if request.method not in _MUTATING_METHODS or not request.url.path.startswith(
+            "/api/"
         ):
             return await call_next(request)
 

@@ -54,9 +54,7 @@ class CircuitOpenError(Exception):
     def __init__(self, name: str, retry_after: float):
         self.name = name
         self.retry_after = retry_after
-        super().__init__(
-            f"Circuit '{name}' is OPEN. Retry after {retry_after:.1f}s"
-        )
+        super().__init__(f"Circuit '{name}' is OPEN. Retry after {retry_after:.1f}s")
 
 
 class CircuitBreaker:
@@ -112,9 +110,8 @@ class CircuitBreaker:
         """Raise :class:`CircuitOpenError` if the circuit is open."""
         current = self.state
         if current == CircuitState.OPEN:
-            retry_after = (
-                self.recovery_timeout
-                - (time.monotonic() - self._last_failure_time)
+            retry_after = self.recovery_timeout - (
+                time.monotonic() - self._last_failure_time
             )
             raise CircuitOpenError(self.name, max(retry_after, 0))
 

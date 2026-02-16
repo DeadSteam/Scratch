@@ -13,9 +13,7 @@ from .base import BaseService
 from .exceptions import NotFoundError
 
 
-class AdviceService(
-    BaseService[Advice, AdviceCreate, AdviceUpdate, AdviceRead]
-):
+class AdviceService(BaseService[Advice, AdviceCreate, AdviceUpdate, AdviceRead]):
     def __init__(
         self,
         repository: AdviceRepository,

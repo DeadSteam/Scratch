@@ -72,7 +72,10 @@ async def list_active_users(
     description="Create a new user account",
 )
 async def create_user(
-    user_data: UserCreate, user_service: UserSvc, db: UsersDBSession, admin: CurrentAdmin
+    user_data: UserCreate,
+    user_service: UserSvc,
+    db: UsersDBSession,
+    admin: CurrentAdmin,
 ):
     """Create new user."""
     user = await user_service.create(user_data, db)

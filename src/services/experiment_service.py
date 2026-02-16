@@ -42,9 +42,7 @@ class ExperimentService(
         self.film_repo = film_repository
         self.config_repo = config_repository
 
-    async def get_by_id(
-        self, entity_id: UUID, session: AsyncSession
-    ) -> ExperimentRead:
+    async def get_by_id(self, entity_id: UUID, session: AsyncSession) -> ExperimentRead:
         """Get experiment by ID with relationships loaded."""
         experiment = await self.experiment_repo.get_by_id_with_relations(
             entity_id, session
@@ -76,9 +74,7 @@ class ExperimentService(
         self, entity_id: UUID, data: ExperimentUpdate, session: AsyncSession
     ) -> ExperimentRead:
         """Update experiment with validation of foreign keys."""
-        if data.film_id and not await self.film_repo.exists(
-            data.film_id, session
-        ):
+        if data.film_id and not await self.film_repo.exists(data.film_id, session):
             raise NotFoundError("Film", data.film_id)
         if data.config_id and not await self.config_repo.exists(
             data.config_id, session
@@ -186,26 +182,16 @@ class ExperimentService(
         self, experiment_id: UUID, session: AsyncSession
     ) -> ExperimentRead:
         """Get experiment with all related images."""
-        experiment = await self.experiment_repo.get_with_images(
-            experiment_id, session
-        )
+        experiment = await self.experiment_repo.get_with_images(experiment_id, session)
         if not experiment:
             raise NotFoundError("Experiment", experiment_id)
         return self.read_schema.model_validate(experiment)
 
-    async def count_by_user_id(
-        self, user_id: UUID, session: AsyncSession
-    ) -> int:
+    async def count_by_user_id(self, user_id: UUID, session: AsyncSession) -> int:
         return await self.experiment_repo.count_by_user_id(user_id, session)
 
-    async def count_by_film_id(
-        self, film_id: UUID, session: AsyncSession
-    ) -> int:
+    async def count_by_film_id(self, film_id: UUID, session: AsyncSession) -> int:
         return await self.experiment_repo.count_by_film_id(film_id, session)
 
-    async def count_by_config_id(
-        self, config_id: UUID, session: AsyncSession
-    ) -> int:
-        return await self.experiment_repo.count_by_config_id(
-            config_id, session
-        )
+    async def count_by_config_id(self, config_id: UUID, session: AsyncSession) -> int:
+        return await self.experiment_repo.count_by_config_id(config_id, session)
