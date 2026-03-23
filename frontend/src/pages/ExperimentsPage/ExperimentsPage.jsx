@@ -128,9 +128,12 @@ export function ExperimentsPage() {
         ) : experiments.length === 0 ? (
           <EmptyState
             icon={
-              <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <circle cx="24" cy="24" r="20" />
-                <path d="M16 20h16M16 28h10M24 14v20" strokeLinecap="round" />
+              <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 6h12M19 6v14L10 36a3 3 0 002.7 4.3h22.6A3 3 0 0038 36L29 20V6" />
+                <path d="M14 32h20" />
+                <circle cx="20" cy="36" r="1.5" fill="currentColor" stroke="none" opacity="0.6" />
+                <circle cx="27" cy="38" r="1" fill="currentColor" stroke="none" opacity="0.4" />
+                <circle cx="32" cy="35" r="1.2" fill="currentColor" stroke="none" opacity="0.5" />
               </svg>
             }
             title="Нет экспериментов"
@@ -153,8 +156,6 @@ export function ExperimentsPage() {
                   onClick={() => handleExperimentClick(experiment.id)}
                   className={styles.experimentCard}
                 >
-                  {/* Card indicator */}
-                  <div className={`${styles.cardIndicator} ${styles[quality.color]}`} />
                   
                   <div className={styles.cardContent}>
                     {/* Row 1: Name + delete button + date */}

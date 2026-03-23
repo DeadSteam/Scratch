@@ -122,8 +122,6 @@ export function LoginPage() {
       {/* Background decoration */}
       <div className={styles.bgDecoration}>
         <div className={styles.gridOverlay} />
-        <div className={styles.glowOrb} />
-        <div className={styles.glowOrb} />
         <div className={styles.accentLines} />
       </div>
 

@@ -4,15 +4,46 @@
   animation: fadeIn var(--transition-base) ease-out;
 }
 
+/* ═══════════════════════════════════════════════
+   HEADER
+   ═══════════════════════════════════════════════ */
+
 .header {
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-8);
+  position: relative;
+  padding-bottom: var(--space-6);
+}
+
+/* Amber accent separator */
+.header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 200px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    var(--color-accent-primary) 0%,
+    rgba(245, 158, 11, 0.4) 60%,
+    transparent 100%
+  );
+  opacity: 0.7;
 }
 
 .title {
   font-size: var(--text-3xl);
   font-weight: var(--font-bold);
-  color: var(--color-text-primary);
   margin: 0 0 var(--space-2);
+  letter-spacing: var(--tracking-tight);
+  background: linear-gradient(
+    135deg,
+    var(--color-text-primary) 0%,
+    var(--color-accent-primary) 70%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .subtitle {
@@ -21,50 +52,87 @@
   margin: 0;
 }
 
-/* Tabs */
+/* ═══════════════════════════════════════════════
+   PILL TABS — inspired by 21st.dev PillMorphTabs
+   Glassmorphism container + gradient active pill
+   ═══════════════════════════════════════════════ */
+
 .tabs {
   display: flex;
-  gap: var(--space-2);
-  margin-bottom: var(--space-6);
-  border-bottom: var(--border-width) solid var(--color-border);
-  padding-bottom: var(--space-2);
+  align-items: center;
+  gap: var(--space-1);
+  margin-bottom: var(--space-8);
+  padding: var(--space-1-5);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0.01));
+  border: 1px solid var(--color-glass-border);
+  border-radius: var(--radius-2xl);
+  backdrop-filter: blur(var(--blur-sm));
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  width: fit-content;
 }
 
 .tab {
-  padding: var(--space-3) var(--space-4);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2-5) var(--space-5);
+  font-family: var(--font-sans);
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
-  color: var(--color-text-secondary);
-  border-radius: var(--radius-md);
-  transition: all var(--transition-base);
-  background: none;
-  border: none;
+  color: var(--color-text-muted);
+  border-radius: var(--radius-xl);
+  border: 1px solid transparent;
+  background: transparent;
   cursor: pointer;
+  transition: color var(--transition-base) var(--ease-out),
+              background var(--transition-base) var(--ease-out),
+              border-color var(--transition-base) var(--ease-out),
+              box-shadow var(--transition-slow) var(--ease-out);
+  white-space: nowrap;
+  position: relative;
+}
+
+.tabIcon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  opacity: 0.7;
+  transition: opacity var(--transition-base);
 }
 
 .tab:hover {
   color: var(--color-text-primary);
-  background: var(--color-surface);
+  background: rgba(255, 255, 255, 0.04);
 }
 
+.tab:hover .tabIcon {
+  opacity: 1;
+}
+
+/* Active state — amber pill */
 .tab.active {
+  color: var(--color-text-primary);
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.25);
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.1);
+}
+
+.tab.active .tabIcon {
+  opacity: 1;
   color: var(--color-accent-primary);
-  background: var(--color-accent-subtle);
 }
 
 /* Content */
 .content {
-  animation: fadeIn var(--transition-fast) ease-out;
+  animation: fadeInUp var(--transition-slow) var(--ease-out) both;
 }
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
-
-
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

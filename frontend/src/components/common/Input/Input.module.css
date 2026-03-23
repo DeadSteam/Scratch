@@ -84,9 +84,9 @@
   outline: none;
   border-color: var(--color-accent-primary);
   background: var(--color-surface);
-  box-shadow: 
-    0 0 0 3px var(--color-accent-subtle),
-    0 0 20px rgba(245, 158, 11, 0.08);
+  box-shadow:
+    0 0 0 3px rgba(245, 158, 11, 0.1),
+    0 0 16px rgba(245, 158, 11, 0.06);
 }
 
 .input:disabled {

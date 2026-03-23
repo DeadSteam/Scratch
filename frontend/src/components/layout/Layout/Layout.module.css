@@ -8,14 +8,15 @@
   position: relative;
 }
 
-/* Subtle background texture */
+/* Background texture — subtle amber ambient */
 .layout::before {
   content: '';
   position: fixed;
   inset: 0;
   background-image: 
-    radial-gradient(at 100% 0%, rgba(245, 158, 11, 0.03) 0px, transparent 50%),
-    radial-gradient(at 0% 100%, rgba(99, 102, 241, 0.02) 0px, transparent 50%);
+    radial-gradient(at 100% 0%, rgba(245, 158, 11, 0.04) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, rgba(245, 158, 11, 0.025) 0px, transparent 50%),
+    radial-gradient(at 50% 50%, rgba(99, 102, 241, 0.015) 0px, transparent 60%);
   pointer-events: none;
   z-index: 0;
 }

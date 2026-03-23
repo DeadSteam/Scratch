@@ -90,6 +90,21 @@ export function UsersManagement() {
             </tr>
           </thead>
           <tbody>
+            {users.length === 0 && (
+              <tr className={styles.emptyRow}>
+                <td colSpan={5}>
+                  <div className={styles.emptyStateCell}>
+                    <div className={styles.emptyIcon}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                      </svg>
+                    </div>
+                    <p className={styles.emptyTitle}>Нет пользователей</p>
+                    <p className={styles.emptyDesc}>Пользователи появятся здесь после загрузки данных</p>
+                  </div>
+                </td>
+              </tr>
+            )}
             {users.map((user) => (
               <tr key={user.id}>
                 <td className={styles.primaryCell}>{user.username}</td>

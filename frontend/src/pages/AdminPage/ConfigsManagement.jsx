@@ -122,6 +122,21 @@ export function ConfigsManagement() {
             </tr>
           </thead>
           <tbody>
+            {configs.length === 0 && (
+              <tr className={styles.emptyRow}>
+                <td colSpan={4}>
+                  <div className={styles.emptyStateCell}>
+                    <div className={styles.emptyIcon}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+                      </svg>
+                    </div>
+                    <p className={styles.emptyTitle}>Нет конфигураций</p>
+                    <p className={styles.emptyDesc}>Нажмите «Добавить конфигурацию» чтобы создать запись</p>
+                  </div>
+                </td>
+              </tr>
+            )}
             {configs.map((config) => (
               <tr key={config.id}>
                 <td className={styles.primaryCell}>{config.name}</td>

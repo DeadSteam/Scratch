@@ -125,7 +125,22 @@ export function SituationsManagement() {
             </tr>
           </thead>
           <tbody>
-            {items.map((row) => (
+            {items.length === 0 ? (
+              <tr className={styles.emptyRow}>
+                <td colSpan={5}>
+                  <div className={styles.emptyStateCell}>
+                    <div className={styles.emptyIcon}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="2" y="3" width="20" height="14" rx="2"/>
+                        <path d="M8 21h8M12 17v4M7 7h10M7 11h6"/>
+                      </svg>
+                    </div>
+                    <p className={styles.emptyTitle}>Нет ситуаций</p>
+                    <p className={styles.emptyDesc}>Нажмите «Добавить ситуацию» чтобы создать первую запись</p>
+                  </div>
+                </td>
+              </tr>
+            ) : items.map((row) => (
               <tr key={row.id}>
                 <td className={styles.primaryCell}>{row.controlled_param || '—'}</td>
                 <td>{row.min_value != null ? row.min_value : '—'}</td>

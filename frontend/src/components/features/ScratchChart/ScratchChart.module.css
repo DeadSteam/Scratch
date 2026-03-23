@@ -3,10 +3,10 @@
 .container {
   position: relative;
   height: 300px;
-  background: var(--color-surface);
-  border: var(--border-width) solid var(--color-border);
+  background: transparent;
+  border: none;
   border-radius: var(--radius-lg);
-  padding: var(--space-5);
+  padding: var(--space-2) 0;
 }
 
 .empty {

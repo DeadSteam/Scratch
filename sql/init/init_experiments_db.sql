@@ -1,4 +1,4 @@
-﻿-- Enable UUID extensions
+-- Enable UUID extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
@@ -45,3 +45,4 @@ CREATE INDEX IF NOT EXISTS idx_films_name ON films(name);
 CREATE INDEX IF NOT EXISTS idx_econfigs_name ON equipment_configs(name);
 CREATE INDEX IF NOT EXISTS idx_experiments_user_id ON experiments(user_id);
 CREATE INDEX IF NOT EXISTS idx_experiment_images_experiment_id ON experiment_images(experiment_id);
+

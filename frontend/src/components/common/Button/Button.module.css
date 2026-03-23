@@ -58,18 +58,81 @@
    VARIANTS
    ═══════════════════════════════════════════════════════════ */
 
-/* Primary - Amber gradient */
+/* Primary - Amber gradient with conic shimmer (inspired by 21st.dev ShimmerButton) */
 .primary {
-  background: var(--color-accent-primary);
+  background: linear-gradient(
+    135deg,
+    var(--color-accent-primary) 0%,
+    var(--color-accent-secondary) 100%
+  );
   color: var(--color-text-inverse);
+  box-shadow: 0 2px 12px rgba(245, 158, 11, 0.25);
+  overflow: hidden;
+}
+
+/* Spinning conic gradient shimmer ring (blurred behind button) */
+.primary::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    rgba(255, 255, 255, 0.35) 40deg,
+    transparent 80deg
+  );
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  filter: blur(2px);
+  z-index: -1;
+}
+
+/* Sweep highlight (from 21st.dev) */
+.primary::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -80%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.2) 50%,
+    transparent 100%
+  );
+  transform: skewX(-25deg);
+  transition: none;
+  pointer-events: none;
+}
+
+.primary:hover:not(:disabled)::before {
+  opacity: 1;
+  animation: conicSpin 1.8s linear infinite;
+}
+
+.primary:hover:not(:disabled)::after {
+  animation: sweepOnce 0.5s ease-out forwards;
 }
 
 .primary:hover:not(:disabled) {
-  filter: brightness(1.1);
+  box-shadow: 0 4px 22px rgba(245, 158, 11, 0.45), inset 0 -2px 6px rgba(0, 0, 0, 0.15);
 }
 
 .primary:active:not(:disabled) {
-  filter: brightness(0.95);
+  filter: brightness(0.92);
+  box-shadow: 0 1px 6px rgba(245, 158, 11, 0.2);
+}
+
+@keyframes conicSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes sweepOnce {
+  0%   { left: -80%; }
+  100% { left: 140%; }
 }
 
 /* Secondary - Subtle surface */
@@ -81,7 +144,8 @@
 
 .secondary:hover:not(:disabled) {
   background: var(--color-surface-elevated);
-  border-color: var(--color-text-muted);
+  border-color: rgba(20, 184, 166, 0.3);
+  box-shadow: 0 0 8px rgba(20, 184, 166, 0.06);
 }
 
 /* Danger */
@@ -113,11 +177,27 @@
 .outline {
   background: transparent;
   color: var(--color-accent-primary);
-  border-color: var(--color-accent-primary);
+  border-color: rgba(245, 158, 11, 0.5);
+  position: relative;
+}
+
+.outline::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(20, 184, 166, 0.04) 100%);
+  opacity: 0;
+  transition: opacity var(--transition-base);
 }
 
 .outline:hover:not(:disabled) {
-  background: var(--color-accent-subtle);
+  border-color: var(--color-accent-primary);
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.15);
+}
+
+.outline:hover:not(:disabled)::before {
+  opacity: 1;
 }
 
 /* ═══════════════════════════════════════════════════════════

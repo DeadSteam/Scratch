@@ -40,6 +40,13 @@
   /* Secondary Accent - Cool Slate Blue */
   --color-secondary: #6366f1;
   --color-secondary-glow: rgba(99, 102, 241, 0.15);
+
+  /* Teal/Cyan Accent - Scientific Precision */
+  --color-teal: #14b8a6;
+  --color-teal-bright: #2dd4bf;
+  --color-teal-glow: rgba(20, 184, 166, 0.18);
+  --color-teal-subtle: rgba(20, 184, 166, 0.08);
+  --color-teal-border: rgba(20, 184, 166, 0.25);
   
   /* Header */
   --color-header-bg: rgba(12, 15, 20, 0.85);
