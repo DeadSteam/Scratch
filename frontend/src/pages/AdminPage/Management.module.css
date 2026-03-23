@@ -232,7 +232,24 @@
   transform: scale(0.95) !important;
 }
 
-/* Delete / deactivate button — last in actions group */
+/* Delete button — explicit class */
+.deleteBtn {
+  transition: color var(--transition-base), background var(--transition-base),
+              box-shadow var(--transition-base), transform var(--transition-fast) var(--ease-spring) !important;
+}
+
+.deleteBtn:hover {
+  color: var(--color-error) !important;
+  background: var(--color-error-bg) !important;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.15) !important;
+  transform: scale(1.08) !important;
+}
+
+.deleteBtn:active {
+  transform: scale(0.95) !important;
+}
+
+/* Deactivate/Activate button — last in actions group (legacy support) */
 .actions button:last-child:not(:first-child) {
   transition: color var(--transition-base), background var(--transition-base),
               box-shadow var(--transition-base), transform var(--transition-fast) var(--ease-spring) !important;

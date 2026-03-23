@@ -13,7 +13,7 @@ export function UsersManagement() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editForm, setEditForm] = useState({ email: '', is_active: true });
+  const [editForm, setEditForm] = useState({ email: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { success, error: showError } = useNotification();
@@ -36,17 +36,17 @@ export function UsersManagement() {
 
   const handleEdit = (user) => {
     setSelectedUser(user);
-    setEditForm({ email: user.email, is_active: user.is_active });
+    setEditForm({ email: user.email });
     setIsEditModalOpen(true);
   };
 
   const handleUpdateUser = async () => {
     if (!selectedUser) return;
-    
+
     setIsSubmitting(true);
     try {
       await userService.update(selectedUser.id, editForm);
-      success('Пользователь обновлен');
+      success('Пользователь обновлён');
       setIsEditModalOpen(false);
       fetchUsers();
     } catch (err) {
@@ -58,13 +58,33 @@ export function UsersManagement() {
 
   const handleDeactivate = async (userId) => {
     if (!window.confirm('Деактивировать пользователя?')) return;
-    
     try {
       await userService.deactivate(userId);
       success('Пользователь деактивирован');
       fetchUsers();
     } catch (err) {
       showError(err.message || 'Ошибка деактивации');
+    }
+  };
+
+  const handleActivate = async (userId) => {
+    try {
+      await userService.activate(userId);
+      success('Пользователь активирован');
+      fetchUsers();
+    } catch (err) {
+      showError(err.message || 'Ошибка активации');
+    }
+  };
+
+  const handleDelete = async (user) => {
+    if (!window.confirm(`Удалить пользователя «${user.username}»? Это действие необратимо.`)) return;
+    try {
+      await userService.delete(user.id);
+      success('Пользователь удалён');
+      fetchUsers();
+    } catch (err) {
+      showError(err.message || 'Ошибка удаления');
     }
   };
 
@@ -90,7 +110,7 @@ export function UsersManagement() {
             </tr>
           </thead>
           <tbody>
-            {users.length === 0 && (
+            {users.length === 0 ? (
               <tr className={styles.emptyRow}>
                 <td colSpan={5}>
                   <div className={styles.emptyStateCell}>
@@ -104,8 +124,7 @@ export function UsersManagement() {
                   </div>
                 </td>
               </tr>
-            )}
-            {users.map((user) => (
+            ) : users.map((user) => (
               <tr key={user.id}>
                 <td className={styles.primaryCell}>{user.username}</td>
                 <td>{user.email}</td>
@@ -126,15 +145,31 @@ export function UsersManagement() {
                     <Button variant="ghost" size="sm" onClick={() => handleEdit(user)}>
                       Изменить
                     </Button>
-                    {user.is_active && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                    {user.is_active ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => handleDeactivate(user.id)}
                       >
                         Деактивировать
                       </Button>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleActivate(user.id)}
+                      >
+                        Активировать
+                      </Button>
                     )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={styles.deleteBtn}
+                      onClick={() => handleDelete(user)}
+                    >
+                      Удалить
+                    </Button>
                   </div>
                 </td>
               </tr>
@@ -157,15 +192,6 @@ export function UsersManagement() {
             value={editForm.email}
             onChange={(e) => setEditForm((prev) => ({ ...prev, email: e.target.value }))}
           />
-          
-          <label className={styles.checkboxLabel}>
-            <input
-              type="checkbox"
-              checked={editForm.is_active}
-              onChange={(e) => setEditForm((prev) => ({ ...prev, is_active: e.target.checked }))}
-            />
-            <span>Активен</span>
-          </label>
 
           <div className={styles.modalActions}>
             <Button variant="secondary" onClick={() => setIsEditModalOpen(false)}>
@@ -182,4 +208,3 @@ export function UsersManagement() {
 }
 
 export default UsersManagement;
-

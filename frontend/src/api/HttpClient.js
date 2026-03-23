@@ -8,36 +8,67 @@ import { API_BASE_URL, STORAGE_KEYS } from '@utils/constants';
 class HttpClient {
   constructor(baseURL = API_BASE_URL) {
     this.baseURL = baseURL;
+    this._isRefreshing = false;
+    this._refreshQueue = [];
   }
 
-  /**
-   * Get access token from session storage
-   */
   getAccessToken() {
     return sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
   }
 
-  /**
-   * Get default headers
-   */
+  getRefreshToken() {
+    return sessionStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+  }
+
+  saveTokens({ access_token, refresh_token, user }) {
+    if (access_token) sessionStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, access_token);
+    if (refresh_token) sessionStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refresh_token);
+    if (user) sessionStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+  }
+
+  clearSession() {
+    sessionStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+    sessionStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+    sessionStorage.removeItem(STORAGE_KEYS.USER);
+  }
+
   getHeaders(customHeaders = {}) {
     const headers = {
       'Content-Type': 'application/json',
       ...customHeaders,
     };
-
     const token = this.getAccessToken();
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
+    if (token) headers['Authorization'] = `Bearer ${token}`;
     return headers;
   }
 
   /**
-   * Handle response
+   * Attempt to refresh the access token using the refresh token.
+   * Returns true if successful, false otherwise.
    */
-  async handleResponse(response) {
+  async tryRefreshToken() {
+    const refreshToken = this.getRefreshToken();
+    if (!refreshToken) return false;
+
+    try {
+      const response = await fetch(`${this.baseURL}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      });
+      if (!response.ok) return false;
+      const data = await response.json();
+      if (data.success && data.data) {
+        this.saveTokens(data.data);
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
+  async handleResponse(response, retryFn = null) {
     // Handle empty responses (204 No Content, etc.)
     if (response.status === 204 || response.headers.get('content-length') === '0') {
       return { success: true };
@@ -49,46 +80,46 @@ class HttpClient {
       try {
         data = await response.json();
       } catch (e) {
-        // If JSON parsing fails, create error from status text
         const error = new Error(response.statusText || 'Произошла ошибка');
         error.status = response.status;
         throw error;
       }
     } else {
-      // Non-JSON response
       const text = await response.text();
       data = { message: text || response.statusText };
     }
 
     if (!response.ok) {
-      // Extract error message from validation errors if present
       let errorMessage = data.message || 'Произошла ошибка';
 
-      // Handle FastAPI validation errors (errors array)
       if (data.errors && Array.isArray(data.errors)) {
         errorMessage = data.errors.map(err => err.message || err.msg || JSON.stringify(err)).join(', ');
-      }
-      // Handle Pydantic validation errors (detail array)
-      else if (data.detail) {
+      } else if (data.detail) {
         if (Array.isArray(data.detail)) {
           errorMessage = data.detail.map(err => err.msg || err.message || JSON.stringify(err)).join(', ');
         } else if (typeof data.detail === 'string') {
           errorMessage = data.detail;
         }
+      } else if (response.status === 401 && retryFn && !this._isRefreshing) {
+        // Try to refresh the token once, then retry
+        this._isRefreshing = true;
+        const refreshed = await this.tryRefreshToken();
+        this._isRefreshing = false;
+        if (refreshed) {
+          return retryFn();
+        }
+        // Refresh failed — log out
+        errorMessage = 'Сессия истекла. Пожалуйста, войдите снова.';
+        this.clearSession();
+        setTimeout(() => { window.location.href = '/login'; }, 1500);
       } else if (response.status === 401) {
         errorMessage = 'Сессия истекла. Пожалуйста, войдите снова.';
-        // Auto-logout on 401
-        sessionStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-        sessionStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
-        sessionStorage.removeItem(STORAGE_KEYS.USER);
-        // Redirect to login after a short delay
-        setTimeout(() => {
-          window.location.href = '/login';
-        }, 1500);
+        this.clearSession();
+        setTimeout(() => { window.location.href = '/login'; }, 1500);
       } else if (response.status === 429) {
         errorMessage = 'Слишком много запросов. Пожалуйста, подождите немного.';
       } else if (response.status === 403) {
-        errorMessage = 'Доступ запрещен. У вас недостаточно прав для выполнения этого действия.';
+        errorMessage = 'Доступ запрещён. У вас недостаточно прав.';
       }
 
       const error = new Error(errorMessage);
@@ -100,85 +131,69 @@ class HttpClient {
     return data;
   }
 
-  /**
-   * GET request
-   */
   async get(endpoint, params = {}) {
     const url = new URL(`${this.baseURL}${endpoint}`, window.location.origin);
     Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        url.searchParams.append(key, value);
-      }
+      if (value !== undefined && value !== null) url.searchParams.append(key, value);
     });
-
-    const response = await fetch(url.toString(), {
-      method: 'GET',
-      headers: this.getHeaders(),
-    });
-
-    return this.handleResponse(response);
+    const doRequest = () =>
+      fetch(url.toString(), { method: 'GET', headers: this.getHeaders() })
+        .then(r => this.handleResponse(r, doRequest));
+    return doRequest();
   }
 
-  /**
-   * POST request
-   */
   async post(endpoint, body = {}) {
-    const response = await fetch(`${this.baseURL}${endpoint}`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify(body),
-    });
-
-    return this.handleResponse(response);
+    const doRequest = () =>
+      fetch(`${this.baseURL}${endpoint}`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify(body),
+      }).then(r => this.handleResponse(r, doRequest));
+    return doRequest();
   }
 
-  /**
-   * POST multipart form data (for file uploads)
-   */
   async postFormData(endpoint, formData) {
     const headers = {};
     const token = this.getAccessToken();
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
+    if (token) headers['Authorization'] = `Bearer ${token}`;
     const response = await fetch(`${this.baseURL}${endpoint}`, {
       method: 'POST',
       headers,
       body: formData,
     });
-
     return this.handleResponse(response);
   }
 
-  /**
-   * PATCH request
-   */
+  async put(endpoint, body = {}) {
+    const doRequest = () =>
+      fetch(`${this.baseURL}${endpoint}`, {
+        method: 'PUT',
+        headers: this.getHeaders(),
+        body: JSON.stringify(body),
+      }).then(r => this.handleResponse(r, doRequest));
+    return doRequest();
+  }
+
   async patch(endpoint, body = {}) {
-    const response = await fetch(`${this.baseURL}${endpoint}`, {
-      method: 'PATCH',
-      headers: this.getHeaders(),
-      body: JSON.stringify(body),
-    });
-
-    return this.handleResponse(response);
+    const doRequest = () =>
+      fetch(`${this.baseURL}${endpoint}`, {
+        method: 'PATCH',
+        headers: this.getHeaders(),
+        body: JSON.stringify(body),
+      }).then(r => this.handleResponse(r, doRequest));
+    return doRequest();
   }
 
-  /**
-   * DELETE request
-   */
   async delete(endpoint) {
-    const response = await fetch(`${this.baseURL}${endpoint}`, {
-      method: 'DELETE',
-      headers: this.getHeaders(),
-    });
-
-    // Handle 204 No Content
-    if (response.status === 204) {
-      return { success: true };
-    }
-
-    return this.handleResponse(response);
+    const doRequest = () =>
+      fetch(`${this.baseURL}${endpoint}`, {
+        method: 'DELETE',
+        headers: this.getHeaders(),
+      }).then(r => {
+        if (r.status === 204) return { success: true };
+        return this.handleResponse(r, doRequest);
+      });
+    return doRequest();
   }
 }
 

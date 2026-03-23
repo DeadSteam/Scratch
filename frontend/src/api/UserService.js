@@ -24,10 +24,10 @@ class UserService {
   }
 
   /**
-   * Update user
+   * Update user (PUT as required by backend)
    */
   async update(id, updateData) {
-    const response = await httpClient.patch(`/users/${id}`, updateData);
+    const response = await httpClient.put(`/users/${id}`, updateData);
     return response.data;
   }
 
@@ -36,6 +36,14 @@ class UserService {
    */
   async deactivate(id) {
     const response = await httpClient.post(`/users/${id}/deactivate`);
+    return response;
+  }
+
+  /**
+   * Activate user
+   */
+  async activate(id) {
+    const response = await httpClient.post(`/users/${id}/activate`);
     return response;
   }
 
