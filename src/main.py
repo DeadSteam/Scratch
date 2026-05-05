@@ -15,6 +15,7 @@ from .api.health import router as health_router
 from .core.config import settings
 from .core.database import close_db_connections, get_users_db_transaction
 from .core.init_data import initialize_default_data
+from .core.seed_data import seed_reference_data_on_startup
 from .core.logging_config import configure_logging, get_logger
 from .core.metrics import init_metrics, record_exception
 from .core.middleware import register_middlewares
@@ -40,6 +41,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
             await initialize_default_data(session)
     except Exception:
         logger.exception("failed_to_initialize_default_data")
+
+    try:
+        await seed_reference_data_on_startup()
+    except Exception:
+        logger.exception("failed_to_seed_reference_data")
 
     yield
 

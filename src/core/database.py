@@ -154,6 +154,25 @@ async def get_users_db_transaction() -> AsyncGenerator[AsyncSession]:
             raise
 
 
+@asynccontextmanager
+async def get_knowledge_db_transaction() -> AsyncGenerator[AsyncSession]:
+    """Context manager for knowledge base transactions."""
+    if KnowledgeSessionLocal is None:
+        raise RuntimeError(
+            "Knowledge database is not configured (KNOWLEDGE_DATABASE_URL is not set)"
+        )
+    async with KnowledgeSessionLocal() as session:
+        try:
+            logger.debug("knowledge_db_transaction_started")
+            yield session
+            await session.commit()
+            logger.debug("knowledge_db_transaction_committed")
+        except Exception:
+            await session.rollback()
+            logger.error("knowledge_db_transaction_rolled_back")
+            raise
+
+
 # ---------------------------------------------------------------------------
 # Shutdown helper
 # ---------------------------------------------------------------------------

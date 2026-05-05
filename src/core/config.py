@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     DB_POOL_SIZE: int = Field(default=5, description="Database pool size")
     DB_MAX_OVERFLOW: int = Field(default=10, description="Database max overflow")
     DB_ECHO: bool = Field(default=False, description="Database echo SQL queries")
+    AUTO_SEED_REFERENCE_DATA: bool = Field(
+        default=True,
+        description="If true, seed demo films, equipment configs, and knowledge when those tables are empty",
+    )
 
     # Redis
     REDIS_URL: str = Field(..., description="Redis connection URL")
