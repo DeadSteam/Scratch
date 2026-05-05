@@ -11,7 +11,9 @@ CREATE TABLE IF NOT EXISTS situation (
     controlled_param VARCHAR(100),
     min_value        DOUBLE PRECISION,
     max_value        DOUBLE PRECISION,
-    description      VARCHAR(100)
+    label            VARCHAR(50),
+    severity         VARCHAR(20),
+    description      VARCHAR(255)
 );
 
 COMMENT ON TABLE situation IS 'Ситуации (родительская таблица для cause)';
@@ -19,13 +21,15 @@ COMMENT ON COLUMN situation.id IS 'Идентификатор ситуации';
 COMMENT ON COLUMN situation.controlled_param IS 'Контролируемый параметр';
 COMMENT ON COLUMN situation.min_value IS 'Минимальное значение диапазона';
 COMMENT ON COLUMN situation.max_value IS 'Максимальное значение диапазона';
+COMMENT ON COLUMN situation.label IS 'Оценка для интерфейса';
+COMMENT ON COLUMN situation.severity IS 'Уровень серьезности для интерфейса';
 COMMENT ON COLUMN situation.description IS 'Описание';
 
 -- Таблица Cause (причины) — родитель для Advice, дочерняя для Situation
 CREATE TABLE IF NOT EXISTS cause (
     id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     situation_id UUID REFERENCES situation(id) ON DELETE CASCADE,
-    description  VARCHAR(100)
+    description  VARCHAR(255)
 );
 
 COMMENT ON TABLE cause IS 'Причины (родитель для advice, дочерняя для situation)';
@@ -37,7 +41,7 @@ COMMENT ON COLUMN cause.description IS 'Описание причины';
 CREATE TABLE IF NOT EXISTS advice (
     id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     cause_id    UUID REFERENCES cause(id) ON DELETE CASCADE,
-    description VARCHAR(50)
+    description VARCHAR(255)
 );
 
 COMMENT ON TABLE advice IS 'Рекомендации (дочерняя таблица для cause)';

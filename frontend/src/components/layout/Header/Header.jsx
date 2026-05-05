@@ -8,6 +8,8 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import { useTheme } from '@context/ThemeContext';
 import { ROUTES } from '@utils/constants';
+import { Flask, Sun, Moon, SignOut } from '@phosphor-icons/react';
+import { ph } from '@components/icons/phosphor';
 import styles from './Header.module.css';
 
 export function Header() {
@@ -39,11 +41,7 @@ export function Header() {
     <header className={styles.header}>
       <div className={styles.container}>
         <Link to={ROUTES.EXPERIMENTS} className={styles.logo}>
-          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="2" y="2" width="28" height="28" rx="6" stroke="currentColor" strokeWidth="2"/>
-            <path d="M8 16H24M16 8V24M10 10L22 22M22 10L10 22" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.5"/>
-            <circle cx="16" cy="16" r="4" stroke="currentColor" strokeWidth="2"/>
-          </svg>
+          <Flask {...ph(32)} aria-hidden />
           <span className={styles.logoText}>ScratchLab</span>
         </Link>
 
@@ -91,14 +89,9 @@ export function Header() {
                 onClick={() => { toggleTheme(); setIsOpen(false); }}
               >
                 {isDark ? (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="5"/>
-                    <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-                  </svg>
+                  <Sun {...ph(18)} aria-hidden />
                 ) : (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-                  </svg>
+                  <Moon {...ph(18)} aria-hidden />
                 )}
                 <span>{isDark ? 'Светлая тема' : 'Тёмная тема'}</span>
               </button>
@@ -107,10 +100,7 @@ export function Header() {
                 className={`${styles.dropdownItem} ${styles.danger}`}
                 onClick={handleLogout}
               >
-                <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M3 4.25A2.25 2.25 0 015.25 2h5.5A2.25 2.25 0 0113 4.25v2a.75.75 0 01-1.5 0v-2a.75.75 0 00-.75-.75h-5.5a.75.75 0 00-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 00.75-.75v-2a.75.75 0 011.5 0v2A2.25 2.25 0 0110.75 18h-5.5A2.25 2.25 0 013 15.75V4.25z" clipRule="evenodd" />
-                  <path fillRule="evenodd" d="M6 10a.75.75 0 01.75-.75h9.546l-1.048-1.048a.75.75 0 111.06-1.06l2.5 2.5a.75.75 0 010 1.06l-2.5 2.5a.75.75 0 11-1.06-1.06l1.048-1.048H6.75A.75.75 0 016 10z" clipRule="evenodd" />
-                </svg>
+                <SignOut {...ph(18)} aria-hidden />
                 <span>Выйти</span>
               </button>
             </div>

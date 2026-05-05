@@ -7,6 +7,8 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import { useNotification } from '@context/NotificationContext';
+import { Flask } from '@phosphor-icons/react';
+import { ph } from '@components/icons/phosphor';
 import { Button, Input, ThemeToggle } from '@components/common';
 import { ROUTES } from '@utils/constants';
 import { validatePassword, validateUsername, isValidEmail } from '@utils/validators';
@@ -130,11 +132,7 @@ export function LoginPage() {
           {/* Header */}
           <div className={styles.header}>
             <div className={styles.logo}>
-              <svg className={styles.logoIcon} width="36" height="36" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M16 2L4 8V24L16 30L28 24V8L16 2Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
-                <circle cx="16" cy="16" r="5" stroke="currentColor" strokeWidth="2"/>
-                <path d="M16 6V11M16 21V26M6 11L10.5 13.5M21.5 18.5L26 21M6 21L10.5 18.5M21.5 13.5L26 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.5"/>
-              </svg>
+              <Flask className={styles.logoIcon} {...ph(36)} aria-hidden />
             </div>
             <span className={styles.brandName}>ScratchLab</span>
             <h1 className={styles.title}>

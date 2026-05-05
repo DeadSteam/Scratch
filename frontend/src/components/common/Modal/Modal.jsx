@@ -6,6 +6,8 @@
 import { useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import PropTypes from 'prop-types';
+import { X } from '@phosphor-icons/react';
+import { ph } from '@components/icons/phosphor';
 import styles from './Modal.module.css';
 
 export function Modal({
@@ -66,9 +68,7 @@ export function Modal({
               onClick={onClose}
               aria-label="Закрыть"
             >
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-              </svg>
+              <X {...ph(20)} aria-hidden />
             </button>
           )}
         </div>

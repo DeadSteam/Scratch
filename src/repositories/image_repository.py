@@ -26,6 +26,7 @@ class ExperimentImageRepository(CachedRepositoryImpl[ExperimentImage]):
         result = await session.execute(
             select(ExperimentImage)
             .where(ExperimentImage.experiment_id == experiment_id)
+            .order_by(ExperimentImage.passes.asc(), ExperimentImage.id.asc())
             .offset(skip)
             .limit(limit)
         )

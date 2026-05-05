@@ -4,7 +4,12 @@ from uuid import UUID
 
 from fastapi import APIRouter, Query, status
 
-from ..core.dependencies import CurrentUser, ExperimentSvc, MainDBSession
+from ..core.dependencies import (
+    CurrentUser,
+    ExperimentSvc,
+    KnowledgeDBSession,
+    MainDBSession,
+)
 from ..core.logging_config import get_logger
 from ..schemas.experiment import ExperimentCreate, ExperimentRead, ExperimentUpdate
 from .responses import PaginatedResponse, Response
@@ -53,12 +58,15 @@ async def get_experiments_by_user(
     user_id: UUID,
     experiment_service: ExperimentSvc,
     db: MainDBSession,
+    knowledge_db: KnowledgeDBSession,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
 ):
     """Get experiments by user ID."""
     logger.info("get_experiments_by_user", user_id=str(user_id), skip=skip, limit=limit)
-    experiments = await experiment_service.get_by_user_id(user_id, db, skip, limit)
+    experiments = await experiment_service.get_by_user_id(
+        user_id, db, skip, limit, knowledge_db
+    )
     logger.info(
         "get_experiments_by_user_result",
         user_id=str(user_id),
@@ -172,11 +180,14 @@ async def create_experiment(
     description="Retrieve a specific experiment by its ID",
 )
 async def get_experiment(
-    experiment_id: UUID, experiment_service: ExperimentSvc, db: MainDBSession
+    experiment_id: UUID,
+    experiment_service: ExperimentSvc,
+    db: MainDBSession,
+    knowledge_db: KnowledgeDBSession,
 ):
     """Get experiment by ID."""
     logger.info("get_experiment", experiment_id=str(experiment_id))
-    experiment = await experiment_service.get_by_id(experiment_id, db)
+    experiment = await experiment_service.get_by_id(experiment_id, db, knowledge_db)
     logger.info("get_experiment_result", experiment_id=str(experiment_id))
     return Response(
         success=True, message="Experiment retrieved successfully", data=experiment
@@ -190,11 +201,18 @@ async def get_experiment(
     description="Retrieve experiment with all related images",
 )
 async def get_experiment_with_images(
-    experiment_id: UUID, experiment_service: ExperimentSvc, db: MainDBSession
+    experiment_id: UUID,
+    experiment_service: ExperimentSvc,
+    db: MainDBSession,
+    knowledge_db: KnowledgeDBSession,
 ):
     """Get experiment with all related images."""
     logger.info("get_experiment_with_images", experiment_id=str(experiment_id))
-    experiment = await experiment_service.get_with_images(experiment_id, db)
+    experiment = await experiment_service.get_with_images(
+        experiment_id,
+        db,
+        knowledge_db,
+    )
     logger.info("get_experiment_with_images_result", experiment_id=str(experiment_id))
     return Response(
         success=True,

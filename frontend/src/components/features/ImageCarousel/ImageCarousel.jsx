@@ -6,6 +6,15 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { API_BASE_URL } from '@utils/constants';
+import {
+  Images,
+  Trash,
+  CaretLeft,
+  CaretRight,
+  X,
+  Plus,
+} from '@phosphor-icons/react';
+import { ph } from '@components/icons/phosphor';
 import styles from './ImageCarousel.module.css';
 
 const MAX_VISIBLE_THUMBNAILS = 6;
@@ -122,11 +131,7 @@ export function ImageCarousel({ images = [], onImageClick, onImageDelete, onAddI
   if (sortedImages.length === 0) {
     return (
       <div className={styles.empty}>
-        <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <rect x="6" y="10" width="36" height="28" rx="4" />
-          <circle cx="18" cy="22" r="4" />
-          <path d="M42 30l-8-8-12 12-6-6-10 10" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+        <Images {...ph(48)} aria-hidden />
         <p>Нет изображений</p>
       </div>
     );
@@ -149,11 +154,7 @@ export function ImageCarousel({ images = [], onImageClick, onImageDelete, onAddI
         <div className={styles.deleteOverlay}>
           <div className={styles.deleteModal}>
             <div className={styles.deleteIcon}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-                <line x1="10" y1="11" x2="10" y2="17"/>
-                <line x1="14" y1="11" x2="14" y2="17"/>
-              </svg>
+              <Trash {...ph(24)} aria-hidden />
             </div>
             <h4>Удалить изображение?</h4>
             <p>Это действие нельзя отменить</p>
@@ -191,9 +192,7 @@ export function ImageCarousel({ images = [], onImageClick, onImageDelete, onAddI
             aria-label="Удалить изображение"
             title="Удалить изображение"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-            </svg>
+            <Trash {...ph(20)} aria-hidden />
           </button>
         )}
         
@@ -205,18 +204,14 @@ export function ImageCarousel({ images = [], onImageClick, onImageDelete, onAddI
               onClick={handlePrev}
               aria-label="Предыдущее"
             >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
-              </svg>
+              <CaretLeft {...ph(24)} weight="fill" aria-hidden />
             </button>
             <button 
               className={`${styles.navButton} ${styles.nextButton}`}
               onClick={handleNext}
               aria-label="Следующее"
             >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z" />
-              </svg>
+              <CaretRight {...ph(24)} weight="fill" aria-hidden />
             </button>
           </>
         )}
@@ -242,9 +237,7 @@ export function ImageCarousel({ images = [], onImageClick, onImageDelete, onAddI
               aria-label="Предыдущие миниатюры"
               disabled={!canScrollPrev}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
-              </svg>
+              <CaretLeft {...ph(20)} weight="fill" aria-hidden />
             </button>
           )}
           <div 
@@ -276,9 +269,7 @@ export function ImageCarousel({ images = [], onImageClick, onImageDelete, onAddI
                     aria-label="Удалить"
                     title="Удалить"
                   >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-                    </svg>
+                    <X {...ph(12)} weight="bold" aria-hidden />
                   </button>
                 )}
               </div>
@@ -290,9 +281,7 @@ export function ImageCarousel({ images = [], onImageClick, onImageDelete, onAddI
                 aria-label="Добавить фото"
                 title="Добавить фото"
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
-                </svg>
+                <Plus {...ph(20)} weight="bold" aria-hidden />
               </button>
             )}
           </div>
@@ -303,9 +292,7 @@ export function ImageCarousel({ images = [], onImageClick, onImageDelete, onAddI
               aria-label="Следующие миниатюры"
               disabled={!canScrollNext}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z" />
-              </svg>
+              <CaretRight {...ph(20)} weight="fill" aria-hidden />
             </button>
           )}
         </div>

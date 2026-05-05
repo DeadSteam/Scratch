@@ -11,7 +11,20 @@ import { experimentService } from '@api';
 import { Layout } from '@components/layout';
 import { Button, Card, Spinner, EmptyState, Modal } from '@components/common';
 import { ROUTES } from '@utils/constants';
-import { formatDate, formatWeight, getScratchQuality, formatScratchIndex } from '@utils/formatters';
+import {
+  formatDate,
+  formatWeight,
+  getScratchQuality,
+  formatScratchIndex,
+  getKnowledgeQuality,
+} from '@utils/formatters';
+import {
+  Plus,
+  WarningCircle,
+  Flask,
+  Trash,
+} from '@phosphor-icons/react';
+import { ph } from '@components/icons/phosphor';
 import styles from './ExperimentsPage.module.css';
 
 export function ExperimentsPage() {
@@ -79,12 +92,12 @@ export function ExperimentsPage() {
     setDeleteConfirm(null);
   };
 
-  const getLatestScratchIndex = (experiment) => {
-    if (!experiment.scratch_results || experiment.scratch_results.length === 0) {
-      return null;
-    }
-    const lastResult = experiment.scratch_results[experiment.scratch_results.length - 1];
-    return lastResult?.scratch_index;
+  const getLatestScratchResult = (experiment) => {
+    const results = experiment.scratch_results;
+    if (!results || results.length === 0) return null;
+    const scratched = results.filter((r) => (r.passes ?? 0) > 0);
+    if (scratched.length === 0) return results[results.length - 1];
+    return scratched.reduce((a, b) => ((a.passes ?? 0) > (b.passes ?? 0) ? a : b));
   };
 
   return (
@@ -99,9 +112,7 @@ export function ExperimentsPage() {
             </p>
           </div>
           <Button variant="primary" onClick={handleCreateExperiment}>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M8 2a.75.75 0 01.75.75v4.5h4.5a.75.75 0 010 1.5h-4.5v4.5a.75.75 0 01-1.5 0v-4.5h-4.5a.75.75 0 010-1.5h4.5v-4.5A.75.75 0 018 2z" />
-            </svg>
+            <Plus {...ph(16)} weight="bold" aria-hidden />
             Новый эксперимент
           </Button>
         </div>
@@ -115,9 +126,7 @@ export function ExperimentsPage() {
           <div className={styles.errorContainer}>
             <Card variant="outlined" padding="lg">
               <div className={styles.errorContent}>
-                <svg width="48" height="48" viewBox="0 0 48 48" fill="currentColor" className={styles.errorIcon}>
-                  <path fillRule="evenodd" d="M24 4C12.954 4 4 12.954 4 24s8.954 20 20 20 20-8.954 20-20S35.046 4 24 4zm-1.5 10a1.5 1.5 0 013 0v12a1.5 1.5 0 01-3 0V14zm1.5 20a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                </svg>
+                <WarningCircle className={styles.errorIcon} {...ph(48, { weight: 'fill' })} aria-hidden />
                 <p>{error}</p>
                 <Button variant="secondary" onClick={fetchExperiments}>
                   Попробовать снова
@@ -127,15 +136,7 @@ export function ExperimentsPage() {
           </div>
         ) : experiments.length === 0 ? (
           <EmptyState
-            icon={
-              <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 6h12M19 6v14L10 36a3 3 0 002.7 4.3h22.6A3 3 0 0038 36L29 20V6" />
-                <path d="M14 32h20" />
-                <circle cx="20" cy="36" r="1.5" fill="currentColor" stroke="none" opacity="0.6" />
-                <circle cx="27" cy="38" r="1" fill="currentColor" stroke="none" opacity="0.4" />
-                <circle cx="32" cy="35" r="1.2" fill="currentColor" stroke="none" opacity="0.5" />
-              </svg>
-            }
+            icon={<Flask {...ph(48)} aria-hidden />}
             title="Нет экспериментов"
             description="Создайте свой первый эксперимент для начала анализа"
             action="Создать эксперимент"
@@ -144,8 +145,12 @@ export function ExperimentsPage() {
         ) : (
           <div className={styles.grid}>
             {experiments.map((experiment) => {
-              const scratchIndex = getLatestScratchIndex(experiment);
-              const quality = getScratchQuality(scratchIndex);
+              const latestResult = getLatestScratchResult(experiment);
+              const scratchIndex = latestResult?.scratch_index ?? null;
+              const ks = experiment.knowledge_summary;
+              const quality = ks?.situation
+                ? getKnowledgeQuality(ks)
+                : getScratchQuality(scratchIndex);
               
               return (
                 <Card
@@ -169,9 +174,7 @@ export function ExperimentsPage() {
                         aria-label="Удалить эксперимент"
                         title="Удалить эксперимент"
                       >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-                        </svg>
+                        <Trash {...ph(16)} aria-hidden />
                       </button>
                       <span className={styles.date}>{formatDate(experiment.date)}</span>
                     </div>
@@ -213,7 +216,7 @@ export function ExperimentsPage() {
                         </span>
                       </div>
                       {scratchIndex !== null && (
-                        <div className={`${styles.qualityBadge} ${styles[quality.color]}`}>
+                        <div className={`${styles.qualityBadge} ${styles.qualityBadgeLarge} ${styles[quality.color]}`}>
                           {quality.label}
                         </div>
                       )}
@@ -234,11 +237,7 @@ export function ExperimentsPage() {
         >
           <div className={styles.deleteModalContent}>
             <div className={styles.deleteIcon}>
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-                <line x1="10" y1="11" x2="10" y2="17"/>
-                <line x1="14" y1="11" x2="14" y2="17"/>
-              </svg>
+              <Trash {...ph(48)} aria-hidden />
             </div>
             <p className={styles.deleteMessage}>
               Это действие нельзя отменить. Все данные эксперимента будут удалены безвозвратно.

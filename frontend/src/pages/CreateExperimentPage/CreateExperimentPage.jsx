@@ -13,6 +13,8 @@ import { Button, Input, Select, Checkbox, Card, Spinner } from '@components/comm
 import { ROISelector } from '@components/features/ROISelector';
 import { validateImageFile } from '@utils/validators';
 import { ROUTES, IMAGE_CONFIG } from '@utils/constants';
+import { Check, Images } from '@phosphor-icons/react';
+import { ph } from '@components/icons/phosphor';
 import styles from './CreateExperimentPage.module.css';
 
 const STEPS = [
@@ -230,9 +232,7 @@ export function CreateExperimentPage() {
               >
                 <div className={styles.stepIndicator}>
                   {currentStep > step.id ? (
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                      <path d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z" />
-                    </svg>
+                    <Check {...ph(16)} weight="bold" aria-hidden />
                   ) : (
                     step.id
                   )}
@@ -340,11 +340,7 @@ export function CreateExperimentPage() {
                   </div>
                 ) : (
                   <label htmlFor="imageUpload" className={styles.uploadLabel}>
-                    <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.5">
-                      <rect x="6" y="10" width="36" height="28" rx="4" />
-                      <circle cx="18" cy="22" r="4" />
-                      <path d="M42 30l-8-8-12 12-6-6-10 10" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
+                    <Images {...ph(48)} aria-hidden />
                     <span className={styles.uploadText}>
                       Нажмите или перетащите изображение
                     </span>

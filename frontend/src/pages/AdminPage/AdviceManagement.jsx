@@ -179,10 +179,10 @@ export function AdviceManagement() {
             placeholder="— Не выбрано"
           />
           <Input
-            label="Текст рекомендации (до 50 символов)"
+            label="Текст рекомендации"
             value={form.description}
             onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-            maxLength={50}
+            maxLength={255}
           />
           <div className={styles.modalActions}>
             <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Отмена</Button>

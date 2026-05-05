@@ -1,19 +1,27 @@
 """Experiment service with business logic."""
 
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models.experiment import Experiment
+from ..repositories.advice_repository import AdviceRepository
+from ..repositories.cause_repository import CauseRepository
 from ..repositories.equipment_config_repository import EquipmentConfigRepository
 from ..repositories.experiment_repository import ExperimentRepository
 from ..repositories.film_repository import FilmRepository
+from ..repositories.situation_repository import SituationRepository
 from ..repositories.user_repository import UserRepository
 from ..schemas.experiment import (
     ExperimentCreate,
     ExperimentRead,
     ExperimentUpdate,
+    KnowledgeCauseRead,
+    KnowledgeSummary,
+    ScratchResult,
 )
+from ..schemas.situation import SituationRead
 from .base import BaseService
 from .exceptions import NotFoundError
 
@@ -29,6 +37,9 @@ class ExperimentService(
         user_repository: UserRepository,
         film_repository: FilmRepository,
         config_repository: EquipmentConfigRepository,
+        situation_repository: SituationRepository,
+        cause_repository: CauseRepository,
+        advice_repository: AdviceRepository,
     ):
         super().__init__(
             repository=repository,
@@ -41,15 +52,149 @@ class ExperimentService(
         self.user_repo = user_repository
         self.film_repo = film_repository
         self.config_repo = config_repository
+        self.situation_repo = situation_repository
+        self.cause_repo = cause_repository
+        self.advice_repo = advice_repository
 
-    async def get_by_id(self, entity_id: UUID, session: AsyncSession) -> ExperimentRead:
+    @staticmethod
+    def _pick_reference_result(
+        scratch_results: list[dict[str, Any]] | None,
+    ) -> ScratchResult | None:
+        if not scratch_results:
+            return None
+        candidates = [
+            entry
+            for entry in scratch_results
+            if isinstance(entry, dict) and (entry.get("passes") or 0) == 0
+        ]
+        if not candidates:
+            return None
+        return ScratchResult.model_validate(candidates[0])
+
+    @staticmethod
+    def _pick_latest_result(
+        scratch_results: list[dict[str, Any]] | None,
+    ) -> ScratchResult | None:
+        if not scratch_results:
+            return None
+        candidates = [
+            entry
+            for entry in scratch_results
+            if isinstance(entry, dict) and (entry.get("passes") or 0) > 0
+        ]
+        if not candidates:
+            return None
+        latest = max(candidates, key=lambda entry: int(entry.get("passes") or 0))
+        return ScratchResult.model_validate(latest)
+
+    async def _build_knowledge_summary(
+        self,
+        experiment: Experiment,
+        knowledge_session: AsyncSession | None,
+        *,
+        include_causes: bool = True,
+    ) -> KnowledgeSummary | None:
+        scratch_results = experiment.scratch_results or []
+        reference_result = self._pick_reference_result(scratch_results)
+        latest_result = self._pick_latest_result(scratch_results)
+
+        if reference_result is None and latest_result is None:
+            return None
+
+        delta = None
+        if reference_result is not None and latest_result is not None:
+            delta = latest_result.scratch_index - reference_result.scratch_index
+
+        summary = KnowledgeSummary(
+            controlled_param=None,
+            delta=delta,
+            reference_result=reference_result,
+            latest_result=latest_result,
+            situation=None,
+            causes=[],
+        )
+
+        if knowledge_session is None or delta is None:
+            return summary
+
+        situation = await self.situation_repo.find_by_value_in_ranges(
+            delta,
+            knowledge_session,
+        )
+        if situation is None:
+            return summary
+
+        if not include_causes:
+            return summary.model_copy(
+                update={
+                    "situation": SituationRead.model_validate(situation),
+                    "causes": [],
+                }
+            )
+
+        causes = await self.cause_repo.get_by_situation_id(
+            situation.id,
+            knowledge_session,
+            skip=0,
+            limit=100,
+        )
+
+        knowledge_causes: list[KnowledgeCauseRead] = []
+        for cause in causes:
+            advices = await self.advice_repo.get_by_cause_id(
+                cause.id,
+                knowledge_session,
+                skip=0,
+                limit=100,
+            )
+            knowledge_causes.append(
+                KnowledgeCauseRead.model_validate(
+                    {
+                        "id": cause.id,
+                        "situation_id": cause.situation_id,
+                        "description": cause.description,
+                        "advices": advices,
+                    }
+                )
+            )
+
+        return summary.model_copy(
+            update={
+                "situation": SituationRead.model_validate(situation),
+                "causes": knowledge_causes,
+            }
+        )
+
+    async def _build_experiment_read(
+        self,
+        experiment: Experiment,
+        knowledge_session: AsyncSession | None = None,
+        *,
+        include_knowledge_causes: bool = True,
+    ) -> ExperimentRead:
+        experiment_read = self.read_schema.model_validate(experiment)
+        knowledge_summary = await self._build_knowledge_summary(
+            experiment,
+            knowledge_session,
+            include_causes=include_knowledge_causes,
+        )
+        return experiment_read.model_copy(
+            update={"knowledge_summary": knowledge_summary}
+        )
+
+    async def get_by_id(
+        self,
+        entity_id: UUID,
+        session: AsyncSession,
+        knowledge_session: AsyncSession | None = None,
+    ) -> ExperimentRead:
         """Get experiment by ID with relationships loaded."""
         experiment = await self.experiment_repo.get_by_id_with_relations(
             entity_id, session
         )
         if not experiment:
             raise NotFoundError(self.entity_name, entity_id)
-        return self.read_schema.model_validate(experiment)
+        return await self._build_experiment_read(experiment, knowledge_session)
 
     async def get_all(
         self, session: AsyncSession, skip: int = 0, limit: int = 100
@@ -106,6 +251,7 @@ class ExperimentService(
         session: AsyncSession,
         skip: int = 0,
         limit: int = 100,
+        knowledge_session: AsyncSession | None = None,
     ) -> list[ExperimentRead]:
         """Get experiments by user ID."""
         try:
@@ -115,8 +261,10 @@ class ExperimentService(
             result: list[ExperimentRead] = []
             for exp in experiments:
                 try:
-                    exp_read = self.read_schema.model_validate(
-                        exp, from_attributes=True
+                    exp_read = await self._build_experiment_read(
+                        exp,
+                        knowledge_session,
+                        include_knowledge_causes=False,
                     )
                     result.append(exp_read)
                 except Exception:
@@ -179,13 +327,16 @@ class ExperimentService(
         return [self.read_schema.model_validate(e) for e in experiments]
 
     async def get_with_images(
-        self, experiment_id: UUID, session: AsyncSession
+        self,
+        experiment_id: UUID,
+        session: AsyncSession,
+        knowledge_session: AsyncSession | None = None,
     ) -> ExperimentRead:
         """Get experiment with all related images."""
         experiment = await self.experiment_repo.get_with_images(experiment_id, session)
         if not experiment:
             raise NotFoundError("Experiment", experiment_id)
-        return self.read_schema.model_validate(experiment)
+        return await self._build_experiment_read(experiment, knowledge_session)
 
     async def count_by_user_id(self, user_id: UUID, session: AsyncSession) -> int:
         return await self.experiment_repo.count_by_user_id(user_id, session)

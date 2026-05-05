@@ -6,9 +6,12 @@ from uuid import UUID
 
 from pydantic import Field, field_validator
 
+from .advice import AdviceRead
 from .base import SchemaBase
+from .cause import CauseRead
 from .equipment_config import EquipmentConfigRead
 from .film import FilmRead
+from .situation import SituationRead
 
 # Note: UserRead not imported - users are in a separate database
 
@@ -17,8 +20,39 @@ class ScratchResult(SchemaBase):
     """Single scratch analysis result."""
 
     image_id: UUID = Field(..., description="Image UUID")
+    passes: int | None = Field(None, ge=0, description="Number of passes for the image")
     scratch_index: float = Field(
         ..., ge=0, le=1, description="Calculated scratch index (0-1)"
+    )
+    total_pixels: int | None = Field(
+        None,
+        ge=0,
+        description="Pixel count used in analysis",
+    )
+
+
+class KnowledgeCauseRead(CauseRead):
+    advices: list[AdviceRead] = Field(default_factory=list, description="Cause advices")
+
+
+class KnowledgeSummary(SchemaBase):
+    controlled_param: str | None = Field(
+        None, description="Controlled parameter used to resolve knowledge situation"
+    )
+    delta: float | None = Field(
+        None, description="Difference between latest image and reference image"
+    )
+    reference_result: ScratchResult | None = Field(
+        None, description="Reference image analysis result"
+    )
+    latest_result: ScratchResult | None = Field(
+        None, description="Latest image analysis result"
+    )
+    situation: SituationRead | None = Field(
+        None, description="Matched knowledge base situation"
+    )
+    causes: list[KnowledgeCauseRead] = Field(
+        default_factory=list, description="Possible causes with advices"
     )
 
 
@@ -85,4 +119,5 @@ class ExperimentRead(ExperimentBase):
     id: UUID
     film: FilmRead | None = None
     config: EquipmentConfigRead | None = None
+    knowledge_summary: KnowledgeSummary | None = None
     # Note: No user relationship - users are in a separate database (users_db)

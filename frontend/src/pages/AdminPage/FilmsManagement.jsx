@@ -5,6 +5,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNotification } from '@context/NotificationContext';
 import { filmService } from '@api';
+import { FilmStrip } from '@phosphor-icons/react';
+import { ph } from '@components/icons/phosphor';
 import { Button, Spinner, Modal, Input } from '@components/common';
 import { formatThickness } from '@utils/formatters';
 import styles from './Management.module.css';
@@ -128,9 +130,7 @@ export function FilmsManagement() {
                 <td colSpan={4}>
                   <div className={styles.emptyStateCell}>
                     <div className={styles.emptyIcon}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
-                      </svg>
+                      <FilmStrip {...ph(18)} aria-hidden />
                     </div>
                     <p className={styles.emptyTitle}>Нет типов плёнок</p>
                     <p className={styles.emptyDesc}>Нажмите «Добавить тип пленки» чтобы создать запись</p>

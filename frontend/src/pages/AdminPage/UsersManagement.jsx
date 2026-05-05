@@ -5,6 +5,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNotification } from '@context/NotificationContext';
 import { userService } from '@api';
+import { Users } from '@phosphor-icons/react';
+import { ph } from '@components/icons/phosphor';
 import { Button, Spinner, Modal, Input } from '@components/common';
 import styles from './Management.module.css';
 
@@ -115,9 +117,7 @@ export function UsersManagement() {
                 <td colSpan={5}>
                   <div className={styles.emptyStateCell}>
                     <div className={styles.emptyIcon}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-                      </svg>
+                      <Users {...ph(18)} aria-hidden />
                     </div>
                     <p className={styles.emptyTitle}>Нет пользователей</p>
                     <p className={styles.emptyDesc}>Пользователи появятся здесь после загрузки данных</p>

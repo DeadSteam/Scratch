@@ -22,7 +22,9 @@ class Situation(UUIDBase):
     controlled_param: Mapped[str | None] = mapped_column(String(100), nullable=True)
     min_value: Mapped[float | None] = mapped_column(Float, nullable=True)
     max_value: Mapped[float | None] = mapped_column(Float, nullable=True)
-    description: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    label: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    severity: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    description: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     causes: Mapped[list["Cause"]] = relationship(
         back_populates="situation",
@@ -40,7 +42,7 @@ class Cause(UUIDBase):
         ForeignKey("situation.id", ondelete="CASCADE"),
         nullable=True,
     )
-    description: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    description: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     situation: Mapped["Situation | None"] = relationship(back_populates="causes")
     advices: Mapped[list["Advice"]] = relationship(
@@ -59,6 +61,6 @@ class Advice(UUIDBase):
         ForeignKey("cause.id", ondelete="CASCADE"),
         nullable=True,
     )
-    description: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    description: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     cause: Mapped["Cause | None"] = relationship(back_populates="advices")

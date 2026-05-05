@@ -145,8 +145,19 @@ def get_experiment_service(
     user_repo: UserRepository = Depends(get_user_repository),
     film_repo: FilmRepository = Depends(get_film_repository),
     config_repo: EquipmentConfigRepository = Depends(get_equipment_config_repository),
+    situation_repo: SituationRepository = Depends(get_situation_repository),
+    cause_repo: CauseRepository = Depends(get_cause_repository),
+    advice_repo: AdviceRepository = Depends(get_advice_repository),
 ) -> ExperimentService:
-    return ExperimentService(experiment_repo, user_repo, film_repo, config_repo)
+    return ExperimentService(
+        experiment_repo,
+        user_repo,
+        film_repo,
+        config_repo,
+        situation_repo,
+        cause_repo,
+        advice_repo,
+    )
 
 
 def get_experiment_image_service(

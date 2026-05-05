@@ -4,6 +4,7 @@
 
 import { forwardRef } from 'react';
 import PropTypes from 'prop-types';
+import { Check } from '@phosphor-icons/react';
 import styles from './Checkbox.module.css';
 
 export const Checkbox = forwardRef(function Checkbox({
@@ -29,15 +30,7 @@ export const Checkbox = forwardRef(function Checkbox({
         {...props}
       />
       <span className={styles.checkmark}>
-        <svg viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path 
-            d="M2.5 6L5 8.5L9.5 3.5" 
-            stroke="currentColor" 
-            strokeWidth="2" 
-            strokeLinecap="round" 
-            strokeLinejoin="round"
-          />
-        </svg>
+        <Check size={12} weight="bold" aria-hidden />
       </span>
       {label && <span className={styles.label}>{label}</span>}
     </label>

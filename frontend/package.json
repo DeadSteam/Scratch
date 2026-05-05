@@ -10,6 +10,7 @@
     "lint:check": "eslint src --ext .js,.jsx"
   },
   "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
     "prop-types": "^15.8.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -40,6 +41,3 @@
     "not op_mini all"
   ]
 }
-
-
-

@@ -164,6 +164,7 @@ class ImageAnalysisService:
         # Remove previous entry for same image (idempotent)
         existing = [e for e in existing if e.get("image_id") != str(image_id)]
         existing.append(entry)
+        existing.sort(key=lambda result: int(result.get("passes", 0)))
 
         await self.experiment_repo.update(
             experiment.id,

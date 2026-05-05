@@ -1,13 +1,26 @@
 /**
  * Situations Management (Knowledge Base)
- * CRUD: controlled_param, min_value, max_value, description
+ * CRUD: controlled_param, min_value, max_value, label, severity, description
  */
 
 import { useState, useEffect, useCallback } from 'react';
 import { useNotification } from '@context/NotificationContext';
 import { situationService } from '@api';
-import { Button, Spinner, Modal, Input } from '@components/common';
+import { ClipboardText } from '@phosphor-icons/react';
+import { ph } from '@components/icons/phosphor';
+import { Button, Spinner, Modal, Input, Select } from '@components/common';
 import styles from './Management.module.css';
+
+/** Отдельное значение, чтобы не конфликтовать с пустым placeholder в Select */
+const SEVERITY_UNSET = '__severity_unset__';
+
+const SEVERITY_OPTIONS = [
+  { value: SEVERITY_UNSET, label: '— не задано (в UI как muted)' },
+  { value: 'success', label: 'success' },
+  { value: 'warning', label: 'warning' },
+  { value: 'error', label: 'error' },
+  { value: 'muted', label: 'muted' },
+];
 
 export function SituationsManagement() {
   const [items, setItems] = useState([]);
@@ -19,6 +32,8 @@ export function SituationsManagement() {
     controlled_param: '',
     min_value: '',
     max_value: '',
+    label: '',
+    severity: '',
     description: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -28,7 +43,7 @@ export function SituationsManagement() {
   const fetchItems = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await situationService.getAll();
+      const res = await situationService.getAll({ skip: 0, limit: 500 });
       setItems(res.data || []);
     } catch (err) {
       showError('Ошибка загрузки ситуаций');
@@ -43,7 +58,14 @@ export function SituationsManagement() {
 
   const handleCreate = () => {
     setSelected(null);
-    setForm({ controlled_param: '', min_value: '', max_value: '', description: '' });
+    setForm({
+      controlled_param: '',
+      min_value: '',
+      max_value: '',
+      label: '',
+      severity: '',
+      description: '',
+    });
     setIsCreating(true);
     setIsModalOpen(true);
   };
@@ -54,6 +76,8 @@ export function SituationsManagement() {
       controlled_param: row.controlled_param || '',
       min_value: row.min_value != null ? String(row.min_value) : '',
       max_value: row.max_value != null ? String(row.max_value) : '',
+      label: row.label || '',
+      severity: row.severity || '',
       description: row.description || '',
     });
     setIsCreating(false);
@@ -63,11 +87,23 @@ export function SituationsManagement() {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
+      const minParsed = form.min_value === '' ? null : parseFloat(form.min_value);
+      const maxParsed = form.max_value === '' ? null : parseFloat(form.max_value);
+      if (minParsed !== null && Number.isNaN(minParsed)) {
+        showError('Некорректное минимальное значение');
+        return;
+      }
+      if (maxParsed !== null && Number.isNaN(maxParsed)) {
+        showError('Некорректное максимальное значение');
+        return;
+      }
       const data = {
-        controlled_param: form.controlled_param || null,
-        min_value: form.min_value === '' ? null : parseFloat(form.min_value),
-        max_value: form.max_value === '' ? null : parseFloat(form.max_value),
-        description: form.description || null,
+        controlled_param: form.controlled_param.trim() || null,
+        min_value: minParsed,
+        max_value: maxParsed,
+        label: form.label.trim() === '' ? null : form.label.trim(),
+        severity: form.severity === '' ? null : form.severity,
+        description: form.description.trim() === '' ? null : form.description.trim(),
       };
 
       if (isCreating) {
@@ -117,9 +153,11 @@ export function SituationsManagement() {
         <table className={styles.table}>
           <thead>
             <tr>
-              <th>Контролируемый параметр</th>
+              <th>Параметр</th>
               <th>Мин.</th>
               <th>Макс.</th>
+              <th>Оценка (label)</th>
+              <th>Уровень</th>
               <th>Описание</th>
               <th>Действия</th>
             </tr>
@@ -127,13 +165,10 @@ export function SituationsManagement() {
           <tbody>
             {items.length === 0 ? (
               <tr className={styles.emptyRow}>
-                <td colSpan={5}>
+                <td colSpan={7}>
                   <div className={styles.emptyStateCell}>
                     <div className={styles.emptyIcon}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="2" y="3" width="20" height="14" rx="2"/>
-                        <path d="M8 21h8M12 17v4M7 7h10M7 11h6"/>
-                      </svg>
+                      <ClipboardText {...ph(18)} aria-hidden />
                     </div>
                     <p className={styles.emptyTitle}>Нет ситуаций</p>
                     <p className={styles.emptyDesc}>Нажмите «Добавить ситуацию» чтобы создать первую запись</p>
@@ -145,6 +180,8 @@ export function SituationsManagement() {
                 <td className={styles.primaryCell}>{row.controlled_param || '—'}</td>
                 <td>{row.min_value != null ? row.min_value : '—'}</td>
                 <td>{row.max_value != null ? row.max_value : '—'}</td>
+                <td>{row.label || '—'}</td>
+                <td>{row.severity || '—'}</td>
                 <td className={styles.descriptionCell}>{row.description || '—'}</td>
                 <td>
                   <div className={styles.actions}>
@@ -162,11 +199,12 @@ export function SituationsManagement() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title={isCreating ? 'Добавить ситуацию' : 'Редактировать ситуацию'}
-        size="sm"
+        size="md"
       >
         <div className={styles.modalContent}>
           <Input
             label="Контролируемый параметр"
+            hint="Произвольная метка для справки. Оценка по дельте индексов задаётся только полями мин./макс."
             value={form.controlled_param}
             onChange={(e) => setForm((p) => ({ ...p, controlled_param: e.target.value }))}
             maxLength={100}
@@ -186,10 +224,28 @@ export function SituationsManagement() {
             step="any"
           />
           <Input
-            label="Описание"
+            label="Краткая оценка для UI (label)"
+            value={form.label}
+            onChange={(e) => setForm((p) => ({ ...p, label: e.target.value }))}
+            maxLength={50}
+            hint="Текст в статусе и в таблице «Качество» (например: Хорошо, Средне)"
+          />
+          <Select
+            label="Уровень серьёзности (severity)"
+            hint="Цвет бейджа: success / warning / error / muted"
+            options={SEVERITY_OPTIONS}
+            value={form.severity ? form.severity : SEVERITY_UNSET}
+            onChange={(e) => {
+              const v = e.target.value;
+              setForm((p) => ({ ...p, severity: v === SEVERITY_UNSET ? '' : v }));
+            }}
+            placeholder="Выберите уровень"
+          />
+          <Input
+            label="Описание ситуации"
             value={form.description}
             onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-            maxLength={100}
+            maxLength={255}
           />
           <div className={styles.modalActions}>
             <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Отмена</Button>

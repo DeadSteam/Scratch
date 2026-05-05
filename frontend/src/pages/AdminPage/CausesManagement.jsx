@@ -27,13 +27,13 @@ export function CausesManagement() {
     EMPTY_OPTION,
     ...situations.map((s) => ({
       value: s.id,
-      label: [s.controlled_param, s.description].filter(Boolean).join(' — ') || s.id,
+      label: [s.label, s.controlled_param, s.description].filter(Boolean).join(' — ') || s.id,
     })),
   ];
 
   const fetchSituations = useCallback(async () => {
     try {
-      const res = await situationService.getAll();
+      const res = await situationService.getAll({ skip: 0, limit: 500 });
       setSituations(res.data || []);
     } catch {
       setSituations([]);
@@ -116,7 +116,7 @@ export function CausesManagement() {
     if (!situationId) return '—';
     const s = situations.find((x) => x.id === situationId);
     if (!s) return situationId;
-    return [s.controlled_param, s.description].filter(Boolean).join(' — ') || situationId;
+    return [s.label, s.controlled_param, s.description].filter(Boolean).join(' — ') || situationId;
   };
 
   if (isLoading) {
@@ -179,7 +179,7 @@ export function CausesManagement() {
             label="Описание причины"
             value={form.description}
             onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-            maxLength={100}
+            maxLength={255}
           />
           <div className={styles.modalActions}>
             <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Отмена</Button>

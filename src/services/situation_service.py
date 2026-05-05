@@ -1,5 +1,7 @@
 """Situation service."""
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from ..models.knowledge import Situation
 from ..repositories.situation_repository import SituationRepository
 from ..schemas.situation import SituationCreate, SituationRead, SituationUpdate
@@ -17,3 +19,16 @@ class SituationService(
             update_schema=SituationUpdate,
             read_schema=SituationRead,
         )
+
+    async def find_by_controlled_value(
+        self,
+        controlled_param: str,
+        value: float,
+        session: AsyncSession,
+    ) -> SituationRead | None:
+        situation = await self.repository.find_by_controlled_value(
+            controlled_param, value, session
+        )
+        if situation is None:
+            return None
+        return SituationRead.model_validate(situation)

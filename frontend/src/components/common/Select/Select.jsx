@@ -5,6 +5,7 @@
 
 import { forwardRef } from 'react';
 import PropTypes from 'prop-types';
+import { CaretDown } from '@phosphor-icons/react';
 import styles from './Select.module.css';
 
 export const Select = forwardRef(function Select({
@@ -57,9 +58,7 @@ export const Select = forwardRef(function Select({
           ))}
         </select>
         <span className={styles.arrow}>
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-            <path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-          </svg>
+          <CaretDown size={12} weight="bold" aria-hidden />
         </span>
       </div>
       {error && (

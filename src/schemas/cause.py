@@ -10,7 +10,7 @@ from .base import SchemaBase
 class CauseBase(SchemaBase):
     situation_id: UUID | None = Field(None, description="Ссылка на ситуацию")
     description: str | None = Field(
-        None, max_length=100, description="Описание причины"
+        None, max_length=255, description="Описание причины"
     )
 
 
@@ -20,7 +20,7 @@ class CauseCreate(CauseBase):
 
 class CauseUpdate(SchemaBase):
     situation_id: UUID | None = None
-    description: str | None = Field(None, max_length=100)
+    description: str | None = Field(None, max_length=255)
 
 
 class CauseRead(CauseBase):
