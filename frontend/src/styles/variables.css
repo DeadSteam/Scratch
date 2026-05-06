@@ -179,9 +179,9 @@
   --shadow-2xl: 0 24px 64px rgba(0, 0, 0, 0.5);
   
   /* Glow effects */
-  --shadow-glow: 0 0 24px var(--color-accent-glow);
-  --shadow-glow-sm: 0 0 12px var(--color-accent-glow);
-  --shadow-glow-lg: 0 0 40px var(--color-accent-glow), 0 0 80px rgba(245, 158, 11, 0.1);
+  --shadow-glow: none;
+  --shadow-glow-sm: none;
+  --shadow-glow-lg: none;
   
   /* Inner shadows */
   --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.3);

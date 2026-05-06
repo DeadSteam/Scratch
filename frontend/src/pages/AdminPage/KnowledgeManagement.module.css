@@ -85,7 +85,7 @@
 .card:hover {
   border-color: rgba(245, 158, 11, 0.25);
   background: var(--color-surface-hover);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25), 0 0 16px rgba(245, 158, 11, 0.06);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
   transform: translateY(-2px);
 }
 
@@ -93,7 +93,7 @@
 .card.active {
   border-color: rgba(245, 158, 11, 0.35);
   background: rgba(245, 158, 11, 0.05);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25), 0 0 16px rgba(245, 158, 11, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
   transform: translateY(-2px);
 }
 
@@ -125,7 +125,7 @@
   color: var(--color-accent-primary);
   background: var(--color-accent-subtle);
   border-color: rgba(245, 158, 11, 0.25);
-  box-shadow: 0 0 10px rgba(245, 158, 11, 0.15);
+  box-shadow: none;
 }
 
 /* Card text */

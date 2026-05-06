@@ -85,7 +85,7 @@
   background: var(--color-success);
   border-color: transparent;
   color: white;
-  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+  box-shadow: none;
 }
 
 .stepText {

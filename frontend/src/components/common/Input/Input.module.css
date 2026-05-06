@@ -84,9 +84,7 @@
   outline: none;
   border-color: var(--color-accent-primary);
   background: var(--color-surface);
-  box-shadow:
-    0 0 0 3px rgba(245, 158, 11, 0.1),
-    0 0 16px rgba(245, 158, 11, 0.06);
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.18);
 }
 
 .input:disabled {
@@ -105,9 +103,7 @@
 }
 
 .hasError .input:focus {
-  box-shadow: 
-    0 0 0 3px var(--color-error-bg),
-    0 0 20px rgba(239, 68, 68, 0.08);
+  box-shadow: 0 0 0 2px var(--color-error-bg);
 }
 
 .hasError .icon {

@@ -165,7 +165,7 @@
   padding: var(--space-10);
   position: relative;
   overflow: hidden;
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(245, 158, 11, 0.06);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.45);
 }
 
 /* Top accent bar — amber */
@@ -223,7 +223,7 @@
   margin-bottom: var(--space-5);
   position: relative;
   animation: fadeInScale 0.5s var(--ease-spring) 0.2s both;
-  box-shadow: 0 0 20px rgba(245, 158, 11, 0.08), 0 0 40px rgba(20, 184, 166, 0.05);
+  box-shadow: none;
 }
 
 .logo::before {
@@ -241,7 +241,7 @@
 
 .logoIcon {
   color: var(--color-accent-primary);
-  filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.4));
+  filter: none;
 }
 
 .brandName {

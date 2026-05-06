@@ -17,7 +17,7 @@
 
 .progress {
   opacity: 1;
-  filter: drop-shadow(0 0 4px currentColor);
+  filter: none;
 }
 
 /* ═══════════════════════════════════════════════════════════
