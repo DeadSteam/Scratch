@@ -3,7 +3,7 @@
  * List of user's experiments
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import { useNotification } from '@context/NotificationContext';
@@ -33,23 +33,34 @@ export function ExperimentsPage() {
   const [error, setError] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  
+  const retryTimerRef = useRef(null);
+
   const { user } = useAuth();
   const { success, error: showError } = useNotification();
   const navigate = useNavigate();
 
-  const fetchExperiments = useCallback(async () => {
+  const fetchExperiments = useCallback(async ({ silent = false } = {}) => {
     if (!user?.id) return;
-    
-    setIsLoading(true);
+
+    if (!silent) setIsLoading(true);
     setError(null);
-    
+
     try {
       const response = await experimentService.getByUserId(user.id);
       setExperiments(response.data || []);
+      // Clear any pending retry on success
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
     } catch (err) {
+      const isServerDown = err.status === 502 || err.status === 503 || err.status === 504 || !err.status;
       setError(err.message || 'Ошибка загрузки экспериментов');
-      showError('Не удалось загрузить эксперименты');
+      if (!silent) showError('Не удалось загрузить эксперименты');
+      // Auto-retry every 5s while server is unavailable
+      if (isServerDown) {
+        retryTimerRef.current = setTimeout(() => fetchExperiments({ silent: true }), 5000);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -57,6 +68,9 @@ export function ExperimentsPage() {
 
   useEffect(() => {
     fetchExperiments();
+    return () => {
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    };
   }, [fetchExperiments]);
 
   const handleCreateExperiment = () => {
@@ -128,7 +142,7 @@ export function ExperimentsPage() {
               <div className={styles.errorContent}>
                 <WarningCircle className={styles.errorIcon} {...ph(48, { weight: 'fill' })} aria-hidden />
                 <p>{error}</p>
-                <Button variant="secondary" onClick={fetchExperiments}>
+                <Button variant="secondary" onClick={() => fetchExperiments()}>
                   Попробовать снова
                 </Button>
               </div>

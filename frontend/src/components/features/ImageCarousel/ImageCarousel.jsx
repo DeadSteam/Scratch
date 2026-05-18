@@ -15,6 +15,8 @@ import {
   Plus,
 } from '@phosphor-icons/react';
 import { ph } from '@components/icons/phosphor';
+import { Modal } from '@components/common/Modal/Modal';
+import { Button } from '@components/common/Button/Button';
 import styles from './ImageCarousel.module.css';
 
 const MAX_VISIBLE_THUMBNAILS = 6;
@@ -149,32 +151,28 @@ export function ImageCarousel({ images = [], onImageClick, onImageDelete, onAddI
       tabIndex={0}
       onKeyDown={handleKeyDown}
     >
-      {/* Delete confirmation overlay */}
-      {deleteConfirm && (
-        <div className={styles.deleteOverlay}>
-          <div className={styles.deleteModal}>
-            <div className={styles.deleteIcon}>
-              <Trash {...ph(24)} aria-hidden />
-            </div>
-            <h4>Удалить изображение?</h4>
-            <p>Это действие нельзя отменить</p>
-            <div className={styles.deleteActions}>
-              <button 
-                className={styles.cancelButton}
-                onClick={handleCancelDelete}
-              >
-                Отмена
-              </button>
-              <button 
-                className={styles.confirmButton}
-                onClick={handleConfirmDelete}
-              >
-                Удалить
-              </button>
-            </div>
+      {/* Delete confirmation modal */}
+      <Modal
+        isOpen={!!deleteConfirm}
+        onClose={handleCancelDelete}
+        title="Удалить изображение?"
+        size="sm"
+      >
+        <div className={styles.deleteModalContent}>
+          <div className={styles.deleteIcon}>
+            <Trash {...ph(48)} aria-hidden />
+          </div>
+          <p className={styles.deleteMessage}>Это действие нельзя отменить</p>
+          <div className={styles.deleteActions}>
+            <Button variant="secondary" onClick={handleCancelDelete}>
+              Отмена
+            </Button>
+            <Button variant="danger" onClick={handleConfirmDelete}>
+              Удалить
+            </Button>
           </div>
         </div>
-      )}
+      </Modal>
 
       {/* Main image */}
       <div className={styles.mainImage}>

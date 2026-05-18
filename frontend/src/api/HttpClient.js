@@ -85,8 +85,8 @@ class HttpClient {
         throw error;
       }
     } else {
-      const text = await response.text();
-      data = { message: text || response.statusText };
+      // Non-JSON response (e.g. nginx 502 HTML page) — don't expose raw body
+      data = { message: response.statusText || 'Произошла ошибка' };
     }
 
     if (!response.ok) {
@@ -116,6 +116,8 @@ class HttpClient {
         errorMessage = 'Сессия истекла. Пожалуйста, войдите снова.';
         this.clearSession();
         setTimeout(() => { window.location.href = '/login'; }, 1500);
+      } else if (response.status === 502 || response.status === 503 || response.status === 504) {
+        errorMessage = 'Сервис временно недоступен. Повторное подключение...';
       } else if (response.status === 429) {
         errorMessage = 'Слишком много запросов. Пожалуйста, подождите немного.';
       } else if (response.status === 403) {

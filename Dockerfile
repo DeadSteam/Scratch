@@ -33,4 +33,4 @@ ENV PATH="/app/.venv/bin:$PATH"
 EXPOSE 8000
 
 ENTRYPOINT ["./entrypoint.sh"]
-CMD ["python", "-m", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "-m", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--timeout-graceful-shutdown", "25"]

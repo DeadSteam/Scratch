@@ -17,6 +17,7 @@ services:
   app:
     build: .
     restart: unless-stopped
+    stop_grace_period: 30s
     ports:
       - "8000:8000"
     volumes:
@@ -214,6 +215,7 @@ services:
   celery_worker:
     build: .
     restart: unless-stopped
+    stop_grace_period: 30s
     command: >
       python -m celery -A src.core.celery_app worker
       --loglevel=info
