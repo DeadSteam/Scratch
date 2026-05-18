@@ -5,6 +5,10 @@
 
 export const API_BASE_URL = '/api/v1';
 
+/** Public self-registration (set REACT_APP_ALLOW_PUBLIC_REGISTRATION=false in production). */
+export const ALLOW_PUBLIC_REGISTRATION =
+  process.env.REACT_APP_ALLOW_PUBLIC_REGISTRATION !== 'false';
+
 export const STORAGE_KEYS = {
   ACCESS_TOKEN: 'scratchlab_access_token',
   REFRESH_TOKEN: 'scratchlab_refresh_token',

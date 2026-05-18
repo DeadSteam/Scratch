@@ -3,13 +3,15 @@
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Request
 
+from ..core.authorization import ensure_experiment_access, ensure_image_access
 from ..core.dependencies import (
     CurrentUser,
     ImageAnalysisSvc,
     MainDBSession,
 )
+from ..core.rate_limit import limiter
 from .responses import Response
 
 router = APIRouter(prefix="/analysis", tags=["Image Analysis"])
@@ -30,13 +32,16 @@ router = APIRouter(prefix="/analysis", tags=["Image Analysis"])
         "recalculate the entire experiment."
     ),
 )
+@limiter.limit("30/minute")
 async def analyze_single_image(
+    request: Request,
     image_id: UUID,
     analysis_service: ImageAnalysisSvc,
     db: MainDBSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> Response[dict[str, Any]]:
     """Analyze one image and save its scratch index."""
+    await ensure_image_access(image_id, current_user, db)
     entry = await analysis_service.analyze_and_save_single(image_id, db)
     return Response(
         success=True,
@@ -58,13 +63,16 @@ async def analyze_single_image(
         "rect_coords (ROI) changes or when a full audit is needed."
     ),
 )
+@limiter.limit("10/minute")
 async def recalculate_experiment(
+    request: Request,
     experiment_id: UUID,
     analysis_service: ImageAnalysisSvc,
     db: MainDBSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> Response[dict[str, Any]]:
     """Full recalculation of all experiment images."""
+    await ensure_experiment_access(experiment_id, current_user, db)
     result = await analysis_service.recalculate_experiment(experiment_id, db)
     return Response(
         success=True,
@@ -85,8 +93,10 @@ async def get_image_histogram(
     image_id: UUID,
     analysis_service: ImageAnalysisSvc,
     db: MainDBSession,
+    current_user: CurrentUser,
 ):
     """Brightness histogram for a single image."""
+    await ensure_image_access(image_id, current_user, db)
     data = await analysis_service.get_image_histogram(image_id, db)
     return Response(
         success=True,
@@ -104,10 +114,12 @@ async def quick_experiment_analysis(
     experiment_id: UUID,
     analysis_service: ImageAnalysisSvc,
     db: MainDBSession,
+    current_user: CurrentUser,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
 ):
     """Quick per-image stats (no write)."""
+    await ensure_experiment_access(experiment_id, current_user, db)
     data = await analysis_service.quick_analysis(experiment_id, db, skip, limit)
     msg = (
         f"Analyzed {data['count']} images"

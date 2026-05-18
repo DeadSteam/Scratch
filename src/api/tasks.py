@@ -13,27 +13,21 @@ from celery.result import AsyncResult
 from fastapi import APIRouter
 
 from ..api.responses import Response
+from ..core.authorization import ensure_experiment_access, ensure_image_access
 from ..core.celery_app import celery_app
 from ..core.dependencies import CurrentUser, MainDBSession
-from ..repositories.experiment_repository import ExperimentRepository
-from ..services.exceptions import NotFoundError
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 
-# ---------------------------------------------------------------------------
-# Submit single-image analysis task
-# ---------------------------------------------------------------------------
 @router.post("/analyze-image/{image_id}")
 async def submit_single_analysis(
     image_id: UUID,
-    _current_user: CurrentUser,
+    db: MainDBSession,
+    current_user: CurrentUser,
 ) -> Response[dict[str, Any]]:
-    """Submit a single image for background analysis.
-
-    The scratch index will be calculated and appended to the
-    experiment's ``scratch_results`` array.
-    """
+    """Submit a single image for background analysis."""
+    await ensure_image_access(image_id, current_user, db)
     from ..tasks.image_analysis_tasks import analyze_single_image
 
     task = analyze_single_image.delay(str(image_id))
@@ -48,25 +42,15 @@ async def submit_single_analysis(
     )
 
 
-# ---------------------------------------------------------------------------
-# Submit full experiment recalculation
-# ---------------------------------------------------------------------------
 @router.post("/recalculate-experiment/{experiment_id}")
 async def submit_recalculation(
     experiment_id: UUID,
     db: MainDBSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> Response[dict[str, Any]]:
-    """Submit a full experiment recalculation.
-
-    Recalculates scratch index for every image and overwrites
-    ``scratch_results``.  Use when ROI changes.
-    """
+    """Submit a full experiment recalculation."""
+    await ensure_experiment_access(experiment_id, current_user, db)
     from ..tasks.experiment_tasks import batch_analyze_and_save
-
-    repo = ExperimentRepository()
-    if not await repo.exists(experiment_id, db):
-        raise NotFoundError("Experiment", experiment_id)
 
     task = batch_analyze_and_save.delay(str(experiment_id))
     return Response(
@@ -80,9 +64,6 @@ async def submit_recalculation(
     )
 
 
-# ---------------------------------------------------------------------------
-# Poll task status
-# ---------------------------------------------------------------------------
 @router.get("/{task_id}")
 async def get_task_status(
     task_id: str,

@@ -1,4 +1,5 @@
 const path = require('path');
+const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
@@ -81,8 +82,14 @@ module.exports = (env, argv) => {
       ],
     },
     plugins: [
+      new webpack.DefinePlugin({
+        'process.env.REACT_APP_ALLOW_PUBLIC_REGISTRATION': JSON.stringify(
+          process.env.REACT_APP_ALLOW_PUBLIC_REGISTRATION ?? 'true',
+        ),
+      }),
       new HtmlWebpackPlugin({
         template: './public/index.html',
+        favicon: './public/favicon.ico',
         filename: 'index.html',
         minify: isProduction
           ? {

@@ -25,7 +25,8 @@ class BaseRepositoryImpl[T](BaseRepository[T]):
     def __init__(self, model: type[T]) -> None:
         self.model = model
         self._redis_client: RedisClient | None = None
-        self._logger = get_logger(f"repo.{self.model.__tablename__}")
+        table = getattr(self.model, "__tablename__", self.model.__name__)
+        self._logger = get_logger(f"repo.{table}")
 
     async def _get_redis_client(self) -> RedisClient:
         """Lazy initialization of Redis client."""

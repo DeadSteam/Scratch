@@ -1,4 +1,7 @@
-from fastapi import FastAPI, Response
+import secrets
+
+from fastapi import Depends, FastAPI, HTTPException, Response, status
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from opentelemetry import trace
 from prometheus_client import REGISTRY, Counter, Gauge, Histogram
 from prometheus_client.openmetrics.exposition import (
@@ -7,6 +10,8 @@ from prometheus_client.openmetrics.exposition import (
 )
 
 from .config import settings
+
+_http_basic = HTTPBasic(auto_error=False)
 
 # Для переменной Application Name в Grafana (label_values(fastapi_app_info{}, app_name))
 APP_INFO = Gauge(
@@ -114,10 +119,39 @@ def dec_requests_in_progress(method: str, path: str) -> None:
     ).dec()
 
 
+def _verify_metrics_credentials(
+    credentials: HTTPBasicCredentials | None = Depends(_http_basic),
+) -> None:
+    """Require HTTP Basic auth when metrics credentials are configured."""
+    if not settings.METRICS_USERNAME or not settings.METRICS_PASSWORD:
+        if settings.ENVIRONMENT == "production":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Metrics endpoint is not configured",
+            )
+        return
+
+    if credentials is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+
+    user_ok = secrets.compare_digest(credentials.username, settings.METRICS_USERNAME)
+    pass_ok = secrets.compare_digest(credentials.password, settings.METRICS_PASSWORD)
+    if not (user_ok and pass_ok):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+
+
 def init_metrics(app: FastAPI) -> None:
     """Expose Prometheus /metrics endpoint with OpenMetrics format."""
 
-    @app.get("/metrics")
+    @app.get("/metrics", dependencies=[Depends(_verify_metrics_credentials)])
     async def metrics() -> Response:
         data = generate_latest(REGISTRY)
         return Response(content=data, media_type=CONTENT_TYPE_LATEST)

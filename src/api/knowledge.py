@@ -14,6 +14,7 @@ from ..core.dependencies import (
 from ..schemas.advice import AdviceCreate, AdviceRead, AdviceUpdate
 from ..schemas.cause import CauseCreate, CauseRead, CauseUpdate
 from ..schemas.situation import SituationCreate, SituationRead, SituationUpdate
+from .crud_router import paginated_list_by_parent
 from .responses import PaginatedResponse, Response
 
 # --- Situations ---
@@ -99,14 +100,13 @@ async def list_causes_by_situation(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
 ):
-    items = await cause_service.get_by_situation_id(situation_id, db, skip, limit)
-    return PaginatedResponse(
-        success=True,
-        data=items,
-        total=len(items),
-        skip=skip,
-        limit=limit,
-        has_more=len(items) == limit,
+    return await paginated_list_by_parent(
+        situation_id,
+        db,
+        skip,
+        limit,
+        list_fn=cause_service.get_by_situation_id,
+        count_fn=cause_service.count_by_situation_id,
     )
 
 

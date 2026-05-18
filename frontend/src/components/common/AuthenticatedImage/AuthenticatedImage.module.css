@@ -1,0 +1,14 @@
+.placeholder,
+.error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 4rem;
+  min-width: 4rem;
+  background: var(--color-surface-elevated, rgba(255, 255, 255, 0.06));
+  border-radius: var(--radius-sm, 4px);
+}
+
+.error {
+  opacity: 0.5;
+}

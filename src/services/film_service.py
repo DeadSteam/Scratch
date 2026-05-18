@@ -43,3 +43,9 @@ class FilmService(BaseService[Film, FilmCreate, FilmUpdate, FilmRead]):
         """Search films by name pattern."""
         films = await self.film_repo.search_by_name(name_pattern, session, skip, limit)
         return [self.read_schema.model_validate(f) for f in films]
+
+    async def count_search_by_name(
+        self, name_pattern: str, session: AsyncSession
+    ) -> int:
+        """Count films matching a name pattern."""
+        return await self.film_repo.count_search_by_name(name_pattern, session)

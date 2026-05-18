@@ -145,3 +145,66 @@ class ExperimentRepository(
             select(func.count(Experiment.id)).where(Experiment.config_id == config_id)
         )
         return result.scalar() or 0
+
+    async def get_by_film_id_for_user(
+        self,
+        film_id: UUID,
+        user_id: UUID,
+        session: AsyncSession,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> list[Experiment]:
+        """Get experiments by film ID scoped to a user."""
+        result = await session.execute(
+            select(Experiment)
+            .options(selectinload(Experiment.film), selectinload(Experiment.config))
+            .where(Experiment.film_id == film_id, Experiment.user_id == user_id)
+            .offset(skip)
+            .limit(limit)
+        )
+        return list(result.scalars().all())
+
+    async def get_by_config_id_for_user(
+        self,
+        config_id: UUID,
+        user_id: UUID,
+        session: AsyncSession,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> list[Experiment]:
+        """Get experiments by config ID scoped to a user."""
+        result = await session.execute(
+            select(Experiment)
+            .options(selectinload(Experiment.film), selectinload(Experiment.config))
+            .where(
+                Experiment.config_id == config_id,
+                Experiment.user_id == user_id,
+            )
+            .offset(skip)
+            .limit(limit)
+        )
+        return list(result.scalars().all())
+
+    async def count_by_film_id_for_user(
+        self, film_id: UUID, user_id: UUID, session: AsyncSession
+    ) -> int:
+        """Count experiments by film ID scoped to a user."""
+        result = await session.execute(
+            select(func.count(Experiment.id)).where(
+                Experiment.film_id == film_id,
+                Experiment.user_id == user_id,
+            )
+        )
+        return result.scalar() or 0
+
+    async def count_by_config_id_for_user(
+        self, config_id: UUID, user_id: UUID, session: AsyncSession
+    ) -> int:
+        """Count experiments by config ID scoped to a user."""
+        result = await session.execute(
+            select(func.count(Experiment.id)).where(
+                Experiment.config_id == config_id,
+                Experiment.user_id == user_id,
+            )
+        )
+        return result.scalar() or 0

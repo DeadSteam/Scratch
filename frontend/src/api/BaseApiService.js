@@ -7,9 +7,14 @@ export class BaseApiService {
     this.http = httpClient;
   }
 
+  /** Collection URL with trailing slash (matches FastAPI list/create routes). */
+  get collectionPath() {
+    return this.basePath.endsWith('/') ? this.basePath : `${this.basePath}/`;
+  }
+
   async getAll(params = {}) {
     const { skip = 0, limit = this.defaultLimit } = params;
-    return await this.http.get(this.basePath, { skip, limit });
+    return await this.http.get(this.collectionPath, { skip, limit });
   }
 
   async getById(id) {
@@ -18,7 +23,7 @@ export class BaseApiService {
   }
 
   async create(data) {
-    const response = await this.http.post(this.basePath, data);
+    const response = await this.http.post(this.collectionPath, data);
     return response.data;
   }
 

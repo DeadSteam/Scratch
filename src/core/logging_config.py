@@ -54,8 +54,8 @@ def configure_logging() -> None:
 
     # Structlog configuration
     structlog.configure(
-        processors=[
-            structlog.stdlib.filter_by_level,  # Filter by level is safe here
+        processors=[  # type: ignore[arg-type]
+            structlog.stdlib.filter_by_level,
             *shared_processors,
             structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
         ],

@@ -6,6 +6,7 @@ from fastapi import APIRouter, Query, status
 
 from ..core.dependencies import CurrentAdmin, FilmSvc, MainDBSession
 from ..schemas.film import FilmCreate, FilmRead, FilmUpdate
+from .pagination import build_paginated_response
 from .responses import PaginatedResponse, Response
 
 router = APIRouter(prefix="/films", tags=["Films"])
@@ -52,15 +53,8 @@ async def search_films(
 ):
     """Search films by name pattern."""
     films = await film_service.search_by_name(name, db, skip, limit)
-
-    return PaginatedResponse(
-        success=True,
-        data=films,
-        total=len(films),
-        skip=skip,
-        limit=limit,
-        has_more=len(films) == limit,
-    )
+    total = await film_service.count_search_by_name(name, db)
+    return build_paginated_response(films, total, skip, limit)
 
 
 @router.get(

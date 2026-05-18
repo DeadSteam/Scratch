@@ -51,7 +51,7 @@ celery_app.conf.update(
 )
 
 # Explicitly include all task modules so Celery registers them on worker startup.
-# autodiscover_tasks(["src.tasks"]) would look for src/tasks/tasks.py which doesn't exist.
+# autodiscover_tasks(["src.tasks"]) expects src/tasks/tasks.py (missing).
 celery_app.conf.include = [
     "src.tasks.cache_tasks",
     "src.tasks.image_analysis_tasks",

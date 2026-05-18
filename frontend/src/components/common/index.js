@@ -12,5 +12,6 @@ export { Modal } from './Modal/Modal';
 export { ToastContainer } from './Toast/Toast';
 export { EmptyState } from './EmptyState/EmptyState';
 export { ThemeToggle } from './ThemeToggle/ThemeToggle';
+export { AuthenticatedImage } from './AuthenticatedImage/AuthenticatedImage';
 
 

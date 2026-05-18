@@ -4,6 +4,11 @@ from uuid import UUID
 
 from fastapi import APIRouter, Query, status
 
+from ..core.authorization import (
+    ensure_experiment_access,
+    ensure_same_user_or_admin,
+    is_admin,
+)
 from ..core.dependencies import (
     CurrentUser,
     ExperimentSvc,
@@ -22,7 +27,7 @@ logger = get_logger(__name__)
     "/",
     response_model=PaginatedResponse[ExperimentRead],
     summary="List experiments",
-    description="Get paginated list of all experiments",
+    description="Get paginated list of experiments (own experiments, or all for admin)",
 )
 async def list_experiments(
     experiment_service: ExperimentSvc,
@@ -35,8 +40,14 @@ async def list_experiments(
     logger.info(
         "list_experiments", user_id=str(current_user.id), skip=skip, limit=limit
     )
-    experiments = await experiment_service.get_all(db, skip, limit)
-    total = await experiment_service.count(db)
+    if is_admin(current_user):
+        experiments = await experiment_service.get_all(db, skip, limit)
+        total = await experiment_service.count(db)
+    else:
+        experiments = await experiment_service.get_by_user_id(
+            current_user.id, db, skip, limit
+        )
+        total = await experiment_service.count_by_user_id(current_user.id, db)
     logger.info("list_experiments_result", count=len(experiments), total=total)
     return PaginatedResponse(
         success=True,
@@ -59,10 +70,12 @@ async def get_experiments_by_user(
     experiment_service: ExperimentSvc,
     db: MainDBSession,
     knowledge_db: KnowledgeDBSession,
+    current_user: CurrentUser,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
 ):
     """Get experiments by user ID."""
+    ensure_same_user_or_admin(current_user, user_id)
     logger.info("get_experiments_by_user", user_id=str(user_id), skip=skip, limit=limit)
     experiments = await experiment_service.get_by_user_id(
         user_id, db, skip, limit, knowledge_db
@@ -93,18 +106,27 @@ async def get_experiments_by_film(
     film_id: UUID,
     experiment_service: ExperimentSvc,
     db: MainDBSession,
+    current_user: CurrentUser,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
 ):
     """Get experiments by film ID."""
     logger.info("get_experiments_by_film", film_id=str(film_id), skip=skip, limit=limit)
-    experiments = await experiment_service.get_by_film_id(film_id, db, skip, limit)
+    if is_admin(current_user):
+        experiments = await experiment_service.get_by_film_id(film_id, db, skip, limit)
+        total = await experiment_service.count_by_film_id(film_id, db)
+    else:
+        experiments = await experiment_service.get_by_film_id_for_user(
+            film_id, current_user.id, db, skip, limit
+        )
+        total = await experiment_service.count_by_film_id_for_user(
+            film_id, current_user.id, db
+        )
     logger.info(
         "get_experiments_by_film_result",
         film_id=str(film_id),
         count=len(experiments),
     )
-    total = await experiment_service.count_by_film_id(film_id, db)
     return PaginatedResponse(
         success=True,
         data=experiments,
@@ -125,6 +147,7 @@ async def get_experiments_by_config(
     config_id: UUID,
     experiment_service: ExperimentSvc,
     db: MainDBSession,
+    current_user: CurrentUser,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
 ):
@@ -132,13 +155,23 @@ async def get_experiments_by_config(
     logger.info(
         "get_experiments_by_config", config_id=str(config_id), skip=skip, limit=limit
     )
-    experiments = await experiment_service.get_by_config_id(config_id, db, skip, limit)
+    if is_admin(current_user):
+        experiments = await experiment_service.get_by_config_id(
+            config_id, db, skip, limit
+        )
+        total = await experiment_service.count_by_config_id(config_id, db)
+    else:
+        experiments = await experiment_service.get_by_config_id_for_user(
+            config_id, current_user.id, db, skip, limit
+        )
+        total = await experiment_service.count_by_config_id_for_user(
+            config_id, current_user.id, db
+        )
     logger.info(
         "get_experiments_by_config_result",
         config_id=str(config_id),
         count=len(experiments),
     )
-    total = await experiment_service.count_by_config_id(config_id, db)
     return PaginatedResponse(
         success=True,
         data=experiments,
@@ -164,7 +197,6 @@ async def create_experiment(
 ):
     """Create a new experiment."""
     logger.info("create_experiment_started", user_id=str(current_user.id))
-    # Ensure experiment is created for the authenticated user
     experiment_data.user_id = current_user.id
     experiment = await experiment_service.create(experiment_data, db)
     logger.info("create_experiment_success", experiment_id=str(experiment.id))
@@ -184,8 +216,10 @@ async def get_experiment(
     experiment_service: ExperimentSvc,
     db: MainDBSession,
     knowledge_db: KnowledgeDBSession,
+    current_user: CurrentUser,
 ):
     """Get experiment by ID."""
+    await ensure_experiment_access(experiment_id, current_user, db)
     logger.info("get_experiment", experiment_id=str(experiment_id))
     experiment = await experiment_service.get_by_id(experiment_id, db, knowledge_db)
     logger.info("get_experiment_result", experiment_id=str(experiment_id))
@@ -205,8 +239,10 @@ async def get_experiment_with_images(
     experiment_service: ExperimentSvc,
     db: MainDBSession,
     knowledge_db: KnowledgeDBSession,
+    current_user: CurrentUser,
 ):
     """Get experiment with all related images."""
+    await ensure_experiment_access(experiment_id, current_user, db)
     logger.info("get_experiment_with_images", experiment_id=str(experiment_id))
     experiment = await experiment_service.get_with_images(
         experiment_id,
@@ -232,8 +268,10 @@ async def update_experiment(
     experiment_data: ExperimentUpdate,
     experiment_service: ExperimentSvc,
     db: MainDBSession,
+    current_user: CurrentUser,
 ):
     """Update experiment information."""
+    await ensure_experiment_access(experiment_id, current_user, db)
     logger.info("update_experiment_started", experiment_id=str(experiment_id))
     experiment = await experiment_service.update(experiment_id, experiment_data, db)
     logger.info("update_experiment_success", experiment_id=str(experiment_id))
@@ -249,9 +287,13 @@ async def update_experiment(
     description="Permanently delete an experiment",
 )
 async def delete_experiment(
-    experiment_id: UUID, experiment_service: ExperimentSvc, db: MainDBSession
+    experiment_id: UUID,
+    experiment_service: ExperimentSvc,
+    db: MainDBSession,
+    current_user: CurrentUser,
 ):
     """Delete experiment."""
+    await ensure_experiment_access(experiment_id, current_user, db)
     logger.info("delete_experiment_started", experiment_id=str(experiment_id))
     await experiment_service.delete(experiment_id, db)
     logger.info("delete_experiment_success", experiment_id=str(experiment_id))

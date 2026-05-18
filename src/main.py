@@ -15,12 +15,12 @@ from .api.health import router as health_router
 from .core.config import settings
 from .core.database import close_db_connections, get_users_db_transaction
 from .core.init_data import initialize_default_data
-from .core.seed_data import seed_reference_data_on_startup
 from .core.logging_config import configure_logging, get_logger
 from .core.metrics import init_metrics, record_exception
 from .core.middleware import register_middlewares
 from .core.rate_limit import limiter
 from .core.redis import close_redis_connection
+from .core.seed_data import seed_reference_data_on_startup
 from .core.tracing import init_tracing
 from .services.exceptions import ServiceError
 
@@ -106,7 +106,7 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
 
     # Add CORS headers manually for unhandled exceptions
     origin = request.headers.get("origin")
-    if origin and (origin in settings.CORS_ORIGINS or "*" in settings.CORS_ORIGINS):
+    if origin and settings.is_cors_origin_allowed(origin):
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Access-Control-Allow-Credentials"] = "true"
         response.headers["Access-Control-Allow-Methods"] = ", ".join(

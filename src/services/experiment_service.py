@@ -346,3 +346,49 @@ class ExperimentService(
 
     async def count_by_config_id(self, config_id: UUID, session: AsyncSession) -> int:
         return await self.experiment_repo.count_by_config_id(config_id, session)
+
+    async def get_by_film_id_for_user(
+        self,
+        film_id: UUID,
+        user_id: UUID,
+        session: AsyncSession,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> list[ExperimentRead]:
+        """Get experiments by film ID for a specific user."""
+        if not await self.film_repo.exists(film_id, session):
+            raise NotFoundError("Film", film_id)
+        experiments = await self.experiment_repo.get_by_film_id_for_user(
+            film_id, user_id, session, skip, limit
+        )
+        return [self.read_schema.model_validate(e) for e in experiments]
+
+    async def get_by_config_id_for_user(
+        self,
+        config_id: UUID,
+        user_id: UUID,
+        session: AsyncSession,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> list[ExperimentRead]:
+        """Get experiments by config ID for a specific user."""
+        if not await self.config_repo.exists(config_id, session):
+            raise NotFoundError("EquipmentConfig", config_id)
+        experiments = await self.experiment_repo.get_by_config_id_for_user(
+            config_id, user_id, session, skip, limit
+        )
+        return [self.read_schema.model_validate(e) for e in experiments]
+
+    async def count_by_film_id_for_user(
+        self, film_id: UUID, user_id: UUID, session: AsyncSession
+    ) -> int:
+        return await self.experiment_repo.count_by_film_id_for_user(
+            film_id, user_id, session
+        )
+
+    async def count_by_config_id_for_user(
+        self, config_id: UUID, user_id: UUID, session: AsyncSession
+    ) -> int:
+        return await self.experiment_repo.count_by_config_id_for_user(
+            config_id, user_id, session
+        )

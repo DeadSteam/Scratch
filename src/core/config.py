@@ -1,8 +1,8 @@
 import json
 from functools import lru_cache
-from typing import Any
+from typing import Any, Self
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -30,7 +30,10 @@ class Settings(BaseSettings):
     DB_ECHO: bool = Field(default=False, description="Database echo SQL queries")
     AUTO_SEED_REFERENCE_DATA: bool = Field(
         default=True,
-        description="If true, seed demo films, equipment configs, and knowledge when those tables are empty",
+        description=(
+            "If true, seed demo films, equipment configs, and knowledge "
+            "when those tables are empty"
+        ),
     )
 
     # Redis
@@ -48,10 +51,11 @@ class Settings(BaseSettings):
     def validate_secret_key(cls, v: str) -> str:
         if v.startswith("generate-") or len(v) < 32:
             raise ValueError(
-                "SECRET_KEY must be a cryptographically random string of at least 32 characters. "
-                "Generate one with: python -c \"import secrets; print(secrets.token_urlsafe(32))\""
+                "SECRET_KEY must be a random string of at least 32 characters. "
+                'Generate: python -c "import secrets; print(secrets.token_urlsafe(32))"'
             )
         return v
+
     ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(
         default=30, description="Access token expiration in minutes"
     )
@@ -68,8 +72,31 @@ class Settings(BaseSettings):
         ..., description="Admin password (required, set via ADMIN_PASSWORD env var)"
     )
 
+    # Metrics (Prometheus scrape endpoint)
+    METRICS_USERNAME: str | None = Field(
+        default=None,
+        description="Basic auth username for /metrics (required in production)",
+    )
+    METRICS_PASSWORD: str | None = Field(
+        default=None,
+        description="Basic auth password for /metrics (required in production)",
+    )
+
+    # Public registration (disable in production)
+    ALLOW_PUBLIC_REGISTRATION: bool = Field(
+        default=True,
+        description="Allow unauthenticated POST /auth/register",
+    )
+
     # CORS
-    CORS_ORIGINS: list[str] = Field(default=["*"], description="CORS allowed origins")
+    CORS_ORIGINS: list[str] = Field(
+        default=[
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "http://localhost:8080",
+        ],
+        description="CORS allowed origins",
+    )
     CORS_CREDENTIALS: bool = Field(default=True, description="CORS allow credentials")
     CORS_METHODS: list[str] = Field(default=["*"], description="CORS allowed methods")
     CORS_HEADERS: list[str] = Field(default=["*"], description="CORS allowed headers")
@@ -142,6 +169,36 @@ class Settings(BaseSettings):
         default="http://tempo:4317",
         description="OTLP collector endpoint",
     )
+
+    @model_validator(mode="after")
+    def validate_production_security(self) -> Self:
+        """Enforce safe defaults in production."""
+        if self.ENVIRONMENT == "production":
+            if "*" in self.CORS_ORIGINS:
+                raise ValueError(
+                    "CORS_ORIGINS must not contain '*' when ENVIRONMENT=production"
+                )
+            if self.CORS_CREDENTIALS and not self.CORS_ORIGINS:
+                raise ValueError(
+                    "CORS_ORIGINS must be a non-empty whitelist in production"
+                )
+            if not self.METRICS_USERNAME or not self.METRICS_PASSWORD:
+                raise ValueError(
+                    "METRICS_USERNAME and METRICS_PASSWORD are required in production"
+                )
+        if self.CORS_CREDENTIALS and "*" in self.CORS_ORIGINS:
+            raise ValueError(
+                "CORS_ORIGINS cannot be '*' when CORS_CREDENTIALS is enabled"
+            )
+        return self
+
+    def is_cors_origin_allowed(self, origin: str | None) -> bool:
+        """Return True if the request Origin is allowed."""
+        if not origin:
+            return False
+        if "*" in self.CORS_ORIGINS:
+            return True
+        return origin in self.CORS_ORIGINS
 
 
 @lru_cache

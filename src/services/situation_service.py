@@ -19,6 +19,7 @@ class SituationService(
             update_schema=SituationUpdate,
             read_schema=SituationRead,
         )
+        self.situation_repo = repository
 
     async def find_by_controlled_value(
         self,
@@ -26,7 +27,7 @@ class SituationService(
         value: float,
         session: AsyncSession,
     ) -> SituationRead | None:
-        situation = await self.repository.find_by_controlled_value(
+        situation = await self.situation_repo.find_by_controlled_value(
             controlled_param, value, session
         )
         if situation is None:

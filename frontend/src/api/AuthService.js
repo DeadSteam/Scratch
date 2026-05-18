@@ -4,6 +4,7 @@
  */
 
 import { httpClient } from './HttpClient';
+import { imageService } from './ImageService';
 import { STORAGE_KEYS, ROLES } from '@utils/constants';
 
 class AuthService {
@@ -32,6 +33,7 @@ class AuthService {
    * Logout user
    */
   logout() {
+    imageService.revokeAllBlobUrls();
     sessionStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
     sessionStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
     sessionStorage.removeItem(STORAGE_KEYS.USER);

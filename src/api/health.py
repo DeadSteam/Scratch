@@ -45,7 +45,7 @@ async def _check_db(name: str, session_factory: Any) -> dict[str, Any]:
         return {
             "status": "unhealthy",
             "latency_ms": latency,
-            "error": str(exc),
+            "error": "connection_failed",
         }
 
 
@@ -66,7 +66,7 @@ async def _check_redis() -> dict[str, Any]:
         return {
             "status": "unhealthy",
             "latency_ms": latency,
-            "error": str(exc),
+            "error": "connection_failed",
         }
 
 

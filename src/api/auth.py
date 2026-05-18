@@ -5,7 +5,13 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Request, status
 from pydantic import BaseModel, Field
 
-from ..core.dependencies import AuthSvc, UsersDBSession, UserSvc, get_current_user
+from ..core.dependencies import (
+    AuthSvc,
+    RegistrationAllowed,
+    UsersDBSession,
+    UserSvc,
+    get_current_user,
+)
 from ..core.rate_limit import limiter
 from ..core.security import TokenValidationError, verify_refresh_token
 from ..schemas.user import UserCreate, UserRead
@@ -40,7 +46,11 @@ class TokenResponse(BaseModel):
 )
 @limiter.limit("3/minute")
 async def register(
-    request: Request, user_data: UserCreate, user_service: UserSvc, db: UsersDBSession
+    request: Request,
+    user_data: UserCreate,
+    user_service: UserSvc,
+    db: UsersDBSession,
+    _: RegistrationAllowed,
 ):
     """Register a new user."""
     user = await user_service.create(user_data, db)
@@ -93,8 +103,12 @@ async def refresh_access_token(
     except TokenValidationError as exc:
         raise AuthenticationError(exc.message) from exc
 
-    auth_result = await auth_service.refresh(payload, db)
-    return Response(success=True, message="Token refreshed", data=TokenResponse(**auth_result))
+    auth_result = await auth_service.refresh(
+        payload, db, previous_refresh_token=body.refresh_token
+    )
+    return Response(
+        success=True, message="Token refreshed", data=TokenResponse(**auth_result)
+    )
 
 
 @router.get(

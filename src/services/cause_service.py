@@ -41,6 +41,11 @@ class CauseService(BaseService[Cause, CauseCreate, CauseUpdate, CauseRead]):
         ):
             raise NotFoundError("Situation", situation_id)
 
+    async def count_by_situation_id(
+        self, situation_id: UUID, session: AsyncSession
+    ) -> int:
+        return await self.repository.count_by_situation_id(situation_id, session)
+
     async def get_by_situation_id(
         self,
         situation_id: UUID,

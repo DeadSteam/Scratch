@@ -10,6 +10,7 @@ from ..schemas.equipment_config import (
     EquipmentConfigRead,
     EquipmentConfigUpdate,
 )
+from .pagination import build_paginated_response
 from .responses import PaginatedResponse, Response
 
 router = APIRouter(prefix="/equipment-configs", tags=["Equipment Configurations"])
@@ -56,15 +57,8 @@ async def search_configs(
 ):
     """Search equipment configurations by name."""
     configs = await config_service.search_by_name(name, db, skip, limit)
-
-    return PaginatedResponse(
-        success=True,
-        data=configs,
-        total=len(configs),
-        skip=skip,
-        limit=limit,
-        has_more=len(configs) == limit,
-    )
+    total = await config_service.count_search_by_name(name, db)
+    return build_paginated_response(configs, total, skip, limit)
 
 
 @router.get(

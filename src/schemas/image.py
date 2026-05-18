@@ -2,6 +2,7 @@ from uuid import UUID
 
 from pydantic import Field, field_validator
 
+from ..core.config import settings
 from .base import SchemaBase
 
 
@@ -18,9 +19,9 @@ class ExperimentImageCreate(ExperimentImageBase):
     @classmethod
     def validate_image_size(cls, v: bytes) -> bytes:
         """Validate image data size."""
-        max_size = 10 * 1024 * 1024  # 10MB
+        max_size = settings.MAX_FILE_SIZE
         if len(v) > max_size:
-            raise ValueError(f"Image size must not exceed {max_size} bytes (10MB)")
+            raise ValueError(f"Image size must not exceed {max_size} bytes")
         if len(v) == 0:
             raise ValueError("Image data cannot be empty")
         return v

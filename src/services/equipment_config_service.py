@@ -57,6 +57,11 @@ class EquipmentConfigService(
         )
         return [self.read_schema.model_validate(c) for c in configs]
 
+    async def count_search_by_name(
+        self, name_pattern: str, session: AsyncSession
+    ) -> int:
+        return await self.config_repo.count_search_by_name(name_pattern, session)
+
     async def get_by_head_type(
         self, head_type: str, session: AsyncSession, skip: int = 0, limit: int = 100
     ) -> list[EquipmentConfigRead]:

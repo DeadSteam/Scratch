@@ -4,7 +4,8 @@ from uuid import UUID
 
 from fastapi import APIRouter, Query, status
 
-from ..core.dependencies import CurrentAdmin, UsersDBSession, UserSvc
+from ..core.authorization import ensure_same_user_or_admin
+from ..core.dependencies import CurrentAdmin, CurrentUser, UsersDBSession, UserSvc
 from ..schemas.user import UserCreate, UserRead, UserUpdate
 from .responses import PaginatedResponse, Response
 
@@ -47,6 +48,7 @@ async def list_users(
 async def list_active_users(
     user_service: UserSvc,
     db: UsersDBSession,
+    admin: CurrentAdmin,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
 ):
@@ -88,8 +90,14 @@ async def create_user(
     summary="Get user by ID",
     description="Retrieve a specific user by their ID",
 )
-async def get_user(user_id: UUID, user_service: UserSvc, db: UsersDBSession):
+async def get_user(
+    user_id: UUID,
+    user_service: UserSvc,
+    db: UsersDBSession,
+    current_user: CurrentUser,
+):
     """Get user by ID."""
+    ensure_same_user_or_admin(current_user, user_id)
     user = await user_service.get_by_id(user_id, db)
     return Response(success=True, message="User retrieved successfully", data=user)
 
@@ -101,10 +109,14 @@ async def get_user(user_id: UUID, user_service: UserSvc, db: UsersDBSession):
     description="Retrieve a specific user by their username",
 )
 async def get_user_by_username(
-    username: str, user_service: UserSvc, db: UsersDBSession
+    username: str,
+    user_service: UserSvc,
+    db: UsersDBSession,
+    current_user: CurrentUser,
 ):
     """Get user by username."""
     user = await user_service.get_by_username(username, db)
+    ensure_same_user_or_admin(current_user, user.id)
     return Response(success=True, message="User retrieved successfully", data=user)
 
 

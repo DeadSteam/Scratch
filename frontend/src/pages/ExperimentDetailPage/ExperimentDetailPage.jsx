@@ -9,6 +9,7 @@ import { useNotification } from '@context/NotificationContext';
 import { experimentService, imageService, analysisService } from '@api';
 import { useExperimentData } from '@hooks/useExperimentData';
 import { useHistogramData } from '@hooks/useHistogramData';
+import { useAuthenticatedImageUrl } from '@hooks/useAuthenticatedImageUrl';
 import { Layout } from '@components/layout';
 import { Button, Spinner, Modal, Input } from '@components/common';
 import { ImageCarousel, ScratchChart, HistogramChart, ROISelector } from '@components/features';
@@ -73,7 +74,7 @@ export function ExperimentDetailPage() {
   const latestImage = images.length > 0
     ? [...images].sort((a, b) => (b.passes ?? 0) - (a.passes ?? 0))[0]
     : null;
-  const latestImageUrl = latestImage ? imageService.getImageDataUrl(latestImage.id) : null;
+  const { url: latestImageUrl } = useAuthenticatedImageUrl(latestImage?.id);
 
   const wrappedFetchExperiment = useCallback(async (silent = false) => {
     const { shouldOpenKnowledgeModal } = await fetchExperiment(silent);
@@ -133,7 +134,7 @@ export function ExperimentDetailPage() {
   };
 
   const handleOpenRoiModal = () => {
-    if (!latestImageUrl) {
+    if (!latestImage) {
       showError('Нет изображений для выбора области анализа');
       return;
     }
@@ -526,8 +527,12 @@ export function ExperimentDetailPage() {
                   type="button"
                   className={styles.analysisButton}
                   onClick={handleOpenRoiModal}
-                  disabled={!latestImageUrl}
-                  title={latestImageUrl ? 'Изменить область анализа' : 'Добавьте изображение для выбора области'}
+                  disabled={!latestImage}
+                  title={
+                    latestImage
+                      ? 'Изменить область анализа'
+                      : 'Добавьте изображение для выбора области'
+                  }
                 >
                   Изменить
                 </button>

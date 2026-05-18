@@ -184,6 +184,9 @@ services:
   redis:
     image: redis:7
     restart: unless-stopped
+    command: redis-server /usr/local/etc/redis/redis.conf
+    volumes:
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
     expose:
       - "6379"
     healthcheck:
@@ -200,6 +203,8 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"   # Management UI (localhost only)
+    volumes:
+      - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/conf.d/20-scratchlab.conf:ro
     environment:
       - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER:-guest}
       - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD:-guest}
@@ -261,6 +266,7 @@ services:
     command: >
       python -m celery -A src.core.celery_app beat
       --loglevel=info
+      --schedule=/tmp/celerybeat-schedule
     volumes:
       - .:/app
       - /app/.venv
@@ -328,6 +334,7 @@ services:
       - loki
       - tempo
     volumes:
+      - grafana_data:/var/lib/grafana
       - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
       - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
     networks:
@@ -353,3 +360,4 @@ volumes:
   experiments_data:
   users_data:
   knowledge_data:
+  grafana_data:

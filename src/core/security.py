@@ -4,6 +4,7 @@ This module is HTTP-independent — it raises domain exceptions,
 not HTTPException. The HTTP layer (dependencies.py) catches and converts them.
 """
 
+import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -56,7 +57,13 @@ def create_access_token(
             minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
         )
 
-    to_encode.update({"exp": expire})
+    to_encode.update(
+        {
+            "exp": expire,
+            "type": "access",
+            "jti": str(uuid.uuid4()),
+        }
+    )
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
@@ -64,7 +71,13 @@ def create_refresh_token(data: dict[str, Any]) -> str:
     """Create JWT refresh token."""
     to_encode = data.copy()
     expire = datetime.now(UTC) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-    to_encode.update({"exp": expire, "type": "refresh"})
+    to_encode.update(
+        {
+            "exp": expire,
+            "type": "refresh",
+            "jti": str(uuid.uuid4()),
+        }
+    )
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
@@ -78,6 +91,19 @@ def verify_token(token: str) -> dict[str, Any]:
         return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
     except PyJWTError as err:
         raise TokenValidationError("Could not validate credentials") from err
+
+
+def verify_access_token(token: str) -> dict[str, Any]:
+    """Verify access token (rejects refresh tokens).
+
+    Raises:
+        TokenValidationError: If the token is invalid or not an access token.
+    """
+    payload = verify_token(token)
+    token_type = payload.get("type")
+    if token_type is not None and token_type != "access":
+        raise TokenValidationError("Invalid token type")
+    return payload
 
 
 def verify_refresh_token(token: str) -> dict[str, Any]:

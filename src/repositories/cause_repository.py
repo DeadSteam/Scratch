@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models.knowledge import Cause
@@ -24,3 +24,11 @@ class CauseRepository(CachedRepositoryImpl[Cause]):
             .limit(limit)
         )
         return list(result.scalars().all())
+
+    async def count_by_situation_id(
+        self, situation_id: UUID, session: AsyncSession
+    ) -> int:
+        result = await session.execute(
+            select(func.count(Cause.id)).where(Cause.situation_id == situation_id)
+        )
+        return result.scalar() or 0

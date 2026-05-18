@@ -5,17 +5,17 @@ Follows SRP — separated from UserService which handles CRUD operations.
 """
 
 from typing import Any
+from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..core.logging_config import get_logger
-from uuid import UUID
-
 from ..core.security import (
     create_access_token,
     create_refresh_token,
     verify_password,
 )
+from ..core.token_store import blacklist_refresh_token, is_refresh_token_blacklisted
 from ..repositories.user_repository import UserRepository
 from ..schemas.user import UserRead
 from .exceptions import AuthenticationError
@@ -72,13 +72,24 @@ class AuthService:
         }
 
     async def refresh(
-        self, payload: dict[str, Any], session: AsyncSession
+        self,
+        payload: dict[str, Any],
+        session: AsyncSession,
+        *,
+        previous_refresh_token: str | None = None,
     ) -> dict[str, Any]:
         """Issue new tokens from a valid refresh token payload.
 
         Raises:
             AuthenticationError: If the user is not found or inactive.
         """
+        if previous_refresh_token:
+            if await is_refresh_token_blacklisted(previous_refresh_token):
+                raise AuthenticationError("Refresh token has been revoked")
+            exp = payload.get("exp")
+            if isinstance(exp, int):
+                await blacklist_refresh_token(previous_refresh_token, exp)
+
         user_id_str = payload.get("sub")
         if user_id_str is None:
             raise AuthenticationError("Invalid refresh token")

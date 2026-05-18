@@ -1,21 +1,4 @@
--- ============================================================
--- Read-only user for experiments_db (apply to live container)
---
--- 1. Добавь в .env:
---      READONLY_DB_PASSWORD=your_strong_password
---
--- 2. Примени к работающему контейнеру:
---      docker exec -i scratch-experiments_db-1 \
---        psql -U "$POSTGRES_USER" -d "$EXPERIMENTS_DB" \
---        < sql/create_readonly_user.sql
---
---    Либо с конкретными именами:
---      docker exec -i scratch-experiments_db-1 \
---        psql -U postgres -d experiments_db \
---        < sql/create_readonly_user.sql
--- ============================================================
 
--- ЗАМЕНИ 'CHANGE_ME' на реальный пароль перед запуском
 \set ro_password 'Akrawerkatya'
 
 DO $$

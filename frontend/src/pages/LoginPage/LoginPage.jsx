@@ -10,7 +10,7 @@ import { useNotification } from '@context/NotificationContext';
 import { Flask } from '@phosphor-icons/react';
 import { ph } from '@components/icons/phosphor';
 import { Button, Input, ThemeToggle } from '@components/common';
-import { ROUTES } from '@utils/constants';
+import { ROUTES, ALLOW_PUBLIC_REGISTRATION } from '@utils/constants';
 import { validatePassword, validateUsername, isValidEmail } from '@utils/validators';
 import styles from './LoginPage.module.css';
 
@@ -52,7 +52,7 @@ export function LoginPage() {
     }
 
     // Email validation (only for registration)
-    if (isRegisterMode) {
+    if (isRegisterMode && ALLOW_PUBLIC_REGISTRATION) {
       if (!formData.email) {
         newErrors.email = 'Введите email';
       } else if (!isValidEmail(formData.email)) {
@@ -63,7 +63,7 @@ export function LoginPage() {
     // Password validation
     if (!formData.password) {
       newErrors.password = 'Введите пароль';
-    } else if (isRegisterMode) {
+    } else if (isRegisterMode && ALLOW_PUBLIC_REGISTRATION) {
       const passwordValidation = validatePassword(formData.password);
       if (!passwordValidation.isValid) {
         newErrors.password = passwordValidation.errors[0];
@@ -71,7 +71,11 @@ export function LoginPage() {
     }
 
     // Confirm password (only for registration)
-    if (isRegisterMode && formData.password !== formData.confirmPassword) {
+    if (
+      isRegisterMode &&
+      ALLOW_PUBLIC_REGISTRATION &&
+      formData.password !== formData.confirmPassword
+    ) {
       newErrors.confirmPassword = 'Пароли не совпадают';
     }
 
@@ -87,7 +91,7 @@ export function LoginPage() {
     setIsSubmitting(true);
 
     try {
-      if (isRegisterMode) {
+      if (isRegisterMode && ALLOW_PUBLIC_REGISTRATION) {
         await register({
           username: formData.username,
           email: formData.email,
@@ -105,7 +109,14 @@ export function LoginPage() {
         navigate(from, { replace: true });
       }
     } catch (err) {
-      showError(err.message || 'Произошла ошибка');
+      const msg = err.message || 'Произошла ошибка';
+      if (isRegisterMode && err.status === 403) {
+        showError(
+          'Регистрация отключена. Обратитесь к администратору для создания учётной записи.',
+        );
+      } else {
+        showError(msg);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -136,10 +147,12 @@ export function LoginPage() {
             </div>
             <span className={styles.brandName}>ScratchLab</span>
             <h1 className={styles.title}>
-              {isRegisterMode ? 'Регистрация' : 'Вход в систему'}
+              {isRegisterMode && ALLOW_PUBLIC_REGISTRATION
+                ? 'Регистрация'
+                : 'Вход в систему'}
             </h1>
             <p className={styles.subtitle}>
-              {isRegisterMode 
+              {isRegisterMode && ALLOW_PUBLIC_REGISTRATION
                 ? 'Создайте аккаунт для работы с системой'
                 : 'Система анализа устойчивости к царапинам'}
             </p>
@@ -158,7 +171,7 @@ export function LoginPage() {
               autoComplete="username"
             />
 
-            {isRegisterMode && (
+            {isRegisterMode && ALLOW_PUBLIC_REGISTRATION && (
               <Input
                 name="email"
                 type="email"
@@ -184,7 +197,7 @@ export function LoginPage() {
               autoComplete={isRegisterMode ? 'new-password' : 'current-password'}
             />
 
-            {isRegisterMode && (
+            {isRegisterMode && ALLOW_PUBLIC_REGISTRATION && (
               <Input
                 name="confirmPassword"
                 type="password"
@@ -204,23 +217,26 @@ export function LoginPage() {
               fullWidth
               loading={isSubmitting}
             >
-              {isRegisterMode ? 'Создать аккаунт' : 'Войти'}
+              {isRegisterMode && ALLOW_PUBLIC_REGISTRATION
+                ? 'Создать аккаунт'
+                : 'Войти'}
             </Button>
           </form>
 
-          {/* Toggle mode */}
-          <div className={styles.footer}>
-            <span className={styles.footerText}>
-              {isRegisterMode ? 'Уже есть аккаунт?' : 'Нет аккаунта?'}
-            </span>
-            <button 
-              type="button" 
-              className={styles.toggleButton}
-              onClick={toggleMode}
-            >
-              {isRegisterMode ? 'Войти' : 'Создать'}
-            </button>
-          </div>
+          {ALLOW_PUBLIC_REGISTRATION && (
+            <div className={styles.footer}>
+              <span className={styles.footerText}>
+                {isRegisterMode ? 'Уже есть аккаунт?' : 'Нет аккаунта?'}
+              </span>
+              <button
+                type="button"
+                className={styles.toggleButton}
+                onClick={toggleMode}
+              >
+                {isRegisterMode ? 'Войти' : 'Создать'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

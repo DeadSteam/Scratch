@@ -29,8 +29,14 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 RUN dos2unix entrypoint.sh 2>/dev/null || true && chmod +x entrypoint.sh
 
+RUN groupadd --system app \
+    && useradd --system --gid app --uid 1000 --home-dir /app app \
+    && chown -R app:app /app
+
 ENV PATH="/app/.venv/bin:$PATH"
 EXPOSE 8000
+
+USER app
 
 ENTRYPOINT ["./entrypoint.sh"]
 CMD ["python", "-m", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--timeout-graceful-shutdown", "25"]

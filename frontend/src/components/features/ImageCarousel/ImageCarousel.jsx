@@ -16,7 +16,7 @@ import {
 import { ph } from '@components/icons/phosphor';
 import { Modal } from '@components/common/Modal/Modal';
 import { Button } from '@components/common/Button/Button';
-import { imageService } from '@api';
+import { AuthenticatedImage } from '@components/common';
 import styles from './ImageCarousel.module.css';
 
 const MAX_VISIBLE_THUMBNAILS = 6;
@@ -139,8 +139,6 @@ export function ImageCarousel({ images = [], onImageClick, onImageDelete, onAddI
     );
   }
 
-  const getImageUrl = (imageId) => imageId ? imageService.getImageDataUrl(imageId) : '';
-
   return (
     <div 
       className={styles.container}
@@ -172,8 +170,8 @@ export function ImageCarousel({ images = [], onImageClick, onImageDelete, onAddI
 
       {/* Main image */}
       <div className={styles.mainImage}>
-        <img
-          src={getImageUrl(currentImage?.id)}
+        <AuthenticatedImage
+          imageId={currentImage?.id}
           alt={`Проходов: ${currentImage?.passes || 0}`}
           onClick={() => onImageClick?.(currentImage)}
         />
@@ -248,8 +246,8 @@ export function ImageCarousel({ images = [], onImageClick, onImageDelete, onAddI
                   onClick={() => handleThumbnailClick(index)}
                   aria-label={`Изображение ${index + 1}`}
                 >
-                  <img
-                    src={getImageUrl(image.id)}
+                  <AuthenticatedImage
+                    imageId={image.id}
                     alt={`Проходов: ${image.passes}`}
                   />
                   <span className={styles.thumbnailLabel}>

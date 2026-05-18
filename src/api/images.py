@@ -6,10 +6,12 @@ from uuid import UUID
 
 from fastapi import APIRouter, File, HTTPException, Query, Request, UploadFile, status
 from fastapi.responses import Response as FastAPIResponse
-from PIL import Image as PilImage, UnidentifiedImageError
+from PIL import Image as PilImage
+from PIL import UnidentifiedImageError
 
+from ..core.authorization import ensure_experiment_access, ensure_image_access
 from ..core.config import settings
-from ..core.dependencies import ExperimentImageSvc, MainDBSession
+from ..core.dependencies import CurrentUser, ExperimentImageSvc, MainDBSession
 from ..core.rate_limit import limiter
 from ..schemas.image import ExperimentImageCreate, ExperimentImageRead
 from .responses import PaginatedResponse, Response
@@ -23,6 +25,26 @@ _PIL_FORMAT_TO_MIME = {
 router = APIRouter(prefix="/images", tags=["Experiment Images"])
 
 
+def _validate_image_bytes(content: bytes) -> None:
+    """Validate image size and format via Pillow."""
+    if len(content) > settings.MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"File too large. Max allowed: {settings.MAX_FILE_SIZE} bytes",
+        )
+    try:
+        img = PilImage.open(io.BytesIO(content))
+        real_mime = _PIL_FORMAT_TO_MIME.get(img.format)
+    except UnidentifiedImageError:
+        real_mime = None
+
+    if not real_mime or real_mime not in settings.ALLOWED_IMAGE_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid image file. Allowed formats: JPEG, PNG, WebP",
+        )
+
+
 @router.get(
     "/experiment/{experiment_id}",
     response_model=PaginatedResponse[ExperimentImageRead],
@@ -33,10 +55,12 @@ async def get_images_by_experiment(
     experiment_id: UUID,
     image_service: ExperimentImageSvc,
     db: MainDBSession,
+    current_user: CurrentUser,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
 ):
     """Get all images for an experiment."""
+    await ensure_experiment_access(experiment_id, current_user, db)
     images = await image_service.get_by_experiment_id(experiment_id, db, skip, limit)
     total = await image_service.count_by_experiment_id(experiment_id, db)
 
@@ -57,9 +81,13 @@ async def get_images_by_experiment(
     description="Retrieve a specific image by its ID",
 )
 async def get_image(
-    image_id: UUID, image_service: ExperimentImageSvc, db: MainDBSession
+    image_id: UUID,
+    image_service: ExperimentImageSvc,
+    db: MainDBSession,
+    current_user: CurrentUser,
 ):
     """Get image by ID."""
+    await ensure_image_access(image_id, current_user, db)
     image = await image_service.get_by_id(image_id, db)
     return Response(success=True, message="Image retrieved successfully", data=image)
 
@@ -70,13 +98,15 @@ async def get_image(
     description="Retrieve the actual image binary data",
 )
 async def get_image_data(
-    image_id: UUID, image_service: ExperimentImageSvc, db: MainDBSession
+    image_id: UUID,
+    image_service: ExperimentImageSvc,
+    db: MainDBSession,
+    current_user: CurrentUser,
 ):
     """Get image binary data for display."""
-    # Get raw model with image_data
+    await ensure_image_access(image_id, current_user, db)
     image = await image_service.get_raw_by_id(image_id, db)
 
-    # Detect content type from image data
     content_type = "image/png"
     image_bytes = bytes(image.image_data)
 
@@ -112,6 +142,7 @@ async def upload_image(
     request: Request,
     image_service: ExperimentImageSvc,
     db: MainDBSession,
+    current_user: CurrentUser,
     experiment_id: UUID = Query(..., description="Experiment ID"),
     passes: int = Query(
         0, ge=0, le=1000, description="Number of passes (0 for reference image)"
@@ -119,37 +150,13 @@ async def upload_image(
     file: UploadFile = File(..., description="Image file"),
 ):
     """Upload a new experiment image."""
-    # 1. Read content first (needed for size + magic bytes checks)
+    await ensure_experiment_access(experiment_id, current_user, db)
     content = await file.read()
+    _validate_image_bytes(content)
 
-    # 2. Validate file size
-    if len(content) > settings.MAX_FILE_SIZE:
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail=f"File too large. Max allowed: {settings.MAX_FILE_SIZE} bytes",
-        )
-
-    # 3. Validate magic bytes via Pillow (prevents spoofed Content-Type)
-    try:
-        img = PilImage.open(io.BytesIO(content))
-        real_mime = _PIL_FORMAT_TO_MIME.get(img.format)
-    except UnidentifiedImageError:
-        real_mime = None
-
-    if not real_mime or real_mime not in settings.ALLOWED_IMAGE_TYPES:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid image file. Allowed formats: JPEG, PNG, WebP",
-        )
-
-    # Reset file pointer if we need to read it again,
-    # but here we already have 'content', so we use it.
-
-    # Create image
     image_create = ExperimentImageCreate(
         experiment_id=experiment_id, image_data=content, passes=passes
     )
-
     image = await image_service.create(image_create, db)
 
     return Response(success=True, message="Image uploaded successfully", data=image)
@@ -168,8 +175,11 @@ async def create_image(
     image_data: ExperimentImageCreate,
     image_service: ExperimentImageSvc,
     db: MainDBSession,
+    current_user: CurrentUser,
 ):
     """Create a new experiment image."""
+    await ensure_experiment_access(image_data.experiment_id, current_user, db)
+    _validate_image_bytes(bytes(image_data.image_data))
     image = await image_service.create(image_data, db)
     return Response(success=True, message="Image created successfully", data=image)
 
@@ -181,9 +191,13 @@ async def create_image(
     description="Permanently delete an experiment image",
 )
 async def delete_image(
-    image_id: UUID, image_service: ExperimentImageSvc, db: MainDBSession
+    image_id: UUID,
+    image_service: ExperimentImageSvc,
+    db: MainDBSession,
+    current_user: CurrentUser,
 ):
     """Delete image."""
+    await ensure_image_access(image_id, current_user, db)
     await image_service.delete(image_id, db)
     return None
 
@@ -195,9 +209,13 @@ async def delete_image(
     description="Delete all images associated with an experiment",
 )
 async def delete_all_experiment_images(
-    experiment_id: UUID, image_service: ExperimentImageSvc, db: MainDBSession
+    experiment_id: UUID,
+    image_service: ExperimentImageSvc,
+    db: MainDBSession,
+    current_user: CurrentUser,
 ):
     """Delete all images for an experiment."""
+    await ensure_experiment_access(experiment_id, current_user, db)
     count = await image_service.delete_by_experiment_id(experiment_id, db)
     return Response(
         success=True, message=f"Deleted {count} images", data={"deleted_count": count}

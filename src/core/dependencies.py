@@ -9,7 +9,11 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import Depends
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import (
+    HTTPAuthorizationCredentials,
+    HTTPBearer,
+    OAuth2PasswordBearer,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..repositories import (
@@ -36,9 +40,12 @@ from ..services.cause_service import CauseService
 from ..services.exceptions import AuthenticationError, AuthorizationError
 from ..services.image_analysis_service import ImageAnalysisService
 from ..services.situation_service import SituationService
+from .config import settings
 from .database import get_db_session, get_knowledge_db_session, get_users_db_session
 from .redis import get_redis_client
-from .security import TokenValidationError, verify_token
+from .security import TokenValidationError, verify_access_token
+
+_optional_bearer = HTTPBearer(auto_error=False)
 
 # ---------------------------------------------------------------------------
 # Auth scheme
@@ -209,7 +216,7 @@ async def get_current_user(
     (``get_current_admin``) always see up-to-date roles.
     """
     try:
-        payload = verify_token(token)
+        payload = verify_access_token(token)
     except TokenValidationError as exc:
         raise AuthenticationError(exc.message) from exc
 
@@ -235,6 +242,38 @@ async def get_current_admin(
     if not any(role.name == "admin" for role in current_user.roles):
         raise AuthorizationError("Access forbidden: Admin privileges required")
     return current_user
+
+
+async def ensure_registration_allowed(
+    credentials: HTTPAuthorizationCredentials | None = Depends(_optional_bearer),
+    db: AsyncSession = Depends(get_users_db),
+    user_service: UserService = Depends(get_user_service),
+) -> None:
+    """Allow public registration or require an admin bearer token."""
+    if settings.ALLOW_PUBLIC_REGISTRATION:
+        return
+    if credentials is None:
+        raise AuthorizationError(
+            "Public registration is disabled. Admin authentication required."
+        )
+    try:
+        payload = verify_access_token(credentials.credentials)
+    except TokenValidationError as exc:
+        raise AuthenticationError(exc.message) from exc
+
+    user_id_str = payload.get("sub")
+    if user_id_str is None:
+        raise AuthenticationError("Could not validate credentials")
+    try:
+        user_id = UUID(user_id_str)
+    except ValueError as exc:
+        raise AuthenticationError("Invalid user ID in token") from exc
+
+    user = await user_service.get_for_auth(user_id, db)
+    if not user.is_active:
+        raise AuthenticationError("User account is inactive")
+    if not any(role.name == "admin" for role in user.roles):
+        raise AuthorizationError("Admin privileges required to register users")
 
 
 # ---------------------------------------------------------------------------
@@ -280,3 +319,4 @@ AdviceSvc = Annotated[AdviceService, Depends(get_advice_service)]
 # Auth
 CurrentUser = Annotated[UserRead, Depends(get_current_user)]
 CurrentAdmin = Annotated[UserRead, Depends(get_current_admin)]
+RegistrationAllowed = Annotated[None, Depends(ensure_registration_allowed)]

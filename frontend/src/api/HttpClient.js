@@ -3,6 +3,7 @@
  * Single Responsibility: Handle HTTP requests
  */
 
+import { revokeAllBlobUrls } from './imageBlobCache';
 import { API_BASE_URL, STORAGE_KEYS, TIMINGS } from '@utils/constants';
 
 class HttpClient {
@@ -27,6 +28,7 @@ class HttpClient {
   }
 
   clearSession() {
+    revokeAllBlobUrls();
     sessionStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
     sessionStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
     sessionStorage.removeItem(STORAGE_KEYS.USER);
@@ -156,16 +158,79 @@ class HttpClient {
     return doRequest();
   }
 
+  /**
+   * Raw fetch with auth headers and 401 → refresh retry (for blobs / FormData).
+   */
+  async fetchWithAuth(endpoint, options = {}, retryOn401 = true) {
+    const doRequest = async () => {
+      const token = this.getAccessToken();
+      const headers = { ...options.headers };
+      if (token) headers.Authorization = `Bearer ${token}`;
+
+      const response = await fetch(`${this.baseURL}${endpoint}`, {
+        ...options,
+        headers,
+      });
+
+      if (
+        response.status === 401 &&
+        retryOn401 &&
+        !this._isRefreshing &&
+        this.getRefreshToken()
+      ) {
+        this._isRefreshing = true;
+        let refreshed = false;
+        try {
+          refreshed = await this.tryRefreshToken();
+        } finally {
+          this._isRefreshing = false;
+        }
+        if (refreshed) {
+          return doRequest();
+        }
+        this.clearSession();
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, TIMINGS.REDIRECT_DELAY_MS);
+        throw new Error('Сессия истекла. Пожалуйста, войдите снова.');
+      }
+
+      return response;
+    };
+    return doRequest();
+  }
+
+  async getBlob(endpoint) {
+    const response = await this.fetchWithAuth(endpoint, { method: 'GET' });
+    if (!response.ok) {
+      let message = response.statusText || 'Не удалось загрузить изображение';
+      const contentType = response.headers.get('content-type');
+      if (contentType?.includes('application/json')) {
+        try {
+          const data = await response.json();
+          message = data.message || data.detail || message;
+        } catch {
+          /* ignore */
+        }
+      }
+      const error = new Error(
+        typeof message === 'string' ? message : 'Не удалось загрузить изображение',
+      );
+      error.status = response.status;
+      throw error;
+    }
+    return response.blob();
+  }
+
   async postFormData(endpoint, formData) {
-    const headers = {};
-    const token = this.getAccessToken();
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-    const response = await fetch(`${this.baseURL}${endpoint}`, {
-      method: 'POST',
-      headers,
-      body: formData,
-    });
-    return this.handleResponse(response);
+    const doRequest = async () => {
+      const response = await this.fetchWithAuth(endpoint, {
+        method: 'POST',
+        body: formData,
+      });
+      return this.handleResponse(response, doRequest);
+    };
+    return doRequest();
   }
 
   async put(endpoint, body = {}) {
