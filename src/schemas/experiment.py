@@ -65,7 +65,7 @@ class ExperimentBase(SchemaBase):
     rect_coords: list[float] | None = Field(
         None, description="Rectangle coordinates for analysis [x, y, width, height]"
     )
-    weight: float | None = Field(None, gt=0, description="Sample weight in grams")
+    weight: float | None = Field(None, description="Sample weight in grams")
     has_fabric: bool | None = Field(
         False, description="Whether fabric substrate was used"
     )
@@ -75,6 +75,8 @@ class ExperimentBase(SchemaBase):
 
 
 class ExperimentCreate(ExperimentBase):
+    weight: float | None = Field(None, gt=0, description="Sample weight in grams")
+
     @field_validator("rect_coords")
     @classmethod
     def validate_rect_coords(cls, v: list[float] | None) -> list[float] | None:
@@ -94,7 +96,7 @@ class ExperimentUpdate(SchemaBase):
     name: str | None = Field(None, max_length=200)
     date: datetime | None = None
     rect_coords: list[float] | None = None
-    weight: float | None = None
+    weight: float | None = Field(None, gt=0)
     has_fabric: bool | None = None
     scratch_results: list[dict[str, Any]] | None = None
 
