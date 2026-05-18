@@ -10,7 +10,7 @@ import { useNotification } from '@context/NotificationContext';
 import { experimentService } from '@api';
 import { Layout } from '@components/layout';
 import { Button, Card, Spinner, EmptyState, Modal } from '@components/common';
-import { ROUTES } from '@utils/constants';
+import { ROUTES, TIMINGS } from '@utils/constants';
 import {
   formatDate,
   formatWeight,
@@ -59,7 +59,7 @@ export function ExperimentsPage() {
       if (!silent) showError('Не удалось загрузить эксперименты');
       // Auto-retry every 5s while server is unavailable
       if (isServerDown) {
-        retryTimerRef.current = setTimeout(() => fetchExperiments({ silent: true }), 5000);
+        retryTimerRef.current = setTimeout(() => fetchExperiments({ silent: true }), TIMINGS.RETRY_INTERVAL_MS);
       }
     } finally {
       setIsLoading(false);
@@ -78,7 +78,7 @@ export function ExperimentsPage() {
   };
 
   const handleExperimentClick = (id) => {
-    navigate(`/experiments/${id}`);
+    navigate(ROUTES.EXPERIMENT_DETAIL.replace(':id', id));
   };
 
   const handleDeleteClick = (e, experimentId) => {

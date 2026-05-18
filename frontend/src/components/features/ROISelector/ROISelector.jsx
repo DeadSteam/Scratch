@@ -21,7 +21,6 @@ export function ROISelector({
   const [startPoint, setStartPoint] = useState(null);
   const [selection, setSelection] = useState(initialSelection);
   const [imageLoaded, setImageLoaded] = useState(false);
-  const [, setImageDimensions] = useState({ width: 0, height: 0 });
 
   // Get mouse position relative to canvas
   const getMousePosition = useCallback((e) => {
@@ -83,14 +82,20 @@ export function ROISelector({
   // Load image
   useEffect(() => {
     if (!imageSrc) return;
-    
+
+    let mounted = true;
     const image = new Image();
     image.onload = () => {
+      if (!mounted) return;
       imageRef.current = image;
-      setImageDimensions({ width: image.width, height: image.height });
       setImageLoaded(true);
     };
     image.src = imageSrc;
+    return () => {
+      mounted = false;
+      image.onload = null;
+      image.src = '';
+    };
   }, [imageSrc]);
 
   // Setup canvas dimensions

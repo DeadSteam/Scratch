@@ -44,5 +44,15 @@ export const TOAST_DURATION = {
   LONG: 8000,
 };
 
+export const ROLES = {
+  ADMIN: 'admin',
+  USER: 'user',
+};
+
+export const TIMINGS = {
+  RETRY_INTERVAL_MS: 5000,
+  REDIRECT_DELAY_MS: 1500,
+};
+
 
 

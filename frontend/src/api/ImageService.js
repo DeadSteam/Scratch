@@ -4,6 +4,7 @@
  */
 
 import { httpClient } from './HttpClient';
+import { API_BASE_URL } from '@utils/constants';
 
 class ImageService {
   /**
@@ -41,6 +42,13 @@ class ImageService {
   async delete(id) {
     const response = await httpClient.delete(`/images/${id}`);
     return response;
+  }
+
+  /**
+   * Get direct URL to image binary data
+   */
+  getImageDataUrl(imageId) {
+    return `${API_BASE_URL}/images/${imageId}/data`;
   }
 
   /**

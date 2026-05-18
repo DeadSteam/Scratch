@@ -1,64 +1,24 @@
-/**
- * User Service
- * Single Responsibility: Handle user management API calls
- */
+import { BaseApiService } from './BaseApiService';
 
-import { httpClient } from './HttpClient';
-
-class UserService {
-  /**
-   * Get all users (paginated)
-   */
-  async getAll(params = {}) {
-    const { skip = 0, limit = 50 } = params;
-    const response = await httpClient.get('/users', { skip, limit });
-    return response;
+class UserService extends BaseApiService {
+  constructor() {
+    super('/users', 50);
   }
 
-  /**
-   * Get user by ID
-   */
-  async getById(id) {
-    const response = await httpClient.get(`/users/${id}`);
+  // Users use PUT (full replace), not PATCH
+  async update(id, data) {
+    const response = await this.http.put(`${this.basePath}/${id}`, data);
     return response.data;
   }
 
-  /**
-   * Update user (PUT as required by backend)
-   */
-  async update(id, updateData) {
-    const response = await httpClient.put(`/users/${id}`, updateData);
-    return response.data;
-  }
-
-  /**
-   * Deactivate user
-   */
   async deactivate(id) {
-    const response = await httpClient.post(`/users/${id}/deactivate`);
-    return response;
+    return this.http.post(`${this.basePath}/${id}/deactivate`);
   }
 
-  /**
-   * Activate user
-   */
   async activate(id) {
-    const response = await httpClient.post(`/users/${id}/activate`);
-    return response;
-  }
-
-  /**
-   * Delete user
-   */
-  async delete(id) {
-    const response = await httpClient.delete(`/users/${id}`);
-    return response;
+    return this.http.post(`${this.basePath}/${id}/activate`);
   }
 }
 
 export const userService = new UserService();
-
 export default UserService;
-
-
-

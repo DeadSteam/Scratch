@@ -3,7 +3,7 @@
  * Multi-step wizard for creating new experiments
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import { useNotification } from '@context/NotificationContext';
@@ -12,7 +12,7 @@ import { Layout } from '@components/layout';
 import { Button, Input, Select, Checkbox, Card, Spinner } from '@components/common';
 import { ROISelector } from '@components/features/ROISelector';
 import { validateImageFile } from '@utils/validators';
-import { ROUTES, IMAGE_CONFIG } from '@utils/constants';
+import { ROUTES, IMAGE_CONFIG, TIMINGS } from '@utils/constants';
 import { Check, Images } from '@phosphor-icons/react';
 import { ph } from '@components/icons/phosphor';
 import styles from './CreateExperimentPage.module.css';
@@ -50,27 +50,38 @@ export function CreateExperimentPage() {
   const { user } = useAuth();
   const { success, error: showError } = useNotification();
   const navigate = useNavigate();
+  const retryTimerRef = useRef(null);
 
-  // Fetch films and configs
-  useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      try {
-        const [filmsResponse, configsResponse] = await Promise.all([
-          filmService.getAll(),
-          configService.getAll(),
-        ]);
-        setFilms(filmsResponse.data || []);
-        setConfigs(configsResponse.data || []);
-      } catch (err) {
-        showError('Ошибка загрузки данных');
-      } finally {
-        setIsLoading(false);
+  const fetchData = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setIsLoading(true);
+    try {
+      const [filmsResponse, configsResponse] = await Promise.all([
+        filmService.getAll(),
+        configService.getAll(),
+      ]);
+      setFilms(filmsResponse.data || []);
+      setConfigs(configsResponse.data || []);
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
       }
-    };
-    
-    fetchData();
+    } catch (err) {
+      const isServerDown = err.status === 502 || err.status === 503 || err.status === 504 || !err.status;
+      if (!silent) showError('Ошибка загрузки данных');
+      if (isServerDown) {
+        retryTimerRef.current = setTimeout(() => fetchData({ silent: true }), TIMINGS.RETRY_INTERVAL_MS);
+      }
+    } finally {
+      if (!silent) setIsLoading(false);
+    }
   }, [showError]);
+
+  useEffect(() => {
+    fetchData();
+    return () => {
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    };
+  }, [fetchData]);
 
   // Handle form input change
   const handleInputChange = (e) => {
@@ -182,7 +193,7 @@ export function CreateExperimentPage() {
       }
 
       success('Эксперимент успешно создан');
-      navigate(`/experiments/${experiment.id}`);
+      navigate(ROUTES.EXPERIMENT_DETAIL.replace(':id', experiment.id));
     } catch (err) {
       showError(err.message || 'Ошибка создания эксперимента');
     } finally {

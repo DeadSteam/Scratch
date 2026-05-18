@@ -20,6 +20,7 @@ export function AdviceManagement() {
   const [isCreating, setIsCreating] = useState(false);
   const [form, setForm] = useState({ cause_id: '', description: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   const { success, error: showError } = useNotification();
 
@@ -105,11 +106,13 @@ export function AdviceManagement() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Удалить рекомендацию?')) return;
+  const handleDelete = (id) => setDeleteConfirm(id);
+
+  const handleConfirmDelete = async () => {
     try {
-      await adviceService.delete(id);
+      await adviceService.delete(deleteConfirm);
       success('Рекомендация удалена');
+      setDeleteConfirm(null);
       fetchItems();
     } catch (err) {
       showError(err.message || 'Ошибка удаления');
@@ -148,6 +151,16 @@ export function AdviceManagement() {
             </tr>
           </thead>
           <tbody>
+            {items.length === 0 && (
+              <tr className={styles.emptyRow}>
+                <td colSpan={3}>
+                  <div className={styles.emptyStateCell}>
+                    <p className={styles.emptyTitle}>Нет рекомендаций</p>
+                    <p className={styles.emptyDesc}>Нажмите «Добавить рекомендацию» чтобы создать запись</p>
+                  </div>
+                </td>
+              </tr>
+            )}
             {items.map((row) => (
               <tr key={row.id}>
                 <td className={styles.primaryCell}>{getCauseLabel(row.cause_id)}</td>
@@ -163,6 +176,22 @@ export function AdviceManagement() {
           </tbody>
         </table>
       </div>
+
+      {/* Delete confirmation */}
+      <Modal
+        isOpen={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        title="Удалить рекомендацию?"
+        size="sm"
+      >
+        <div className={styles.modalContent}>
+          <p>Это действие нельзя отменить.</p>
+          <div className={styles.modalActions}>
+            <Button variant="secondary" onClick={() => setDeleteConfirm(null)}>Отмена</Button>
+            <Button variant="danger" onClick={handleConfirmDelete}>Удалить</Button>
+          </div>
+        </div>
+      </Modal>
 
       <Modal
         isOpen={isModalOpen}
@@ -182,7 +211,7 @@ export function AdviceManagement() {
             label="Текст рекомендации"
             value={form.description}
             onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-            maxLength={255}
+            maxLength={50}
           />
           <div className={styles.modalActions}>
             <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Отмена</Button>

@@ -33,7 +33,7 @@ export function ScratchChart({ data, title = 'Индекс царапины' }) 
     
     // Calculate max value for Y-axis (add 10% padding, but cap at 1.0)
     const maxIndex = Math.max(...mapped.map((item) => item.scratchIndex));
-    const maxValue = Math.min(maxIndex * 1.1, 1);
+    const maxValue = Math.min(Math.max(maxIndex * 1.1, 0.1), 1);
     
     return { chartData: mapped, maxValue };
   }, [data]);
@@ -47,7 +47,7 @@ export function ScratchChart({ data, title = 'Индекс царапины' }) 
             {data.passes === 0 ? 'Эталон' : `Проходов: ${data.passes}`}
           </p>
           <p className={styles.tooltipLabel}>
-            Индекс: {data.scratchIndex.toFixed(4)}
+            Индекс: {data.scratchIndex != null ? data.scratchIndex.toFixed(4) : '—'}
           </p>
         </div>
       );

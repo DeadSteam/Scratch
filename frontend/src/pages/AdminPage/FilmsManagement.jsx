@@ -19,6 +19,7 @@ export function FilmsManagement() {
   const [isCreating, setIsCreating] = useState(false);
   const [form, setForm] = useState({ name: '', coating_name: '', coating_thickness: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   const { success, error: showError } = useNotification();
 
@@ -86,12 +87,13 @@ export function FilmsManagement() {
     }
   };
 
-  const handleDelete = async (filmId) => {
-    if (!window.confirm('Удалить тип пленки?')) return;
-    
+  const handleDelete = (filmId) => setDeleteConfirm(filmId);
+
+  const handleConfirmDelete = async () => {
     try {
-      await filmService.delete(filmId);
+      await filmService.delete(deleteConfirm);
       success('Тип пленки удален');
+      setDeleteConfirm(null);
       fetchFilms();
     } catch (err) {
       showError(err.message || 'Ошибка удаления');
@@ -159,7 +161,23 @@ export function FilmsManagement() {
         </table>
       </div>
 
-      {/* Modal */}
+      {/* Delete confirmation */}
+      <Modal
+        isOpen={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        title="Удалить тип плёнки?"
+        size="sm"
+      >
+        <div className={styles.modalContent}>
+          <p>Это действие нельзя отменить.</p>
+          <div className={styles.modalActions}>
+            <Button variant="secondary" onClick={() => setDeleteConfirm(null)}>Отмена</Button>
+            <Button variant="danger" onClick={handleConfirmDelete}>Удалить</Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Edit / Create Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

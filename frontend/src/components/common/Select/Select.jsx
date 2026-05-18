@@ -6,6 +6,7 @@
 import { forwardRef } from 'react';
 import PropTypes from 'prop-types';
 import { CaretDown } from '@phosphor-icons/react';
+import { useGeneratedId } from '@hooks/useGeneratedId';
 import styles from './Select.module.css';
 
 export const Select = forwardRef(function Select({
@@ -21,7 +22,7 @@ export const Select = forwardRef(function Select({
   id,
   ...props
 }, ref) {
-  const selectId = id || `select-${Math.random().toString(36).substr(2, 9)}`;
+  const selectId = useGeneratedId(id);
 
   const wrapperClasses = [
     styles.wrapper,
@@ -46,6 +47,7 @@ export const Select = forwardRef(function Select({
           className={styles.select}
           disabled={disabled}
           aria-invalid={!!error}
+          aria-describedby={error ? `${selectId}-error` : hint ? `${selectId}-hint` : undefined}
           {...props}
         >
           <option value="" disabled>
@@ -62,12 +64,12 @@ export const Select = forwardRef(function Select({
         </span>
       </div>
       {error && (
-        <span className={styles.error} role="alert">
+        <span id={`${selectId}-error`} className={styles.error} role="alert">
           {error}
         </span>
       )}
       {hint && !error && (
-        <span className={styles.hint}>
+        <span id={`${selectId}-hint`} className={styles.hint}>
           {hint}
         </span>
       )}

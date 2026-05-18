@@ -18,6 +18,7 @@ export function ConfigsManagement() {
   const [isCreating, setIsCreating] = useState(false);
   const [form, setForm] = useState({ name: '', head_type: '', description: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   const { success, error: showError } = useNotification();
 
@@ -85,12 +86,13 @@ export function ConfigsManagement() {
     }
   };
 
-  const handleDelete = async (configId) => {
-    if (!window.confirm('Удалить конфигурацию?')) return;
-    
+  const handleDelete = (configId) => setDeleteConfirm(configId);
+
+  const handleConfirmDelete = async () => {
     try {
-      await configService.delete(configId);
+      await configService.delete(deleteConfirm);
       success('Конфигурация удалена');
+      setDeleteConfirm(null);
       fetchConfigs();
     } catch (err) {
       showError(err.message || 'Ошибка удаления');
@@ -158,7 +160,23 @@ export function ConfigsManagement() {
         </table>
       </div>
 
-      {/* Modal */}
+      {/* Delete confirmation */}
+      <Modal
+        isOpen={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        title="Удалить конфигурацию?"
+        size="sm"
+      >
+        <div className={styles.modalContent}>
+          <p>Это действие нельзя отменить.</p>
+          <div className={styles.modalActions}>
+            <Button variant="secondary" onClick={() => setDeleteConfirm(null)}>Отмена</Button>
+            <Button variant="danger" onClick={handleConfirmDelete}>Удалить</Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Edit / Create Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

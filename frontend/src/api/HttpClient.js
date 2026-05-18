@@ -3,7 +3,7 @@
  * Single Responsibility: Handle HTTP requests
  */
 
-import { API_BASE_URL, STORAGE_KEYS } from '@utils/constants';
+import { API_BASE_URL, STORAGE_KEYS, TIMINGS } from '@utils/constants';
 
 class HttpClient {
   constructor(baseURL = API_BASE_URL) {
@@ -101,21 +101,23 @@ class HttpClient {
           errorMessage = data.detail;
         }
       } else if (response.status === 401 && retryFn && !this._isRefreshing) {
-        // Try to refresh the token once, then retry
         this._isRefreshing = true;
-        const refreshed = await this.tryRefreshToken();
-        this._isRefreshing = false;
+        let refreshed = false;
+        try {
+          refreshed = await this.tryRefreshToken();
+        } finally {
+          this._isRefreshing = false;
+        }
         if (refreshed) {
           return retryFn();
         }
-        // Refresh failed — log out
         errorMessage = 'Сессия истекла. Пожалуйста, войдите снова.';
         this.clearSession();
-        setTimeout(() => { window.location.href = '/login'; }, 1500);
+        setTimeout(() => { window.location.href = '/login'; }, TIMINGS.REDIRECT_DELAY_MS);
       } else if (response.status === 401) {
         errorMessage = 'Сессия истекла. Пожалуйста, войдите снова.';
         this.clearSession();
-        setTimeout(() => { window.location.href = '/login'; }, 1500);
+        setTimeout(() => { window.location.href = '/login'; }, TIMINGS.REDIRECT_DELAY_MS);
       } else if (response.status === 502 || response.status === 503 || response.status === 504) {
         errorMessage = 'Сервис временно недоступен. Повторное подключение...';
       } else if (response.status === 429) {

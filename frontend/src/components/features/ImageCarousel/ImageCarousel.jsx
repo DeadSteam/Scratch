@@ -5,7 +5,6 @@
 
 import { useState, useMemo, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { API_BASE_URL } from '@utils/constants';
 import {
   Images,
   Trash,
@@ -17,6 +16,7 @@ import {
 import { ph } from '@components/icons/phosphor';
 import { Modal } from '@components/common/Modal/Modal';
 import { Button } from '@components/common/Button/Button';
+import { imageService } from '@api';
 import styles from './ImageCarousel.module.css';
 
 const MAX_VISIBLE_THUMBNAILS = 6;
@@ -139,11 +139,7 @@ export function ImageCarousel({ images = [], onImageClick, onImageDelete, onAddI
     );
   }
 
-  // Create image URL from API endpoint
-  const getImageUrl = (imageId) => {
-    if (!imageId) return '';
-    return `${API_BASE_URL}/images/${imageId}/data`;
-  };
+  const getImageUrl = (imageId) => imageId ? imageService.getImageDataUrl(imageId) : '';
 
   return (
     <div 

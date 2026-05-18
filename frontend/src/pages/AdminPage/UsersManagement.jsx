@@ -17,6 +17,8 @@ export function UsersManagement() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editForm, setEditForm] = useState({ email: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [deactivateConfirm, setDeactivateConfirm] = useState(null);
 
   const { success, error: showError } = useNotification();
 
@@ -58,11 +60,13 @@ export function UsersManagement() {
     }
   };
 
-  const handleDeactivate = async (userId) => {
-    if (!window.confirm('Деактивировать пользователя?')) return;
+  const handleDeactivate = (userId) => setDeactivateConfirm(userId);
+
+  const handleConfirmDeactivate = async () => {
     try {
-      await userService.deactivate(userId);
+      await userService.deactivate(deactivateConfirm);
       success('Пользователь деактивирован');
+      setDeactivateConfirm(null);
       fetchUsers();
     } catch (err) {
       showError(err.message || 'Ошибка деактивации');
@@ -79,11 +83,13 @@ export function UsersManagement() {
     }
   };
 
-  const handleDelete = async (user) => {
-    if (!window.confirm(`Удалить пользователя «${user.username}»? Это действие необратимо.`)) return;
+  const handleDelete = (user) => setDeleteConfirm(user);
+
+  const handleConfirmDelete = async () => {
     try {
-      await userService.delete(user.id);
+      await userService.delete(deleteConfirm.id);
       success('Пользователь удалён');
+      setDeleteConfirm(null);
       fetchUsers();
     } catch (err) {
       showError(err.message || 'Ошибка удаления');
@@ -177,6 +183,38 @@ export function UsersManagement() {
           </tbody>
         </table>
       </div>
+
+      {/* Deactivate confirmation */}
+      <Modal
+        isOpen={!!deactivateConfirm}
+        onClose={() => setDeactivateConfirm(null)}
+        title="Деактивировать пользователя?"
+        size="sm"
+      >
+        <div className={styles.modalContent}>
+          <p>Пользователь потеряет доступ к системе. Это можно отменить.</p>
+          <div className={styles.modalActions}>
+            <Button variant="secondary" onClick={() => setDeactivateConfirm(null)}>Отмена</Button>
+            <Button variant="danger" onClick={handleConfirmDeactivate}>Деактивировать</Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete confirmation */}
+      <Modal
+        isOpen={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        title={`Удалить пользователя «${deleteConfirm?.username || deleteConfirm?.email || ''}»?`}
+        size="sm"
+      >
+        <div className={styles.modalContent}>
+          <p>Это действие необратимо.</p>
+          <div className={styles.modalActions}>
+            <Button variant="secondary" onClick={() => setDeleteConfirm(null)}>Отмена</Button>
+            <Button variant="danger" onClick={handleConfirmDelete}>Удалить</Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Edit Modal */}
       <Modal

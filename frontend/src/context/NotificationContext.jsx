@@ -1,110 +1,75 @@
-/**
- * Notification Context Provider
- * Manages toast notifications across the application
- */
-
-import { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import { createContext, useContext, useState, useCallback, useRef } from 'react';
 import { TOAST_DURATION } from '@utils/constants';
 
 const NotificationContext = createContext(null);
 
-let notificationId = 0;
-
 export function NotificationProvider({ children }) {
   const [notifications, setNotifications] = useState([]);
+  const idRef = useRef(0);
+  const timersRef = useRef({});
 
-  // Remove notification
   const removeNotification = useCallback((id) => {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
+    clearTimeout(timersRef.current[id]);
+    delete timersRef.current[id];
   }, []);
 
-  // Add notification
   const addNotification = useCallback((notification) => {
-    const id = ++notificationId;
-    const newNotification = {
-      id,
+    const id = ++idRef.current;
+    const entry = {
       type: 'info',
       duration: TOAST_DURATION.MEDIUM,
       ...notification,
+      id,
     };
 
-    setNotifications((prev) => [...prev, newNotification]);
+    setNotifications((prev) => [...prev, entry]);
 
-    // Auto-remove after duration
-    if (newNotification.duration > 0) {
-      setTimeout(() => {
-        removeNotification(id);
-      }, newNotification.duration);
+    if (entry.duration > 0) {
+      timersRef.current[id] = setTimeout(() => removeNotification(id), entry.duration);
     }
 
     return id;
   }, [removeNotification]);
 
-  // Clear all notifications
   const clearNotifications = useCallback(() => {
+    Object.values(timersRef.current).forEach(clearTimeout);
+    timersRef.current = {};
     setNotifications([]);
   }, []);
 
-  // Convenience methods
-  const success = useCallback((message, options = {}) => {
-    return addNotification({ type: 'success', message, ...options });
-  }, [addNotification]);
+  const success = useCallback((message, opts) =>
+    addNotification({ type: 'success', message, ...opts }), [addNotification]);
 
-  const error = useCallback((message, options = {}) => {
-    return addNotification({ 
-      type: 'error', 
-      message, 
-      duration: TOAST_DURATION.LONG,
-      ...options,
-    });
-  }, [addNotification]);
+  const error = useCallback((message, opts) =>
+    addNotification({ type: 'error', message, duration: TOAST_DURATION.LONG, ...opts }), [addNotification]);
 
-  const warning = useCallback((message, options = {}) => {
-    return addNotification({ type: 'warning', message, ...options });
-  }, [addNotification]);
+  const warning = useCallback((message, opts) =>
+    addNotification({ type: 'warning', message, ...opts }), [addNotification]);
 
-  const info = useCallback((message, options = {}) => {
-    return addNotification({ type: 'info', message, ...options });
-  }, [addNotification]);
-
-  // Memoized context value
-  const value = useMemo(() => ({
-    notifications,
-    addNotification,
-    removeNotification,
-    clearNotifications,
-    success,
-    error,
-    warning,
-    info,
-  }), [
-    notifications,
-    addNotification,
-    removeNotification,
-    clearNotifications,
-    success,
-    error,
-    warning,
-    info,
-  ]);
+  const info = useCallback((message, opts) =>
+    addNotification({ type: 'info', message, ...opts }), [addNotification]);
 
   return (
-    <NotificationContext.Provider value={value}>
+    <NotificationContext.Provider value={{
+      notifications,
+      addNotification,
+      removeNotification,
+      clearNotifications,
+      success,
+      error,
+      warning,
+      info,
+    }}>
       {children}
     </NotificationContext.Provider>
   );
 }
 
-// Custom hook to use notification context
 export function useNotification() {
   const context = useContext(NotificationContext);
-  
-  if (!context) {
-    throw new Error('useNotification must be used within a NotificationProvider');
-  }
-  
+  if (!context) throw new Error('useNotification must be used within a NotificationProvider');
   return context;
 }
 
 export default NotificationContext;
-

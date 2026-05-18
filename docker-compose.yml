@@ -199,7 +199,7 @@ services:
     restart: unless-stopped
     ports:
       - "5672:5672"
-      - "15672:15672"   # Management UI
+      - "15672:15672"   # Management UI (localhost only)
     environment:
       - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER:-guest}
       - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD:-guest}

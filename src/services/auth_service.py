@@ -89,10 +89,8 @@ class AuthService:
             raise AuthenticationError("Invalid user ID in token") from exc
 
         user = await self._user_repo.get_by_id(user_id, session)
-        if not user:
-            raise AuthenticationError("User not found")
-        if not user.is_active:
-            raise AuthenticationError("User account is inactive")
+        if not user or not user.is_active:
+            raise AuthenticationError("Invalid refresh token")
 
         access_token = create_access_token(
             {"sub": str(user.id), "username": user.username}

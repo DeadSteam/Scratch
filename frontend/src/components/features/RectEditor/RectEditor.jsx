@@ -23,7 +23,10 @@ export function RectEditor({ imageUrl, rect, onRectChange }) {
   }, [rect]);
 
   const handleImageLoad = (e) => {
-    setImageSize({ width: e.target.naturalWidth, height: e.target.naturalHeight });
+    const { naturalWidth, naturalHeight } = e.target;
+    if (naturalWidth > 0 && naturalHeight > 0) {
+      setImageSize({ width: naturalWidth, height: naturalHeight });
+    }
   };
 
   const getMousePos = useCallback((e) => {

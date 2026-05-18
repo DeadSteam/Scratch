@@ -4,38 +4,36 @@
 
 import { SCRATCH_INDEX_THRESHOLDS } from './constants';
 
+const EMPTY = '-';
+
 /**
- * Format date to Russian locale string
+ * Wraps a formatter so it returns EMPTY when value is null/undefined/falsy.
+ * nullish=true checks only null/undefined (allows 0 through).
  */
-export const formatDate = (dateString, options = {}) => {
-  if (!dateString) return '-';
-  
-  const defaultOptions = {
+const withDefault = (fn, nullish = false) =>
+  (value, ...args) => {
+    if (nullish ? value == null : !value) return EMPTY;
+    return fn(value, ...args);
+  };
+
+export const formatDate = withDefault((dateString, options = {}) =>
+  new Date(dateString).toLocaleDateString('ru-RU', {
     day: '2-digit',
     month: 'long',
     year: 'numeric',
     ...options,
-  };
-  
-  return new Date(dateString).toLocaleDateString('ru-RU', defaultOptions);
-};
+  })
+);
 
-/**
- * Format scratch index as raw value 0..1
- */
-export const formatScratchIndex = (value, decimals = 4) => {
-  if (value === null || value === undefined) return '-';
-  return value.toFixed(decimals);
-};
+export const formatScratchIndex = withDefault(
+  (value, decimals = 4) => value.toFixed(decimals),
+  true,
+);
 
-/**
- * Format delta between latest and reference scratch indices
- */
-export const formatScratchDelta = (value, decimals = 4) => {
-  if (value === null || value === undefined) return '-';
+export const formatScratchDelta = withDefault((value, decimals = 4) => {
   const sign = value > 0 ? '+' : '';
   return `${sign}${value.toFixed(decimals)}`;
-};
+}, true);
 
 /**
  * Format scratch index with quality label
@@ -151,21 +149,9 @@ export const getKnowledgeQualityFromDelta = (delta, situations) => {
   };
 };
 
-/**
- * Format weight (grams)
- */
-export const formatWeight = (grams) => {
-  if (!grams) return '-';
-  return `${grams} г`;
-};
+export const formatWeight = withDefault((grams) => `${grams} г`);
 
-/**
- * Format coating thickness (micrometers)
- */
-export const formatThickness = (micrometers) => {
-  if (!micrometers) return '-';
-  return `${micrometers} мкм`;
-};
+export const formatThickness = withDefault((micrometers) => `${micrometers} мкм`);
 
 
 

@@ -5,6 +5,7 @@
 
 import { forwardRef } from 'react';
 import PropTypes from 'prop-types';
+import { useGeneratedId } from '@hooks/useGeneratedId';
 import styles from './Input.module.css';
 
 export const Input = forwardRef(function Input({
@@ -20,7 +21,7 @@ export const Input = forwardRef(function Input({
   id,
   ...props
 }, ref) {
-  const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
+  const inputId = useGeneratedId(id);
 
   const wrapperClasses = [
     styles.wrapper,

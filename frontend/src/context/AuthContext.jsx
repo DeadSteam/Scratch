@@ -5,6 +5,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { authService } from '@api/AuthService';
+import { ROLES } from '@utils/constants';
 
 const AuthContext = createContext(null);
 
@@ -79,7 +80,7 @@ export function AuthProvider({ children }) {
   // Check if user is admin
   const isAdmin = useMemo(() => {
     if (!user || !user.roles) return false;
-    return user.roles.some(role => role.name === 'admin');
+    return user.roles.some(role => role.name === ROLES.ADMIN);
   }, [user]);
 
   // Memoized context value

@@ -1,16 +1,24 @@
 """Experiment image endpoints."""
 
+import io
 from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, File, HTTPException, Query, Request, UploadFile, status
 from fastapi.responses import Response as FastAPIResponse
+from PIL import Image as PilImage, UnidentifiedImageError
 
 from ..core.config import settings
 from ..core.dependencies import ExperimentImageSvc, MainDBSession
 from ..core.rate_limit import limiter
 from ..schemas.image import ExperimentImageCreate, ExperimentImageRead
 from .responses import PaginatedResponse, Response
+
+_PIL_FORMAT_TO_MIME = {
+    "JPEG": "image/jpeg",
+    "PNG": "image/png",
+    "WEBP": "image/webp",
+}
 
 router = APIRouter(prefix="/images", tags=["Experiment Images"])
 
@@ -111,25 +119,27 @@ async def upload_image(
     file: UploadFile = File(..., description="Image file"),
 ):
     """Upload a new experiment image."""
-    # 1. Validate file type
-    if file.content_type not in settings.ALLOWED_IMAGE_TYPES:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                f"Invalid file type: {file.content_type}. "
-                f"Allowed: {settings.ALLOWED_IMAGE_TYPES}"
-            ),
-        )
+    # 1. Read content first (needed for size + magic bytes checks)
+    content = await file.read()
 
     # 2. Validate file size
-    content = await file.read()
     if len(content) > settings.MAX_FILE_SIZE:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail=(
-                f"File too large: {len(content)} bytes. "
-                f"Max allowed: {settings.MAX_FILE_SIZE}"
-            ),
+            detail=f"File too large. Max allowed: {settings.MAX_FILE_SIZE} bytes",
+        )
+
+    # 3. Validate magic bytes via Pillow (prevents spoofed Content-Type)
+    try:
+        img = PilImage.open(io.BytesIO(content))
+        real_mime = _PIL_FORMAT_TO_MIME.get(img.format)
+    except UnidentifiedImageError:
+        real_mime = None
+
+    if not real_mime or real_mime not in settings.ALLOWED_IMAGE_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid image file. Allowed formats: JPEG, PNG, WebP",
         )
 
     # Reset file pointer if we need to read it again,

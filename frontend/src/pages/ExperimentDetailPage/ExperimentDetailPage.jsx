@@ -3,10 +3,12 @@
  * View experiment details, images, and analysis results
  */
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useNotification } from '@context/NotificationContext';
-import { experimentService, imageService, analysisService, situationService } from '@api';
+import { experimentService, imageService, analysisService } from '@api';
+import { useExperimentData } from '@hooks/useExperimentData';
+import { useHistogramData } from '@hooks/useHistogramData';
 import { Layout } from '@components/layout';
 import { Button, Spinner, Modal, Input } from '@components/common';
 import { ImageCarousel, ScratchChart, HistogramChart, ROISelector } from '@components/features';
@@ -20,7 +22,7 @@ import {
   getReferenceScratchIndex,
 } from '@utils/formatters';
 import { validateImageFile } from '@utils/validators';
-import { ROUTES, IMAGE_CONFIG, API_BASE_URL } from '@utils/constants';
+import { ROUTES, IMAGE_CONFIG } from '@utils/constants';
 import {
   ArrowLeft,
   Check,
@@ -42,16 +44,19 @@ export function ExperimentDetailPage() {
   const navigate = useNavigate();
   const { success, error: showError } = useNotification();
 
-  const [experiment, setExperiment] = useState(null);
-  const [images, setImages] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const {
+    experiment, setExperiment,
+    images, setImages,
+    isLoading,
+    knowledgeSituations,
+    knowledgeModalAutoOpenRef,
+    fetchExperiment,
+  } = useExperimentData(id);
+
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [chartMode, setChartMode] = useState('index'); // 'index' | 'histogram'
-  const [histogramData, setHistogramData] = useState([]);
-  const [histogramSeries, setHistogramSeries] = useState([]);
-  const [isHistogramLoading, setIsHistogramLoading] = useState(false);
-  
-  // Add image modal state
+  const [chartMode, setChartMode] = useState('index');
+  const { histogramData, histogramSeries, isHistogramLoading } = useHistogramData(images, chartMode);
+
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newImageFile, setNewImageFile] = useState(null);
   const [newImagePasses, setNewImagePasses] = useState('');
@@ -60,130 +65,25 @@ export function ExperimentDetailPage() {
   const [editedName, setEditedName] = useState('');
   const [isUpdatingName, setIsUpdatingName] = useState(false);
   const [isKnowledgeModalOpen, setIsKnowledgeModalOpen] = useState(false);
-  const knowledgeModalAutoOpenRef = useRef(false);
 
-  // ROI modal (analysis area)
   const [isRoiModalOpen, setIsRoiModalOpen] = useState(false);
-  const [roiCoords, setRoiCoords] = useState(null); // [x, y, w, h] | null
+  const [roiCoords, setRoiCoords] = useState(null);
   const [isSavingRoi, setIsSavingRoi] = useState(false);
-  /** null — шкала ещё не загружена; [] — загружена, но пусто */
-  const [knowledgeSituations, setKnowledgeSituations] = useState(null);
 
   const latestImage = images.length > 0
     ? [...images].sort((a, b) => (b.passes ?? 0) - (a.passes ?? 0))[0]
     : null;
-  const latestImageUrl = latestImage ? `${API_BASE_URL}/images/${latestImage.id}/data` : null;
+  const latestImageUrl = latestImage ? imageService.getImageDataUrl(latestImage.id) : null;
 
-  // Fetch experiment data.  `silent` skips the full-page spinner so the
-  // UI doesn't flash when refreshing after add/delete/recalculate.
-  const fetchExperiment = useCallback(async (silent = false) => {
-    if (!silent) setIsLoading(true);
-    try {
-      const [expData, imagesResponse] = await Promise.all([
-        experimentService.getById(id),
-        imageService.getByExperimentId(id),
-      ]);
-      setExperiment(expData);
-      setImages(imagesResponse.data || []);
-      if (knowledgeModalAutoOpenRef.current) {
-        setIsKnowledgeModalOpen(true);
-        knowledgeModalAutoOpenRef.current = false;
-      }
-    } catch (err) {
-      showError('Ошибка загрузки эксперимента');
-      navigate(ROUTES.EXPERIMENTS);
-    } finally {
-      if (!silent) setIsLoading(false);
+  const wrappedFetchExperiment = useCallback(async (silent = false) => {
+    const { shouldOpenKnowledgeModal } = await fetchExperiment(silent);
+    if (shouldOpenKnowledgeModal) {
+      setIsKnowledgeModalOpen(true);
+      knowledgeModalAutoOpenRef.current = false;
     }
-  }, [id, navigate, showError]);
+  }, [fetchExperiment, knowledgeModalAutoOpenRef]);
 
-  useEffect(() => {
-    fetchExperiment();
-  }, [fetchExperiment]);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await situationService.getAll({ skip: 0, limit: 500 });
-        const items = res?.data;
-        if (!cancelled) {
-          setKnowledgeSituations(Array.isArray(items) ? items : []);
-        }
-      } catch {
-        if (!cancelled) setKnowledgeSituations([]);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const loadAllHistograms = useCallback(
-    async () => {
-      if (!images || images.length === 0) {
-        setHistogramData([]);
-        setHistogramSeries([]);
-        return;
-      }
-
-      setIsHistogramLoading(true);
-      try {
-        const sortedImages = [...images].sort((a, b) => a.passes - b.passes);
-        const brightnessMap = new Map();
-        const seriesMeta = [];
-
-        // Загружаем гистограммы для всех изображений и собираем общие данные
-        // Один brightness (0-255) — несколько линий (по одному на изображение)
-        // Y = count_q / total_pixels для каждого изображения отдельно
-        for (let index = 0; index < sortedImages.length; index += 1) {
-          const image = sortedImages[index];
-          const seriesKey = `img_${index}`;
-          const label = image.passes === 0 ? 'Эталон' : `${image.passes} проходов`;
-          seriesMeta.push({ key: seriesKey, label });
-
-          const response = await analysisService.getImageHistogram(image.id);
-          const payload = response?.data || response;
-          const histogram = payload.histogram || {};
-          const totalPixels = payload.statistics?.total_pixels || 1;
-
-          for (let q = 0; q <= 255; q += 1) {
-            const count = histogram[q] ?? histogram[String(q)] ?? 0;
-            const ratio = totalPixels > 0 ? count / totalPixels : 0;
-            let point = brightnessMap.get(q);
-            if (!point) {
-              point = { brightness: q };
-              brightnessMap.set(q, point);
-            }
-            point[seriesKey] = ratio;
-          }
-        }
-
-        const combinedData = Array.from(brightnessMap.values()).sort(
-          (a, b) => a.brightness - b.brightness,
-        );
-
-        setHistogramData(combinedData);
-        setHistogramSeries(seriesMeta);
-      } catch (err) {
-        showError(err.message || 'Ошибка загрузки гистограмм');
-      } finally {
-        setIsHistogramLoading(false);
-      }
-    },
-    [images, showError],
-  );
-
-  const handleChartModeChange = (mode) => {
-    setChartMode(mode);
-  };
-
-  // При переключении в режим гистограммы загружаем все гистограммы
-  useEffect(() => {
-    if (chartMode === 'histogram') {
-      loadAllHistograms();
-    }
-  }, [chartMode, loadAllHistograms]);
+  const handleChartModeChange = (mode) => setChartMode(mode);
 
   // Handle image upload
   const handleImageChange = (e) => {
@@ -255,7 +155,7 @@ export function ExperimentDetailPage() {
       try {
         knowledgeModalAutoOpenRef.current = true;
         await analysisService.recalculateExperiment(id);
-        await fetchExperiment(true);
+        await wrappedFetchExperiment(true);
         success('Область обновлена, пересчёт выполнен');
       } finally {
         setIsAnalyzing(false);
@@ -280,7 +180,7 @@ export function ExperimentDetailPage() {
       // Recalculate experiment so scratch_results stays consistent
       try {
         await analysisService.recalculateExperiment(id);
-        await fetchExperiment(true);
+        await wrappedFetchExperiment(true);
       } catch {
         // Recalculation is best-effort after delete
       }
@@ -317,16 +217,15 @@ export function ExperimentDetailPage() {
           knowledgeModalAutoOpenRef.current = true;
           await analysisService.analyzeSingleImage(uploadedImage.id);
           success('Анализ нового изображения выполнен');
-        } catch (err) {
+        } catch {
           knowledgeModalAutoOpenRef.current = false;
-          console.error('Ошибка автоматического анализа:', err);
         } finally {
           setIsAnalyzing(false);
         }
       }
 
       // Single silent refresh after everything is done
-      await fetchExperiment(true);
+      await wrappedFetchExperiment(true);
     } catch (err) {
       showError(err.message || 'Ошибка загрузки изображения');
     } finally {
@@ -346,7 +245,7 @@ export function ExperimentDetailPage() {
       knowledgeModalAutoOpenRef.current = true;
       await analysisService.recalculateExperiment(id);
       success('Пересчёт завершён');
-      await fetchExperiment(true);
+      await wrappedFetchExperiment(true);
     } catch (err) {
       knowledgeModalAutoOpenRef.current = false;
       showError(err.message || 'Ошибка пересчёта');

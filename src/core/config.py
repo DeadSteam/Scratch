@@ -42,6 +42,16 @@ class Settings(BaseSettings):
     # Security
     SECRET_KEY: str = Field(..., description="Secret key for JWT tokens")
     ALGORITHM: str = Field(default="HS256", description="JWT algorithm")
+
+    @field_validator("SECRET_KEY")
+    @classmethod
+    def validate_secret_key(cls, v: str) -> str:
+        if v.startswith("generate-") or len(v) < 32:
+            raise ValueError(
+                "SECRET_KEY must be a cryptographically random string of at least 32 characters. "
+                "Generate one with: python -c \"import secrets; print(secrets.token_urlsafe(32))\""
+            )
+        return v
     ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(
         default=30, description="Access token expiration in minutes"
     )

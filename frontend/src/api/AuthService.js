@@ -4,7 +4,7 @@
  */
 
 import { httpClient } from './HttpClient';
-import { STORAGE_KEYS } from '@utils/constants';
+import { STORAGE_KEYS, ROLES } from '@utils/constants';
 
 class AuthService {
   /**
@@ -57,7 +57,13 @@ class AuthService {
    */
   getStoredUser() {
     const userData = sessionStorage.getItem(STORAGE_KEYS.USER);
-    return userData ? JSON.parse(userData) : null;
+    if (!userData) return null;
+    try {
+      return JSON.parse(userData);
+    } catch {
+      sessionStorage.removeItem(STORAGE_KEYS.USER);
+      return null;
+    }
   }
 
   /**
@@ -73,7 +79,7 @@ class AuthService {
   isAdmin() {
     const user = this.getStoredUser();
     if (!user || !user.roles) return false;
-    return user.roles.some(role => role.name === 'admin');
+    return user.roles.some(role => role.name === ROLES.ADMIN);
   }
 }
 

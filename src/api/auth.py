@@ -38,7 +38,7 @@ class TokenResponse(BaseModel):
     summary="Register new user",
     description="Create a new user account with username, email, and password",
 )
-@limiter.limit("5/minute")
+@limiter.limit("3/minute")
 async def register(
     request: Request, user_data: UserCreate, user_service: UserSvc, db: UsersDBSession
 ):
@@ -53,7 +53,7 @@ async def register(
     summary="Login user",
     description="Authenticate user and receive JWT tokens",
 )
-@limiter.limit("10/minute")
+@limiter.limit("5/minute")
 async def login(
     request: Request,
     credentials: LoginRequest,

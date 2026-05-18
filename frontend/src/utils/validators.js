@@ -8,8 +8,9 @@ import { IMAGE_CONFIG } from './constants';
  * Validate email format
  */
 export const isValidEmail = (email) => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
+  if (!email || typeof email !== 'string') return false;
+  const emailRegex = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+  return emailRegex.test(email.trim());
 };
 
 /**
@@ -17,7 +18,8 @@ export const isValidEmail = (email) => {
  */
 export const validatePassword = (password) => {
   const errors = [];
-  
+  if (!password || typeof password !== 'string') return { isValid: false, errors: ['Введите пароль'] };
+
   if (password.length < 8) {
     errors.push('Минимум 8 символов');
   }
@@ -42,7 +44,8 @@ export const validatePassword = (password) => {
  */
 export const validateUsername = (username) => {
   const errors = [];
-  
+  if (!username || typeof username !== 'string') return { isValid: false, errors: ['Введите имя пользователя'] };
+
   if (username.length < 3) {
     errors.push('Минимум 3 символа');
   }

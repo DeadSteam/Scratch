@@ -37,6 +37,7 @@ export function SituationsManagement() {
     description: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   const { success, error: showError } = useNotification();
 
@@ -122,11 +123,13 @@ export function SituationsManagement() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Удалить ситуацию? Связанные причины и рекомендации тоже будут удалены.')) return;
+  const handleDelete = (id) => setDeleteConfirm(id);
+
+  const handleConfirmDelete = async () => {
     try {
-      await situationService.delete(id);
+      await situationService.delete(deleteConfirm);
       success('Ситуация удалена');
+      setDeleteConfirm(null);
       fetchItems();
     } catch (err) {
       showError(err.message || 'Ошибка удаления');
@@ -194,6 +197,22 @@ export function SituationsManagement() {
           </tbody>
         </table>
       </div>
+
+      {/* Delete confirmation */}
+      <Modal
+        isOpen={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        title="Удалить ситуацию?"
+        size="sm"
+      >
+        <div className={styles.modalContent}>
+          <p>Связанные причины и рекомендации тоже будут удалены. Это действие нельзя отменить.</p>
+          <div className={styles.modalActions}>
+            <Button variant="secondary" onClick={() => setDeleteConfirm(null)}>Отмена</Button>
+            <Button variant="danger" onClick={handleConfirmDelete}>Удалить</Button>
+          </div>
+        </div>
+      </Modal>
 
       <Modal
         isOpen={isModalOpen}

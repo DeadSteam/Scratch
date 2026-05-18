@@ -20,6 +20,7 @@ export function CausesManagement() {
   const [isCreating, setIsCreating] = useState(false);
   const [form, setForm] = useState({ situation_id: '', description: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   const { success, error: showError } = useNotification();
 
@@ -101,11 +102,13 @@ export function CausesManagement() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Удалить причину? Связанные рекомендации тоже будут удалены.')) return;
+  const handleDelete = (id) => setDeleteConfirm(id);
+
+  const handleConfirmDelete = async () => {
     try {
-      await causeService.delete(id);
+      await causeService.delete(deleteConfirm);
       success('Причина удалена');
+      setDeleteConfirm(null);
       fetchItems();
     } catch (err) {
       showError(err.message || 'Ошибка удаления');
@@ -160,6 +163,22 @@ export function CausesManagement() {
           </tbody>
         </table>
       </div>
+
+      {/* Delete confirmation */}
+      <Modal
+        isOpen={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        title="Удалить причину?"
+        size="sm"
+      >
+        <div className={styles.modalContent}>
+          <p>Связанные рекомендации тоже будут удалены. Это действие нельзя отменить.</p>
+          <div className={styles.modalActions}>
+            <Button variant="secondary" onClick={() => setDeleteConfirm(null)}>Отмена</Button>
+            <Button variant="danger" onClick={handleConfirmDelete}>Удалить</Button>
+          </div>
+        </div>
+      </Modal>
 
       <Modal
         isOpen={isModalOpen}

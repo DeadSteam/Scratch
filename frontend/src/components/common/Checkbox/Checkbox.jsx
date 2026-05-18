@@ -5,6 +5,7 @@
 import { forwardRef } from 'react';
 import PropTypes from 'prop-types';
 import { Check } from '@phosphor-icons/react';
+import { useGeneratedId } from '@hooks/useGeneratedId';
 import styles from './Checkbox.module.css';
 
 export const Checkbox = forwardRef(function Checkbox({
@@ -14,7 +15,7 @@ export const Checkbox = forwardRef(function Checkbox({
   id,
   ...props
 }, ref) {
-  const checkboxId = id || `checkbox-${Math.random().toString(36).substr(2, 9)}`;
+  const checkboxId = useGeneratedId(id);
 
   return (
     <label 
