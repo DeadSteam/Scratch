@@ -3,6 +3,10 @@ set -e
 
 echo "=== Scratch App Entrypoint ==="
 
+# uv cache must be writable (bind-mount /app is often root-owned on the host)
+export UV_CACHE_DIR="${UV_CACHE_DIR:-/tmp/uv-cache}"
+mkdir -p "$UV_CACHE_DIR"
+
 # Wait a bit for services to be fully ready
 sleep 2
 

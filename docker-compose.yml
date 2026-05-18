@@ -26,6 +26,8 @@ services:
       # entrypoint.sh runs `uv sync` to ensure packages are current.
       - /app/.venv
     environment:
+      # uv cache (bind-mount /app is root-owned on host; app user cannot write .cache/uv)
+      - UV_CACHE_DIR=/tmp/uv-cache
       # Application
       - APP_NAME=${APP_NAME}
       - APP_VERSION=${APP_VERSION}
@@ -63,9 +65,12 @@ services:
       - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
       - REFRESH_TOKEN_EXPIRE_DAYS=${REFRESH_TOKEN_EXPIRE_DAYS}
       - SESSION_MAX_AGE=${SESSION_MAX_AGE}
+      - METRICS_USERNAME=${METRICS_USERNAME:-}
+      - METRICS_PASSWORD=${METRICS_PASSWORD:-}
+      - ALLOW_PUBLIC_REGISTRATION=${ALLOW_PUBLIC_REGISTRATION:-true}
       
-      # CORS (JSON format for list parsing)
-      - CORS_ORIGINS=["http://localhost","http://127.0.0.1","http://localhost:3000","http://localhost:8080","http://localhost:80"]
+      # CORS — override in .env (include http://YOUR_SERVER_IP for LAN access)
+      - CORS_ORIGINS=${CORS_ORIGINS:-["http://localhost","http://127.0.0.1","http://localhost:3000","http://localhost:8080","http://localhost:80"]}
       - CORS_CREDENTIALS=${CORS_CREDENTIALS:-true}
       - CORS_METHODS=["GET","POST","PUT","DELETE","OPTIONS","PATCH"]
       - CORS_HEADERS=["*"]
@@ -239,6 +244,7 @@ services:
       users_db:
         condition: service_healthy
     environment:
+      - UV_CACHE_DIR=/tmp/uv-cache
       # Databases (same as app)
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@experiments_db:5432/${EXPERIMENTS_DB}
       - USERS_DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@users_db:5432/${USERS_DB}
@@ -276,6 +282,7 @@ services:
       redis:
         condition: service_healthy
     environment:
+      - UV_CACHE_DIR=/tmp/uv-cache
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@experiments_db:5432/${EXPERIMENTS_DB}
       - USERS_DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@users_db:5432/${USERS_DB}
       - KNOWLEDGE_DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@knowledge_db:5432/${KNOWLEDGE_DB:-knowledge_db}
