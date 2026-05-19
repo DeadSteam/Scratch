@@ -11,17 +11,39 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..core.database import MainSessionLocal, UsersSessionLocal
 
 
-def run_async[T](coro: Coroutine[Any, Any, T]) -> T:
-    """Execute an async coroutine in a new event loop.
+def _reset_redis_singletons() -> None:
+    """Drop module-level repo Redis clients so the next task rebinds them.
 
-    Celery workers are synchronous by default; this helper creates
-    a fresh loop for each task invocation.
+    Task-scoped event loops mean the previous loop is closed by the time
+    a follow-up task runs; any `_redis_client` bound to that loop becomes
+    invalid and raises "Event loop is closed". Resetting here avoids that
+    for the repositories used by Celery tasks.
     """
-    loop = asyncio.new_event_loop()
     try:
-        return loop.run_until_complete(coro)
+        from . import experiment_tasks as _et
+        from . import image_analysis_tasks as _iat
+
+        for module in (_et, _iat):
+            for attr in ("_image_repo", "_experiment_repo"):
+                repo = getattr(module, attr, None)
+                if repo is not None:
+                    repo._redis_client = None
+    except Exception:
+        # Never let teardown break a task.
+        pass
+
+
+def run_async[T](coro: Coroutine[Any, Any, T]) -> T:
+    """Execute an async coroutine in a fresh event loop.
+
+    ``asyncio.run`` is preferred over manual loop/close: it cancels any
+    straggling tasks and shuts down async generators (asyncpg/aioredis
+    cleanup) so the next Celery invocation starts clean.
+    """
+    try:
+        return asyncio.run(coro)
     finally:
-        loop.close()
+        _reset_redis_singletons()
 
 
 async def get_main_session() -> AsyncSession:

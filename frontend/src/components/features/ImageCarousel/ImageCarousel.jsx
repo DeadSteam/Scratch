@@ -14,9 +14,9 @@ import {
   Plus,
 } from '@phosphor-icons/react';
 import { ph } from '@components/icons/phosphor';
-import { Modal } from '@components/common/Modal/Modal';
-import { Button } from '@components/common/Button/Button';
+import { ConfirmDialog } from '@components/common/ConfirmDialog/ConfirmDialog';
 import { AuthenticatedImage } from '@components/common';
+import { sortByPasses } from '@utils/formatters';
 import styles from './ImageCarousel.module.css';
 
 const MAX_VISIBLE_THUMBNAILS = 6;
@@ -26,10 +26,7 @@ export function ImageCarousel({ images = [], onImageClick, onImageDelete, onAddI
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const thumbnailsRef = useRef(null);
 
-  // Sort images by passes
-  const sortedImages = useMemo(() => {
-    return [...images].sort((a, b) => a.passes - b.passes);
-  }, [images]);
+  const sortedImages = useMemo(() => sortByPasses(images), [images]);
 
   const currentImage = sortedImages[currentIndex];
 
@@ -145,28 +142,16 @@ export function ImageCarousel({ images = [], onImageClick, onImageDelete, onAddI
       tabIndex={0}
       onKeyDown={handleKeyDown}
     >
-      {/* Delete confirmation modal */}
-      <Modal
+      <ConfirmDialog
         isOpen={!!deleteConfirm}
         onClose={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
         title="Удалить изображение?"
-        size="sm"
-      >
-        <div className={styles.deleteModalContent}>
-          <div className={styles.deleteIcon}>
-            <Trash {...ph(48)} aria-hidden />
-          </div>
-          <p className={styles.deleteMessage}>Это действие нельзя отменить</p>
-          <div className={styles.deleteActions}>
-            <Button variant="secondary" onClick={handleCancelDelete}>
-              Отмена
-            </Button>
-            <Button variant="danger" onClick={handleConfirmDelete}>
-              Удалить
-            </Button>
-          </div>
-        </div>
-      </Modal>
+        message="Это действие нельзя отменить"
+        icon={<Trash {...ph(48)} aria-hidden />}
+        confirmText="Удалить"
+        tone="danger"
+      />
 
       {/* Main image */}
       <div className={styles.mainImage}>

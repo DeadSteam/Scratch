@@ -8,7 +8,7 @@ from collections.abc import AsyncGenerator
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import Depends
+from fastapi import Depends, Request
 from fastapi.security import (
     HTTPAuthorizationCredentials,
     HTTPBearer,
@@ -44,6 +44,7 @@ from .config import settings
 from .database import get_db_session, get_knowledge_db_session, get_users_db_session
 from .redis import get_redis_client
 from .security import TokenValidationError, verify_access_token
+from .token_store import is_access_jti_blacklisted
 
 _optional_bearer = HTTPBearer(auto_error=False)
 
@@ -205,6 +206,7 @@ def get_advice_service(
 # Auth dependencies (raise domain exceptions, NOT HTTPException)
 # ---------------------------------------------------------------------------
 async def get_current_user(
+    request: Request,
     token: str = Depends(oauth2_scheme),
     db: AsyncSession = Depends(get_users_db),
     user_service: UserService = Depends(get_user_service),
@@ -214,11 +216,24 @@ async def get_current_user(
     Uses ``get_for_auth`` which bypasses the Redis cache and
     eagerly loads roles.  This ensures role-based checks
     (``get_current_admin``) always see up-to-date roles.
+
+    Reuses the JWT payload pre-parsed by the audit middleware (if available)
+    to avoid double signature verification per request. We still enforce
+    `type == "access"` so a stale refresh-token payload doesn't sneak in.
     """
+    cached = getattr(request.state, "jwt_payload", None)
     try:
-        payload = verify_access_token(token)
+        if isinstance(cached, dict) and cached.get("type") == "access":
+            payload = cached
+        else:
+            payload = verify_access_token(token)
     except TokenValidationError as exc:
         raise AuthenticationError(exc.message) from exc
+
+    # SECURITY: honor server-side revocation list (logout / password change).
+    jti = payload.get("jti")
+    if jti and await is_access_jti_blacklisted(jti):
+        raise AuthenticationError("Token has been revoked")
 
     user_id_str = payload.get("sub")
     if user_id_str is None:

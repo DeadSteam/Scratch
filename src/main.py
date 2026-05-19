@@ -81,10 +81,12 @@ app.add_exception_handler(ServiceError, service_exception_handler)
 app.add_exception_handler(ValidationError, validation_exception_handler)
 
 
-# Global exception handler to ensure CORS headers are always present
+# Global exception handler. CORS headers are attached by the CORSMiddleware
+# wrapper around every response (including those built by exception handlers),
+# so we don't add them by hand here — that previously duplicated the logic
+# in two places and risked drifting from the middleware's behavior.
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    """Global exception handler that ensures CORS headers are present."""
     record_exception()
     logger.error(
         "unhandled_exception",
@@ -98,25 +100,10 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
         "message": "Internal server error",
         "detail": (str(exc) if settings.DEBUG else "An internal error occurred"),
     }
-
-    response = JSONResponse(
+    return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content=error_response,
     )
-
-    # Add CORS headers manually for unhandled exceptions
-    origin = request.headers.get("origin")
-    if origin and settings.is_cors_origin_allowed(origin):
-        response.headers["Access-Control-Allow-Origin"] = origin
-        response.headers["Access-Control-Allow-Credentials"] = "true"
-        response.headers["Access-Control-Allow-Methods"] = ", ".join(
-            settings.CORS_METHODS
-        )
-        response.headers["Access-Control-Allow-Headers"] = ", ".join(
-            settings.CORS_HEADERS
-        )
-
-    return response
 
 
 # Register all middlewares in a single place

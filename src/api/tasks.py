@@ -64,6 +64,33 @@ async def submit_recalculation(
     )
 
 
+@router.post("/quick-analysis/{experiment_id}")
+async def submit_quick_analysis(
+    experiment_id: UUID,
+    db: MainDBSession,
+    current_user: CurrentUser,
+    skip: int = 0,
+    limit: int = 100,
+) -> Response[dict[str, Any]]:
+    """Run a quick per-image analysis as a background task (B9).
+
+    Use when the experiment has more images than the inline endpoint's cap.
+    """
+    await ensure_experiment_access(experiment_id, current_user, db)
+    from ..tasks.image_analysis_tasks import quick_experiment_analysis
+
+    task = quick_experiment_analysis.delay(str(experiment_id), skip, limit)
+    return Response(
+        success=True,
+        message="Quick analysis task submitted",
+        data={
+            "task_id": task.id,
+            "status": "PENDING",
+            "experiment_id": str(experiment_id),
+        },
+    )
+
+
 @router.get("/{task_id}")
 async def get_task_status(
     task_id: str,

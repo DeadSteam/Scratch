@@ -15,6 +15,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { useMemo } from 'react';
+import { CHART_AXIS_STYLE, CHART_AXIS_COLOR, CHART_GRID_COLOR } from '@utils/constants';
 import styles from './HistogramChart.module.css';
 
 // Цвета для разных изображений
@@ -119,21 +120,21 @@ export function HistogramChart({ data, series, title = 'Гистограмма �
           data={data}
           margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
         >
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(51, 65, 85, 0.5)" />
+          <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID_COLOR} />
           <XAxis
             dataKey="brightness"
-            stroke="#94a3b8"
+            stroke={CHART_AXIS_COLOR}
             tickCount={8}
             domain={[xMin, xMax]}
             type="number"
             allowDecimals={false}
-            style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px' }}
+            style={CHART_AXIS_STYLE}
           />
           <YAxis
-            stroke="#94a3b8"
+            stroke={CHART_AXIS_COLOR}
             domain={[0, yMax]}
             tickFormatter={(value) => value.toFixed(3)}
-            style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px' }}
+            style={CHART_AXIS_STYLE}
           />
           <Tooltip content={<CustomTooltip />} />
           <Legend />

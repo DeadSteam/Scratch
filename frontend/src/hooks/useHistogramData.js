@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { analysisService } from '@api';
 import { useNotification } from '@context/NotificationContext';
+import { sortByPasses } from '@utils/formatters';
 
 /**
  * Loads and aggregates histogram data for all images in an experiment.
@@ -21,26 +22,28 @@ export function useHistogramData(images, chartMode) {
 
     setIsHistogramLoading(true);
     try {
-      const sorted = [...images].sort((a, b) => a.passes - b.passes);
+      const sorted = sortByPasses(images);
+      const seriesMeta = sorted.map((image, i) => ({
+        key: `img_${i}`,
+        label: image.passes === 0 ? 'Эталон' : `${image.passes} проходов`,
+      }));
+
+      const payloads = await Promise.all(
+        sorted.map((image) => analysisService.getImageHistogram(image.id)),
+      );
+
       const brightnessMap = new Map();
-      const seriesMeta = [];
-
-      for (let i = 0; i < sorted.length; i++) {
-        const image = sorted[i];
-        const key = `img_${i}`;
-        seriesMeta.push({ key, label: image.passes === 0 ? 'Эталон' : `${image.passes} проходов` });
-
-        const payload = await analysisService.getImageHistogram(image.id);
+      payloads.forEach((payload, i) => {
+        const key = seriesMeta[i].key;
         const histogram = payload?.histogram || {};
         const totalPixels = payload?.statistics?.total_pixels || 1;
-
         for (let q = 0; q <= 255; q++) {
           const count = histogram[q] ?? histogram[String(q)] ?? 0;
           let point = brightnessMap.get(q);
           if (!point) { point = { brightness: q }; brightnessMap.set(q, point); }
           point[key] = totalPixels > 0 ? count / totalPixels : 0;
         }
-      }
+      });
 
       setHistogramData(Array.from(brightnessMap.values()).sort((a, b) => a.brightness - b.brightness));
       setHistogramSeries(seriesMeta);

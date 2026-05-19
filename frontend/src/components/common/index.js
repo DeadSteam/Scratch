@@ -13,5 +13,8 @@ export { ToastContainer } from './Toast/Toast';
 export { EmptyState } from './EmptyState/EmptyState';
 export { ThemeToggle } from './ThemeToggle/ThemeToggle';
 export { AuthenticatedImage } from './AuthenticatedImage/AuthenticatedImage';
+export { ConfirmDialog } from './ConfirmDialog/ConfirmDialog';
+export { CrudTable } from './CrudTable/CrudTable';
+export { CrudFormModal } from './CrudFormModal/CrudFormModal';
 
 

@@ -8,6 +8,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..core.audit import emit_audit_event
 from ..core.security import get_password_hash
 from ..models.user import User
 from ..repositories.user_repository import UserRepository
@@ -54,7 +55,15 @@ class UserService(BaseService[User, UserCreate, UserUpdate, UserRead]):
         user_data["password_hash"] = get_password_hash(data.password)
 
         user = await self.user_repo.create(user_data, session)
-        return self.read_schema.model_validate(user)
+        result = self.read_schema.model_validate(user)
+        emit_audit_event(
+            user_id=None,
+            action="USER_CREATE",
+            resource="/users",
+            resource_id=str(result.id),
+            details={"username": result.username, "email": result.email},
+        )
+        return result
 
     async def update(
         self, entity_id: UUID, data: UserUpdate, session: AsyncSession
@@ -108,6 +117,12 @@ class UserService(BaseService[User, UserCreate, UserUpdate, UserRead]):
         user = await self.user_repo.update(user_id, {"is_active": False}, session)
         if not user:
             raise NotFoundError("User", user_id)
+        emit_audit_event(
+            user_id=None,
+            action="USER_DEACTIVATE",
+            resource="/users",
+            resource_id=str(user_id),
+        )
         return self.read_schema.model_validate(user)
 
     async def activate_user(self, user_id: UUID, session: AsyncSession) -> UserRead:
@@ -115,7 +130,42 @@ class UserService(BaseService[User, UserCreate, UserUpdate, UserRead]):
         user = await self.user_repo.update(user_id, {"is_active": True}, session)
         if not user:
             raise NotFoundError("User", user_id)
+        emit_audit_event(
+            user_id=None,
+            action="USER_ACTIVATE",
+            resource="/users",
+            resource_id=str(user_id),
+        )
         return self.read_schema.model_validate(user)
+
+    async def delete(self, entity_id: UUID, session: AsyncSession) -> bool:
+        """Delete user and schedule cross-DB cleanup of their experiments.
+
+        B8: experiments live in `experiments_db` with no FK to `users.id`
+        (different database), so cascade-on-delete is impossible at the
+        DB layer. We trigger a Celery task to remove orphaned data after
+        the user row is deleted.
+        """
+        deleted = await super().delete(entity_id, session)
+        if deleted:
+            try:
+                # Lazy import to avoid loading Celery during unrelated test runs.
+                from ..tasks.experiment_tasks import cleanup_user_experiments
+
+                cleanup_user_experiments.delay(str(entity_id))
+            except Exception:
+                # Cleanup is best-effort; don't fail the request if the
+                # broker is unreachable.
+                self._logger.exception(
+                    "schedule_user_cleanup_failed", user_id=str(entity_id)
+                )
+            emit_audit_event(
+                user_id=None,
+                action="USER_DELETE",
+                resource="/users",
+                resource_id=str(entity_id),
+            )
+        return deleted
 
     async def count(self, session: AsyncSession) -> int:
         """Count total users."""

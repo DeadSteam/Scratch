@@ -70,3 +70,6 @@ class EquipmentConfigService(
             head_type, session, skip, limit
         )
         return [self.read_schema.model_validate(c) for c in configs]
+
+    async def count_by_head_type(self, head_type: str, session: AsyncSession) -> int:
+        return await self.config_repo.count_by_head_type(head_type, session)

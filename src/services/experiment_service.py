@@ -139,24 +139,24 @@ class ExperimentService(
             limit=100,
         )
 
-        knowledge_causes: list[KnowledgeCauseRead] = []
-        for cause in causes:
-            advices = await self.advice_repo.get_by_cause_id(
-                cause.id,
-                knowledge_session,
-                skip=0,
-                limit=100,
+        # B10: batch-load advices for ALL causes in one query instead of
+        # one query per cause (N+1).
+        advices_by_cause = await self.advice_repo.get_by_cause_ids(
+            [c.id for c in causes],
+            knowledge_session,
+        )
+
+        knowledge_causes: list[KnowledgeCauseRead] = [
+            KnowledgeCauseRead.model_validate(
+                {
+                    "id": cause.id,
+                    "situation_id": cause.situation_id,
+                    "description": cause.description,
+                    "advices": advices_by_cause.get(cause.id, []),
+                }
             )
-            knowledge_causes.append(
-                KnowledgeCauseRead.model_validate(
-                    {
-                        "id": cause.id,
-                        "situation_id": cause.situation_id,
-                        "description": cause.description,
-                        "advices": advices,
-                    }
-                )
-            )
+            for cause in causes
+        ]
 
         return summary.model_copy(
             update={
@@ -205,15 +205,38 @@ class ExperimentService(
         )
         return [self.read_schema.model_validate(e) for e in experiments]
 
-    async def create(
-        self, data: ExperimentCreate, session: AsyncSession
+    async def create_for_user(
+        self,
+        data: ExperimentCreate,
+        user_id: UUID,
+        session: AsyncSession,
     ) -> ExperimentRead:
-        """Create experiment with validation of foreign keys."""
+        """Create experiment owned by `user_id`. Validates FKs.
+
+        Server-controlled fields (user_id, scratch_results) are NOT taken
+        from the payload — they're set here. See S1 in the audit.
+        """
         if not await self.film_repo.exists(data.film_id, session):
             raise NotFoundError("Film", data.film_id)
         if not await self.config_repo.exists(data.config_id, session):
             raise NotFoundError("EquipmentConfig", data.config_id)
-        return await super().create(data, session)
+
+        payload = data.model_dump(exclude_unset=True)
+        payload["user_id"] = user_id
+        # Never accept client-supplied analysis results
+        payload.pop("scratch_results", None)
+
+        entity = await self.experiment_repo.create(payload, session)
+        return self.read_schema.model_validate(entity)
+
+    async def create(
+        self, data: ExperimentCreate, session: AsyncSession
+    ) -> ExperimentRead:
+        """Legacy entry point. Use create_for_user so user_id is server-set."""
+        raise RuntimeError(
+            "ExperimentService.create() is disabled — "
+            "use create_for_user(data, user_id, session)."
+        )
 
     async def update(
         self, entity_id: UUID, data: ExperimentUpdate, session: AsyncSession
@@ -296,6 +319,50 @@ class ExperimentService(
             )
             raise
 
+    # ---------------------------------------------------------------
+    # B3: single unified entry point. All `get_by_X` / `count_by_X`
+    # methods route through here.
+    # ---------------------------------------------------------------
+    async def list_experiments(
+        self,
+        session: AsyncSession,
+        *,
+        user_id: UUID | None = None,
+        film_id: UUID | None = None,
+        config_id: UUID | None = None,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> list[ExperimentRead]:
+        """List experiments by any combination of user/film/config filters."""
+        if film_id is not None and not await self.film_repo.exists(film_id, session):
+            raise NotFoundError("Film", film_id)
+        if config_id is not None and not await self.config_repo.exists(
+            config_id, session
+        ):
+            raise NotFoundError("EquipmentConfig", config_id)
+        experiments = await self.experiment_repo.list_experiments(
+            session,
+            user_id=user_id,
+            film_id=film_id,
+            config_id=config_id,
+            skip=skip,
+            limit=limit,
+        )
+        return [self.read_schema.model_validate(e) for e in experiments]
+
+    async def count_experiments(
+        self,
+        session: AsyncSession,
+        *,
+        user_id: UUID | None = None,
+        film_id: UUID | None = None,
+        config_id: UUID | None = None,
+    ) -> int:
+        return await self.experiment_repo.count_experiments(
+            session, user_id=user_id, film_id=film_id, config_id=config_id
+        )
+
+    # --- Back-compat facades -----------------------------------------
     async def get_by_film_id(
         self,
         film_id: UUID,
@@ -303,13 +370,9 @@ class ExperimentService(
         skip: int = 0,
         limit: int = 100,
     ) -> list[ExperimentRead]:
-        """Get experiments by film ID."""
-        if not await self.film_repo.exists(film_id, session):
-            raise NotFoundError("Film", film_id)
-        experiments = await self.experiment_repo.get_by_film_id(
-            film_id, session, skip, limit
+        return await self.list_experiments(
+            session, film_id=film_id, skip=skip, limit=limit
         )
-        return [self.read_schema.model_validate(e) for e in experiments]
 
     async def get_by_config_id(
         self,
@@ -318,13 +381,9 @@ class ExperimentService(
         skip: int = 0,
         limit: int = 100,
     ) -> list[ExperimentRead]:
-        """Get experiments by config ID."""
-        if not await self.config_repo.exists(config_id, session):
-            raise NotFoundError("EquipmentConfig", config_id)
-        experiments = await self.experiment_repo.get_by_config_id(
-            config_id, session, skip, limit
+        return await self.list_experiments(
+            session, config_id=config_id, skip=skip, limit=limit
         )
-        return [self.read_schema.model_validate(e) for e in experiments]
 
     async def get_with_images(
         self,
@@ -339,13 +398,13 @@ class ExperimentService(
         return await self._build_experiment_read(experiment, knowledge_session)
 
     async def count_by_user_id(self, user_id: UUID, session: AsyncSession) -> int:
-        return await self.experiment_repo.count_by_user_id(user_id, session)
+        return await self.count_experiments(session, user_id=user_id)
 
     async def count_by_film_id(self, film_id: UUID, session: AsyncSession) -> int:
-        return await self.experiment_repo.count_by_film_id(film_id, session)
+        return await self.count_experiments(session, film_id=film_id)
 
     async def count_by_config_id(self, config_id: UUID, session: AsyncSession) -> int:
-        return await self.experiment_repo.count_by_config_id(config_id, session)
+        return await self.count_experiments(session, config_id=config_id)
 
     async def get_by_film_id_for_user(
         self,
@@ -355,13 +414,9 @@ class ExperimentService(
         skip: int = 0,
         limit: int = 100,
     ) -> list[ExperimentRead]:
-        """Get experiments by film ID for a specific user."""
-        if not await self.film_repo.exists(film_id, session):
-            raise NotFoundError("Film", film_id)
-        experiments = await self.experiment_repo.get_by_film_id_for_user(
-            film_id, user_id, session, skip, limit
+        return await self.list_experiments(
+            session, film_id=film_id, user_id=user_id, skip=skip, limit=limit
         )
-        return [self.read_schema.model_validate(e) for e in experiments]
 
     async def get_by_config_id_for_user(
         self,
@@ -371,24 +426,18 @@ class ExperimentService(
         skip: int = 0,
         limit: int = 100,
     ) -> list[ExperimentRead]:
-        """Get experiments by config ID for a specific user."""
-        if not await self.config_repo.exists(config_id, session):
-            raise NotFoundError("EquipmentConfig", config_id)
-        experiments = await self.experiment_repo.get_by_config_id_for_user(
-            config_id, user_id, session, skip, limit
+        return await self.list_experiments(
+            session, config_id=config_id, user_id=user_id, skip=skip, limit=limit
         )
-        return [self.read_schema.model_validate(e) for e in experiments]
 
     async def count_by_film_id_for_user(
         self, film_id: UUID, user_id: UUID, session: AsyncSession
     ) -> int:
-        return await self.experiment_repo.count_by_film_id_for_user(
-            film_id, user_id, session
-        )
+        return await self.count_experiments(session, film_id=film_id, user_id=user_id)
 
     async def count_by_config_id_for_user(
         self, config_id: UUID, user_id: UUID, session: AsyncSession
     ) -> int:
-        return await self.experiment_repo.count_by_config_id_for_user(
-            config_id, user_id, session
+        return await self.count_experiments(
+            session, config_id=config_id, user_id=user_id
         )

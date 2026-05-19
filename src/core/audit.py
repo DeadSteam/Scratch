@@ -48,10 +48,11 @@ def _client_ip(request: Request) -> str:
 
 
 def _extract_user_id(request: Request) -> str | None:
-    """Try to extract user_id from the request state (set by auth dep)."""
-    # FastAPI stores the result of Depends in request.state when using
-    # middleware; however, the standard pattern is to parse the JWT here
-    # to avoid coupling with the DI layer.
+    """Try to extract user_id from the request.
+
+    Verifies the JWT once and stashes the payload in `request.state` so
+    `get_current_user` doesn't have to repeat the work for this request.
+    """
     auth_header = request.headers.get("Authorization", "")
     if not auth_header.startswith("Bearer "):
         return None
@@ -62,6 +63,7 @@ def _extract_user_id(request: Request) -> str | None:
         from .security import verify_token
 
         payload = verify_token(token)
+        request.state.jwt_payload = payload
         return payload.get("sub")
     except Exception:
         return None

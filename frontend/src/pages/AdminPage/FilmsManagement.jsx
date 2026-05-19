@@ -1,225 +1,98 @@
 /**
- * Films Management Component
+ * Films Management — на абстракциях useCrudResource + CrudTable + CrudFormModal.
  */
 
-import { useState, useEffect, useCallback } from 'react';
-import { useNotification } from '@context/NotificationContext';
-import { filmService } from '@api';
 import { FilmStrip } from '@phosphor-icons/react';
 import { ph } from '@components/icons/phosphor';
-import { Button, Spinner, Modal, Input } from '@components/common';
+import { Button, Spinner, ConfirmDialog, CrudTable, CrudFormModal } from '@components/common';
+import { useCrudResource } from '@hooks/useCrudResource';
+import { filmService } from '@api';
 import { formatThickness } from '@utils/formatters';
 import styles from './Management.module.css';
 
+const EMPTY_FORM = { name: '', coating_name: '', coating_thickness: '' };
+
+const FIELDS = [
+  { name: 'name', label: 'Название', required: true },
+  { name: 'coating_name', label: 'Название покрытия' },
+  { name: 'coating_thickness', label: 'Толщина покрытия (мкм)', type: 'number', min: '0', step: '0.1' },
+];
+
 export function FilmsManagement() {
-  const [films, setFilms] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedFilm, setSelectedFilm] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
-  const [form, setForm] = useState({ name: '', coating_name: '', coating_thickness: '' });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState(null);
-
-  const { success, error: showError } = useNotification();
-
-  const fetchFilms = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const response = await filmService.getAll();
-      setFilms(response.data || []);
-    } catch (err) {
-      showError('Ошибка загрузки типов пленок');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [showError]);
-
-  useEffect(() => {
-    fetchFilms();
-  }, [fetchFilms]);
-
-  const handleCreate = () => {
-    setSelectedFilm(null);
-    setForm({ name: '', coating_name: '', coating_thickness: '' });
-    setIsCreating(true);
-    setIsModalOpen(true);
-  };
-
-  const handleEdit = (film) => {
-    setSelectedFilm(film);
-    setForm({
+  const crud = useCrudResource({
+    service: filmService,
+    emptyForm: EMPTY_FORM,
+    itemToForm: (film) => ({
       name: film.name,
       coating_name: film.coating_name || '',
-      coating_thickness: film.coating_thickness || '',
-    });
-    setIsCreating(false);
-    setIsModalOpen(true);
-  };
+      coating_thickness: film.coating_thickness ?? '',
+    }),
+    formToPayload: (form) => ({
+      name: form.name,
+      coating_name: form.coating_name || null,
+      coating_thickness: form.coating_thickness !== '' ? parseFloat(form.coating_thickness) : null,
+    }),
+    validate: (form) => (!form.name ? 'Введите название' : null),
+    messages: {
+      loadError: 'Ошибка загрузки типов пленок',
+      created: 'Тип пленки создан',
+      updated: 'Тип пленки обновлен',
+      deleted: 'Тип пленки удален',
+    },
+  });
 
-  const handleSubmit = async () => {
-    if (!form.name) {
-      showError('Введите название');
-      return;
-    }
+  const columns = [
+    { header: 'Название', field: 'name' },
+    { header: 'Покрытие', render: (item) => item.coating_name || '—' },
+    { header: 'Толщина покрытия', render: (item) => formatThickness(item.coating_thickness) },
+  ];
 
-    setIsSubmitting(true);
-    try {
-      const data = {
-        name: form.name,
-        coating_name: form.coating_name || null,
-        coating_thickness: form.coating_thickness ? parseFloat(form.coating_thickness) : null,
-      };
-
-      if (isCreating) {
-        await filmService.create(data);
-        success('Тип пленки создан');
-      } else {
-        await filmService.update(selectedFilm.id, data);
-        success('Тип пленки обновлен');
-      }
-      setIsModalOpen(false);
-      fetchFilms();
-    } catch (err) {
-      showError(err.message || 'Ошибка сохранения');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleDelete = (filmId) => setDeleteConfirm(filmId);
-
-  const handleConfirmDelete = async () => {
-    try {
-      await filmService.delete(deleteConfirm);
-      success('Тип пленки удален');
-      setDeleteConfirm(null);
-      fetchFilms();
-    } catch (err) {
-      showError(err.message || 'Ошибка удаления');
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className={styles.loading}>
-        <Spinner size="lg" />
-      </div>
-    );
+  if (crud.isLoading) {
+    return <div className={styles.loading}><Spinner size="lg" /></div>;
   }
 
   return (
     <div className={styles.container}>
       <div className={styles.toolbar}>
-        <Button variant="primary" onClick={handleCreate}>
+        <Button variant="primary" onClick={crud.startCreate}>
           Добавить тип пленки
         </Button>
       </div>
 
-      <div className={styles.tableWrapper}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>Название</th>
-              <th>Покрытие</th>
-              <th>Толщина покрытия</th>
-              <th>Действия</th>
-            </tr>
-          </thead>
-          <tbody>
-            {films.length === 0 && (
-              <tr className={styles.emptyRow}>
-                <td colSpan={4}>
-                  <div className={styles.emptyStateCell}>
-                    <div className={styles.emptyIcon}>
-                      <FilmStrip {...ph(18)} aria-hidden />
-                    </div>
-                    <p className={styles.emptyTitle}>Нет типов плёнок</p>
-                    <p className={styles.emptyDesc}>Нажмите «Добавить тип пленки» чтобы создать запись</p>
-                  </div>
-                </td>
-              </tr>
-            )}
-            {films.map((film) => (
-              <tr key={film.id}>
-                <td className={styles.primaryCell}>{film.name}</td>
-                <td>{film.coating_name || '—'}</td>
-                <td>{formatThickness(film.coating_thickness)}</td>
-                <td>
-                  <div className={styles.actions}>
-                    <Button variant="ghost" size="sm" onClick={() => handleEdit(film)}>
-                      Изменить
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleDelete(film.id)}>
-                      Удалить
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <CrudTable
+        columns={columns}
+        items={crud.items}
+        onEdit={crud.startEdit}
+        onDelete={(item) => crud.askDelete(item.id)}
+        emptyIcon={<FilmStrip {...ph(18)} aria-hidden />}
+        emptyTitle="Нет типов плёнок"
+        emptyDescription="Нажмите «Добавить тип пленки» чтобы создать запись"
+      />
 
-      {/* Delete confirmation */}
-      <Modal
-        isOpen={!!deleteConfirm}
-        onClose={() => setDeleteConfirm(null)}
+      <ConfirmDialog
+        isOpen={!!crud.deleteConfirm}
+        onClose={crud.cancelDelete}
+        onConfirm={crud.confirmDelete}
         title="Удалить тип плёнки?"
-        size="sm"
-      >
-        <div className={styles.modalContent}>
-          <p>Это действие нельзя отменить.</p>
-          <div className={styles.modalActions}>
-            <Button variant="secondary" onClick={() => setDeleteConfirm(null)}>Отмена</Button>
-            <Button variant="danger" onClick={handleConfirmDelete}>Удалить</Button>
-          </div>
-        </div>
-      </Modal>
+        message="Это действие нельзя отменить."
+        confirmText="Удалить"
+        tone="danger"
+      />
 
-      {/* Edit / Create Modal */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title={isCreating ? 'Добавить тип пленки' : 'Редактировать тип пленки'}
-        size="sm"
-      >
-        <div className={styles.modalContent}>
-          <Input
-            label="Название"
-            value={form.name}
-            onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
-            required
-          />
-          <Input
-            label="Название покрытия"
-            value={form.coating_name}
-            onChange={(e) => setForm((prev) => ({ ...prev, coating_name: e.target.value }))}
-          />
-          <Input
-            label="Толщина покрытия (мкм)"
-            type="number"
-            value={form.coating_thickness}
-            onChange={(e) => setForm((prev) => ({ ...prev, coating_thickness: e.target.value }))}
-            min="0"
-            step="0.1"
-          />
-
-          <div className={styles.modalActions}>
-            <Button variant="secondary" onClick={() => setIsModalOpen(false)}>
-              Отмена
-            </Button>
-            <Button variant="primary" onClick={handleSubmit} loading={isSubmitting}>
-              {isCreating ? 'Создать' : 'Сохранить'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
+      <CrudFormModal
+        isOpen={crud.isModalOpen}
+        isCreating={crud.isCreating}
+        onClose={crud.closeModal}
+        onSubmit={crud.submit}
+        isSubmitting={crud.isSubmitting}
+        titleCreate="Добавить тип пленки"
+        titleEdit="Редактировать тип пленки"
+        fields={FIELDS}
+        form={crud.form}
+        setForm={crud.setForm}
+      />
     </div>
   );
 }
 
 export default FilmsManagement;
-
-
-

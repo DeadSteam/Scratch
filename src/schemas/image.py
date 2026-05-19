@@ -12,6 +12,9 @@ class ExperimentImageBase(SchemaBase):
     passes: int = Field(
         0, ge=0, le=1000, description="Number of passes (0 for reference image)"
     )
+    mime_type: str | None = Field(
+        None, max_length=50, description="MIME type captured at upload time"
+    )
 
 
 class ExperimentImageCreate(ExperimentImageBase):
@@ -49,3 +52,4 @@ class ExperimentImageRead(SchemaBase):
     id: UUID
     experiment_id: UUID
     passes: int
+    mime_type: str | None = None

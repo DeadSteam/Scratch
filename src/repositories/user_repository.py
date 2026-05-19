@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from ..models.user import User
-from .base import CachedRepositoryImpl
+from .base import CachedRepositoryImpl, _serialize_row
 from .interfaces import UserRepositoryInterface
 
 
@@ -64,8 +64,8 @@ class UserRepository(CachedRepositoryImpl[User], UserRepositoryInterface[User]):
         user = await self.get_by_username(username, session)
         if user:
             # Cache the user
-            user_dict = {c.name: getattr(user, c.name) for c in user.__table__.columns}
-            await redis_client.set(cache_key, user_dict)
+            # SECURITY: strips password_hash via _serialize_row's denylist.
+            await redis_client.set(cache_key, _serialize_row(user))
 
         return user
 
@@ -85,8 +85,8 @@ class UserRepository(CachedRepositoryImpl[User], UserRepositoryInterface[User]):
         user = await self.get_by_email(email, session)
         if user:
             # Cache the user
-            user_dict = {c.name: getattr(user, c.name) for c in user.__table__.columns}
-            await redis_client.set(cache_key, user_dict)
+            # SECURITY: strips password_hash via _serialize_row's denylist.
+            await redis_client.set(cache_key, _serialize_row(user))
 
         return user
 

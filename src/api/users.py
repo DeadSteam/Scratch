@@ -4,9 +4,10 @@ from uuid import UUID
 
 from fastapi import APIRouter, Query, status
 
-from ..core.authorization import ensure_same_user_or_admin
+from ..core.authorization import ensure_same_user_or_admin, is_admin
 from ..core.dependencies import CurrentAdmin, CurrentUser, UsersDBSession, UserSvc
 from ..schemas.user import UserCreate, UserRead, UserUpdate
+from ..services.exceptions import NotFoundError
 from .responses import PaginatedResponse, Response
 
 router = APIRouter(prefix="/users", tags=["Users"])
@@ -114,7 +115,14 @@ async def get_user_by_username(
     db: UsersDBSession,
     current_user: CurrentUser,
 ):
-    """Get user by username."""
+    """Get user by username.
+
+    SECURITY: a non-admin querying any username other than their own gets a
+    plain 404 — they must not be able to enumerate which usernames exist
+    by comparing 404 vs 403.
+    """
+    if not is_admin(current_user) and username.lower() != current_user.username.lower():
+        raise NotFoundError("User", username)
     user = await user_service.get_by_username(username, db)
     ensure_same_user_or_admin(current_user, user.id)
     return Response(success=True, message="User retrieved successfully", data=user)

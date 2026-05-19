@@ -11,9 +11,15 @@ from ..core.dependencies import (
     UsersDBSession,
     UserSvc,
     get_current_user,
+    oauth2_scheme,
 )
 from ..core.rate_limit import limiter
-from ..core.security import TokenValidationError, verify_refresh_token
+from ..core.security import (
+    TokenValidationError,
+    verify_access_token,
+    verify_refresh_token,
+)
+from ..core.token_store import blacklist_access_jti, blacklist_refresh_token
 from ..schemas.user import UserCreate, UserRead
 from ..services.exceptions import AuthenticationError
 from .responses import Response
@@ -109,6 +115,52 @@ async def refresh_access_token(
     return Response(
         success=True, message="Token refreshed", data=TokenResponse(**auth_result)
     )
+
+
+class LogoutRequest(BaseModel):
+    """Optional refresh token to also revoke on logout."""
+
+    refresh_token: str | None = Field(
+        None, description="Refresh token to invalidate alongside the access token"
+    )
+
+
+@router.post(
+    "/logout",
+    response_model=Response[dict],
+    summary="Logout (revoke access + refresh tokens)",
+    description=(
+        "Revokes the current access token by adding its JTI to the blacklist. "
+        "If a refresh_token is provided, it is also blacklisted."
+    ),
+)
+async def logout(
+    body: LogoutRequest | None = None,
+    token: str = Depends(oauth2_scheme),
+    _current_user: Annotated[UserRead, Depends(get_current_user)] = None,  # type: ignore[assignment]
+):
+    """Revoke the caller's current access token and (optionally) refresh token."""
+    try:
+        payload = verify_access_token(token)
+    except TokenValidationError as exc:
+        raise AuthenticationError(exc.message) from exc
+
+    jti = payload.get("jti")
+    exp = payload.get("exp")
+    if jti:
+        await blacklist_access_jti(jti, exp)
+
+    if body and body.refresh_token:
+        try:
+            refresh_payload = verify_refresh_token(body.refresh_token)
+            refresh_exp = refresh_payload.get("exp")
+            if isinstance(refresh_exp, int):
+                await blacklist_refresh_token(body.refresh_token, refresh_exp)
+        except TokenValidationError:
+            # Best-effort: a malformed/expired refresh token doesn't fail logout.
+            pass
+
+    return Response(success=True, message="Logged out", data={})
 
 
 @router.get(

@@ -133,3 +133,48 @@ async def _recalculate_experiment(
         except Exception:
             await session.rollback()
             raise
+
+
+@celery_app.task(
+    name="src.tasks.image_analysis_tasks.quick_experiment_analysis",
+    bind=True,
+    max_retries=1,
+    default_retry_delay=30,
+)
+def quick_experiment_analysis(
+    self: Any,
+    experiment_id: str,
+    skip: int = 0,
+    limit: int = 100,
+) -> dict[str, Any]:
+    """Per-image stats without writing. Heavy in memory — runs as a task."""
+    from uuid import UUID
+
+    logger.info(
+        "quick_task_started",
+        task_id=self.request.id,
+        experiment_id=experiment_id,
+        skip=skip,
+        limit=limit,
+    )
+    try:
+        return run_async(_quick_analysis(UUID(experiment_id), skip, limit))
+    except Exception as exc:
+        logger.error(
+            "quick_task_failed",
+            task_id=self.request.id,
+            experiment_id=experiment_id,
+            error=str(exc),
+        )
+        raise self.retry(exc=exc) from exc
+
+
+async def _quick_analysis(
+    experiment_id: Any, skip: int, limit: int
+) -> dict[str, Any]:
+    from ..core.database import MainSessionLocal
+
+    async with MainSessionLocal() as session:
+        return await _analysis_service.quick_analysis(
+            experiment_id, session, skip, limit
+        )

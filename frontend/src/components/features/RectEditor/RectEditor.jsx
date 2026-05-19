@@ -13,7 +13,6 @@ export function RectEditor({ imageUrl, rect, onRectChange }) {
   const [dragMode, setDragMode] = useState(null); // 'move' | 'resize'
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [localRect, setLocalRect] = useState(rect || { x: 50, y: 50, width: 200, height: 150 });
-  const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
 
   // Update local rect when prop changes
   useEffect(() => {
@@ -21,13 +20,6 @@ export function RectEditor({ imageUrl, rect, onRectChange }) {
       setLocalRect(rect);
     }
   }, [rect]);
-
-  const handleImageLoad = (e) => {
-    const { naturalWidth, naturalHeight } = e.target;
-    if (naturalWidth > 0 && naturalHeight > 0) {
-      setImageSize({ width: naturalWidth, height: naturalHeight });
-    }
-  };
 
   const getMousePos = useCallback((e) => {
     if (!containerRef.current) return { x: 0, y: 0 };
@@ -100,7 +92,6 @@ export function RectEditor({ imageUrl, rect, onRectChange }) {
           src={imageUrl}
           alt="Analysis region"
           className={styles.image}
-          onLoad={handleImageLoad}
           draggable={false}
         />
         {/* Rect overlay */}

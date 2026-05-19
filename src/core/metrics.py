@@ -122,14 +122,18 @@ def dec_requests_in_progress(method: str, path: str) -> None:
 def _verify_metrics_credentials(
     credentials: HTTPBasicCredentials | None = Depends(_http_basic),
 ) -> None:
-    """Require HTTP Basic auth when metrics credentials are configured."""
+    """Require HTTP Basic auth on /metrics.
+
+    SECURITY: fail-closed in every environment. Previously dev environments
+    opened /metrics without credentials — which is risky if a container with
+    ENVIRONMENT=development accidentally ends up on a production network.
+    """
     if not settings.METRICS_USERNAME or not settings.METRICS_PASSWORD:
-        if settings.ENVIRONMENT == "production":
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Metrics endpoint is not configured",
-            )
-        return
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Metrics endpoint is not configured",
+            headers={"WWW-Authenticate": "Basic"},
+        )
 
     if credentials is None:
         raise HTTPException(

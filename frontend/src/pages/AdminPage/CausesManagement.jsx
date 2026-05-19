@@ -1,36 +1,21 @@
 /**
- * Causes Management (Knowledge Base)
- * CRUD: situation_id (optional), description
+ * Causes Management — на абстракциях useCrudResource + CrudTable + CrudFormModal.
  */
 
-import { useState, useEffect, useCallback } from 'react';
-import { useNotification } from '@context/NotificationContext';
+import { useEffect, useMemo, useState, useCallback } from 'react';
+import { Button, Spinner, ConfirmDialog, CrudTable, CrudFormModal } from '@components/common';
+import { useCrudResource } from '@hooks/useCrudResource';
 import { causeService, situationService } from '@api';
-import { Button, Spinner, Modal, Input, Select } from '@components/common';
+import { EMPTY_SELECT_OPTION } from '@utils/constants';
 import styles from './Management.module.css';
 
-const EMPTY_OPTION = { value: '', label: '— Не выбрано' };
+const EMPTY_FORM = { situation_id: '', description: '' };
+
+const situationLabel = (s) =>
+  [s.label, s.controlled_param, s.description].filter(Boolean).join(' — ') || s.id;
 
 export function CausesManagement() {
-  const [items, setItems] = useState([]);
   const [situations, setSituations] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [selected, setSelected] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
-  const [form, setForm] = useState({ situation_id: '', description: '' });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState(null);
-
-  const { success, error: showError } = useNotification();
-
-  const situationOptions = [
-    EMPTY_OPTION,
-    ...situations.map((s) => ({
-      value: s.id,
-      label: [s.label, s.controlled_param, s.description].filter(Boolean).join(' — ') || s.id,
-    })),
-  ];
 
   const fetchSituations = useCallback(async () => {
     try {
@@ -41,173 +26,91 @@ export function CausesManagement() {
     }
   }, []);
 
-  const fetchItems = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const res = await causeService.getAll();
-      setItems(res.data || []);
-    } catch (err) {
-      showError('Ошибка загрузки причин');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [showError]);
+  useEffect(() => { fetchSituations(); }, [fetchSituations]);
 
-  useEffect(() => {
-    fetchSituations();
-  }, [fetchSituations]);
+  const situationOptions = useMemo(
+    () => [EMPTY_SELECT_OPTION, ...situations.map((s) => ({ value: s.id, label: situationLabel(s) }))],
+    [situations],
+  );
 
-  useEffect(() => {
-    fetchItems();
-  }, [fetchItems]);
+  const getSituationLabel = useCallback((id) => {
+    if (!id) return '—';
+    const s = situations.find((x) => x.id === id);
+    return s ? situationLabel(s) : id;
+  }, [situations]);
 
-  const handleCreate = () => {
-    setSelected(null);
-    setForm({ situation_id: '', description: '' });
-    setIsCreating(true);
-    setIsModalOpen(true);
-  };
-
-  const handleEdit = (row) => {
-    setSelected(row);
-    setForm({
+  const crud = useCrudResource({
+    service: causeService,
+    emptyForm: EMPTY_FORM,
+    itemToForm: (row) => ({
       situation_id: row.situation_id ?? '',
       description: row.description || '',
-    });
-    setIsCreating(false);
-    setIsModalOpen(true);
-  };
+    }),
+    formToPayload: (form) => ({
+      situation_id: form.situation_id || null,
+      description: form.description || null,
+    }),
+    messages: {
+      loadError: 'Ошибка загрузки причин',
+      created: 'Причина создана',
+      updated: 'Причина обновлена',
+      deleted: 'Причина удалена',
+    },
+  });
 
-  const handleSubmit = async () => {
-    setIsSubmitting(true);
-    try {
-      const data = {
-        situation_id: form.situation_id || null,
-        description: form.description || null,
-      };
+  const columns = [
+    { header: 'Ситуация', render: (row) => getSituationLabel(row.situation_id) },
+    { header: 'Описание', render: (row) => row.description || '—', className: styles.descriptionCell },
+  ];
 
-      if (isCreating) {
-        await causeService.create(data);
-        success('Причина создана');
-      } else {
-        await causeService.update(selected.id, data);
-        success('Причина обновлена');
-      }
-      setIsModalOpen(false);
-      fetchItems();
-    } catch (err) {
-      showError(err.message || 'Ошибка сохранения');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  const fields = [
+    { name: 'situation_id', label: 'Ситуация', type: 'select', options: situationOptions, placeholder: '— Не выбрано' },
+    { name: 'description', label: 'Описание причины', maxLength: 255 },
+  ];
 
-  const handleDelete = (id) => setDeleteConfirm(id);
-
-  const handleConfirmDelete = async () => {
-    try {
-      await causeService.delete(deleteConfirm);
-      success('Причина удалена');
-      setDeleteConfirm(null);
-      fetchItems();
-    } catch (err) {
-      showError(err.message || 'Ошибка удаления');
-    }
-  };
-
-  const getSituationLabel = (situationId) => {
-    if (!situationId) return '—';
-    const s = situations.find((x) => x.id === situationId);
-    if (!s) return situationId;
-    return [s.label, s.controlled_param, s.description].filter(Boolean).join(' — ') || situationId;
-  };
-
-  if (isLoading) {
-    return (
-      <div className={styles.loading}>
-        <Spinner size="lg" />
-      </div>
-    );
+  if (crud.isLoading) {
+    return <div className={styles.loading}><Spinner size="lg" /></div>;
   }
 
   return (
     <div className={styles.container}>
       <div className={styles.toolbar}>
-        <Button variant="primary" onClick={handleCreate}>
+        <Button variant="primary" onClick={crud.startCreate}>
           Добавить причину
         </Button>
       </div>
 
-      <div className={styles.tableWrapper}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>Ситуация</th>
-              <th>Описание</th>
-              <th>Действия</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((row) => (
-              <tr key={row.id}>
-                <td className={styles.primaryCell}>{getSituationLabel(row.situation_id)}</td>
-                <td className={styles.descriptionCell}>{row.description || '—'}</td>
-                <td>
-                  <div className={styles.actions}>
-                    <Button variant="ghost" size="sm" onClick={() => handleEdit(row)}>Изменить</Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleDelete(row.id)}>Удалить</Button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <CrudTable
+        columns={columns}
+        items={crud.items}
+        onEdit={crud.startEdit}
+        onDelete={(item) => crud.askDelete(item.id)}
+        emptyTitle="Нет причин"
+        emptyDescription="Нажмите «Добавить причину» чтобы создать запись"
+      />
 
-      {/* Delete confirmation */}
-      <Modal
-        isOpen={!!deleteConfirm}
-        onClose={() => setDeleteConfirm(null)}
+      <ConfirmDialog
+        isOpen={!!crud.deleteConfirm}
+        onClose={crud.cancelDelete}
+        onConfirm={crud.confirmDelete}
         title="Удалить причину?"
-        size="sm"
-      >
-        <div className={styles.modalContent}>
-          <p>Связанные рекомендации тоже будут удалены. Это действие нельзя отменить.</p>
-          <div className={styles.modalActions}>
-            <Button variant="secondary" onClick={() => setDeleteConfirm(null)}>Отмена</Button>
-            <Button variant="danger" onClick={handleConfirmDelete}>Удалить</Button>
-          </div>
-        </div>
-      </Modal>
+        message="Связанные рекомендации тоже будут удалены. Это действие нельзя отменить."
+        confirmText="Удалить"
+        tone="danger"
+      />
 
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title={isCreating ? 'Добавить причину' : 'Редактировать причину'}
-        size="sm"
-      >
-        <div className={styles.modalContent}>
-          <Select
-            label="Ситуация"
-            options={situationOptions}
-            value={form.situation_id}
-            onChange={(e) => setForm((p) => ({ ...p, situation_id: e.target.value }))}
-            placeholder="— Не выбрано"
-          />
-          <Input
-            label="Описание причины"
-            value={form.description}
-            onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-            maxLength={255}
-          />
-          <div className={styles.modalActions}>
-            <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Отмена</Button>
-            <Button variant="primary" onClick={handleSubmit} loading={isSubmitting}>
-              {isCreating ? 'Создать' : 'Сохранить'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
+      <CrudFormModal
+        isOpen={crud.isModalOpen}
+        isCreating={crud.isCreating}
+        onClose={crud.closeModal}
+        onSubmit={crud.submit}
+        isSubmitting={crud.isSubmitting}
+        titleCreate="Добавить причину"
+        titleEdit="Редактировать причину"
+        fields={fields}
+        form={crud.form}
+        setForm={crud.setForm}
+      />
     </div>
   );
 }

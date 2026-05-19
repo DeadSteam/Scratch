@@ -1,11 +1,21 @@
-"""Health check endpoints with deep component verification."""
+"""Health check endpoints with deep component verification.
+
+Endpoints:
+- /health/liveness — always 200 when process is up (k8s liveness probe).
+- /health/readiness — checks critical deps (k8s readiness probe).
+- /health — deep, returns latency + env + component breakdown.
+
+SECURITY (S14): /health is gated behind the same Basic credentials used
+for /metrics because it reveals internal topology and per-component
+latency. Liveness/readiness stay open — they expose only a boolean.
+"""
 
 from __future__ import annotations
 
 import time
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from sqlalchemy import text
 
 from ..core.config import settings
@@ -15,6 +25,7 @@ from ..core.database import (
     UsersSessionLocal,
 )
 from ..core.logging_config import get_logger
+from ..core.metrics import _verify_metrics_credentials
 from ..core.redis import get_redis_client
 
 logger = get_logger(__name__)
@@ -70,9 +81,12 @@ async def _check_redis() -> dict[str, Any]:
         }
 
 
-@router.get("/health")
+@router.get("/health", dependencies=[Depends(_verify_metrics_credentials)])
 async def health_check() -> dict[str, Any]:
-    """Deep health check — verifies DB and Redis connectivity."""
+    """Deep health check — verifies DB and Redis connectivity.
+
+    Gated behind Basic auth (same credentials as /metrics).
+    """
     components: dict[str, dict[str, Any]] = {}
 
     # Check all databases in parallel-style (sequential but fast)

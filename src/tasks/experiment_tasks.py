@@ -83,3 +83,54 @@ async def _recalculate_and_persist(
         except Exception:
             await session.rollback()
             raise
+
+
+# ---------------------------------------------------------------------------
+# B8: cross-DB cleanup. Triggered after a user is removed from users_db.
+# Experiments live in experiments_db without a FK to the users table, so
+# they must be cleaned up explicitly.
+# ---------------------------------------------------------------------------
+@celery_app.task(
+    name="src.tasks.experiment_tasks.cleanup_user_experiments",
+    bind=True,
+    max_retries=3,
+    default_retry_delay=60,
+)
+def cleanup_user_experiments(
+    self: Any,
+    user_id: str,
+) -> dict[str, Any]:
+    """Delete every experiment owned by `user_id` (and its images via cascade)."""
+    from uuid import UUID
+
+    logger.info("user_cleanup_started", task_id=self.request.id, user_id=user_id)
+    try:
+        deleted = run_async(_delete_user_experiments(UUID(user_id)))
+        logger.info(
+            "user_cleanup_completed",
+            task_id=self.request.id,
+            user_id=user_id,
+            deleted=deleted,
+        )
+        return {"user_id": user_id, "deleted_experiments": deleted}
+    except Exception as exc:
+        logger.error(
+            "user_cleanup_failed",
+            task_id=self.request.id,
+            user_id=user_id,
+            error=str(exc),
+        )
+        raise self.retry(exc=exc) from exc
+
+
+async def _delete_user_experiments(user_id: Any) -> int:
+    from ..core.database import MainSessionLocal
+
+    async with MainSessionLocal() as session:
+        try:
+            deleted = await _experiment_repo.delete_by_user_id(user_id, session)
+            await session.commit()
+            return deleted
+        except Exception:
+            await session.rollback()
+            raise

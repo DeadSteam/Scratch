@@ -67,8 +67,15 @@ def create_access_token(
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
-def create_refresh_token(data: dict[str, Any]) -> str:
-    """Create JWT refresh token."""
+def create_refresh_token(
+    data: dict[str, Any], *, family_id: str | None = None
+) -> str:
+    """Create JWT refresh token.
+
+    `family_id` ties together the chain of refresh tokens issued from one
+    login. Rotated tokens inherit the family_id; theft detection burns
+    the entire family on reuse (S11).
+    """
     to_encode = data.copy()
     expire = datetime.now(UTC) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     to_encode.update(
@@ -76,6 +83,7 @@ def create_refresh_token(data: dict[str, Any]) -> str:
             "exp": expire,
             "type": "refresh",
             "jti": str(uuid.uuid4()),
+            "family": family_id or str(uuid.uuid4()),
         }
     )
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
@@ -84,24 +92,33 @@ def create_refresh_token(data: dict[str, Any]) -> str:
 def verify_token(token: str) -> dict[str, Any]:
     """Verify and decode JWT token.
 
+    Supports key rotation: tries SECRET_KEY first (current signing key),
+    then SECONDARY_SECRET_KEYS in order (old keys still accepted for
+    verification). The algorithm whitelist is enforced by config.
+
     Raises:
         TokenValidationError: If the token is invalid or expired.
     """
-    try:
-        return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-    except PyJWTError as err:
-        raise TokenValidationError("Could not validate credentials") from err
+    keys = [settings.SECRET_KEY, *settings.SECONDARY_SECRET_KEYS]
+    last_err: Exception | None = None
+    for key in keys:
+        try:
+            return jwt.decode(token, key, algorithms=[settings.ALGORITHM])
+        except PyJWTError as err:
+            last_err = err
+            continue
+    raise TokenValidationError("Could not validate credentials") from last_err
 
 
 def verify_access_token(token: str) -> dict[str, Any]:
-    """Verify access token (rejects refresh tokens).
+    """Verify access token (rejects refresh tokens and tokens missing `type`).
 
     Raises:
         TokenValidationError: If the token is invalid or not an access token.
     """
     payload = verify_token(token)
-    token_type = payload.get("type")
-    if token_type is not None and token_type != "access":
+    if payload.get("type") != "access":
+        # Strict: reject tokens without an explicit `type` claim too.
         raise TokenValidationError("Invalid token type")
     return payload
 

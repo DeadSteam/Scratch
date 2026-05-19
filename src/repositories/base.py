@@ -18,6 +18,23 @@ from .interfaces import BaseRepository
 
 T = TypeVar("T", bound=DeclarativeBase)
 
+# Columns that must NEVER be serialised to the cache, regardless of the model.
+# Keeping a denylist (instead of an opt-in allowlist) makes new sensitive
+# columns inherit the protection on day one.
+_SECRET_COLUMNS = frozenset({"password_hash", "password", "secret", "token"})
+
+
+def _serialize_row(entity: object) -> dict[str, object]:
+    """Return a dict of column values safe to cache. Strips secret columns."""
+    table = getattr(entity, "__table__", None)
+    if table is None:
+        return {}
+    return {
+        c.name: getattr(entity, c.name)
+        for c in table.columns
+        if c.name not in _SECRET_COLUMNS
+    }
+
 
 class BaseRepositoryImpl[T](BaseRepository[T]):
     """Base repository implementation with common CRUD operations."""
@@ -133,13 +150,7 @@ class CachedRepositoryImpl[T](BaseRepositoryImpl[T]):
         # Get from database
         entity = await self.get_by_id(id, session)
         if entity:
-            table = getattr(entity, "__table__", None)
-            entity_dict = (
-                {c.name: getattr(entity, c.name) for c in table.columns}
-                if table is not None
-                else {}
-            )
-            await redis_client.set(cache_key, entity_dict)
+            await redis_client.set(cache_key, _serialize_row(entity))
 
         return entity
 
@@ -158,15 +169,7 @@ class CachedRepositoryImpl[T](BaseRepositoryImpl[T]):
         # Get from database
         entities = await self.get_all(session, skip, limit)
         if entities:
-            entities_dict = []
-            for entity in entities:
-                table = getattr(entity, "__table__", None)
-                entities_dict.append(
-                    {c.name: getattr(entity, c.name) for c in table.columns}
-                    if table is not None
-                    else {}
-                )
-            await redis_client.set(cache_key, entities_dict)
+            await redis_client.set(cache_key, [_serialize_row(e) for e in entities])
 
         return entities
 

@@ -56,49 +56,55 @@ class KnowledgeSummary(SchemaBase):
     )
 
 
-class ExperimentBase(SchemaBase):
+def _validate_rect_coords(v: list[float] | None) -> list[float] | None:
+    if v is None:
+        return v
+    if len(v) != 4:
+        raise ValueError("Rectangle must have 4 values: [x, y, width, height]")
+    if any(coord < 0 for coord in v):
+        raise ValueError("Rectangle coordinates must be non-negative")
+    return v
+
+
+class _ExperimentEditable(SchemaBase):
+    """Fields a user is allowed to set/edit. Excludes user_id and scratch_results."""
+
     film_id: UUID = Field(..., description="ID of the film used in experiment")
     config_id: UUID = Field(..., description="ID of the equipment configuration")
-    user_id: UUID = Field(..., description="ID of the user conducting the experiment")
     name: str | None = Field(None, max_length=200, description="Experiment name")
     date: datetime | None = Field(None, description="Experiment date and time")
     rect_coords: list[float] | None = Field(
         None, description="Rectangle coordinates for analysis [x, y, width, height]"
     )
-    weight: float | None = Field(None, description="Sample weight in grams")
+    weight: float | None = Field(None, gt=0, description="Sample weight in grams")
     has_fabric: bool | None = Field(
         False, description="Whether fabric substrate was used"
     )
-    scratch_results: list[dict[str, Any]] | None = Field(
-        None, description="Array of scratch analysis results for each image"
-    )
 
 
-class ExperimentCreate(ExperimentBase):
-    weight: float | None = Field(None, gt=0, description="Sample weight in grams")
+class ExperimentCreate(_ExperimentEditable):
+    """Create payload. `user_id` is injected from the authenticated current_user."""
 
     @field_validator("rect_coords")
     @classmethod
-    def validate_rect_coords(cls, v: list[float] | None) -> list[float] | None:
-        """Validate rectangle coordinates have correct format."""
-        if v is not None:
-            if len(v) != 4:
-                raise ValueError("Rectangle must have 4 values: [x, y, width, height]")
-            if any(coord < 0 for coord in v):
-                raise ValueError("Rectangle coordinates must be non-negative")
-        return v
+    def _check_rect(cls, v: list[float] | None) -> list[float] | None:
+        return _validate_rect_coords(v)
 
 
 class ExperimentUpdate(SchemaBase):
+    """PATCH payload.
+
+    SECURITY: must NOT include `user_id` (impersonation) or
+    `scratch_results` (analysis fabrication). Both are set server-side.
+    """
+
     film_id: UUID | None = None
     config_id: UUID | None = None
-    user_id: UUID | None = None
     name: str | None = Field(None, max_length=200)
     date: datetime | None = None
     rect_coords: list[float] | None = None
     weight: float | None = Field(None, gt=0)
     has_fabric: bool | None = None
-    scratch_results: list[dict[str, Any]] | None = None
 
     @field_validator("name")
     @classmethod
@@ -111,15 +117,22 @@ class ExperimentUpdate(SchemaBase):
     @field_validator("weight")
     @classmethod
     def validate_weight(cls, v: float | None) -> float | None:
-        """Validate weight is positive if provided."""
         if v is not None and v <= 0:
             raise ValueError("Weight must be greater than 0")
         return v
 
+    @field_validator("rect_coords")
+    @classmethod
+    def _check_rect(cls, v: list[float] | None) -> list[float] | None:
+        return _validate_rect_coords(v)
 
-class ExperimentRead(ExperimentBase):
+
+class ExperimentRead(_ExperimentEditable):
+    """Server-rendered view; includes server-set fields."""
+
     id: UUID
+    user_id: UUID
+    scratch_results: list[dict[str, Any]] | None = None
     film: FilmRead | None = None
     config: EquipmentConfigRead | None = None
     knowledge_summary: KnowledgeSummary | None = None
-    # Note: No user relationship - users are in a separate database (users_db)

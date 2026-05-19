@@ -4,7 +4,12 @@ from uuid import UUID
 
 from fastapi import APIRouter, Query, status
 
-from ..core.dependencies import CurrentAdmin, EquipmentConfigSvc, MainDBSession
+from ..core.dependencies import (
+    CurrentAdmin,
+    CurrentUser,
+    EquipmentConfigSvc,
+    MainDBSession,
+)
 from ..schemas.equipment_config import (
     EquipmentConfigCreate,
     EquipmentConfigRead,
@@ -25,6 +30,7 @@ router = APIRouter(prefix="/equipment-configs", tags=["Equipment Configurations"
 async def list_configs(
     config_service: EquipmentConfigSvc,
     db: MainDBSession,
+    _user: CurrentUser,
     skip: int = Query(0, ge=0, description="Number of items to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Number of items to return"),
 ):
@@ -51,6 +57,7 @@ async def list_configs(
 async def search_configs(
     config_service: EquipmentConfigSvc,
     db: MainDBSession,
+    _user: CurrentUser,
     name: str = Query(..., min_length=1, description="Name pattern to search for"),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
@@ -71,19 +78,21 @@ async def get_configs_by_head_type(
     head_type: str,
     config_service: EquipmentConfigSvc,
     db: MainDBSession,
+    _user: CurrentUser,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
 ):
     """Get configurations by head type."""
     configs = await config_service.get_by_head_type(head_type, db, skip, limit)
+    total = await config_service.count_by_head_type(head_type, db)
 
     return PaginatedResponse(
         success=True,
         data=configs,
-        total=len(configs),
+        total=total,
         skip=skip,
         limit=limit,
-        has_more=len(configs) == limit,
+        has_more=(skip + len(configs)) < total,
     )
 
 
@@ -94,7 +103,10 @@ async def get_configs_by_head_type(
     description="Retrieve a specific equipment configuration by ID",
 )
 async def get_config(
-    config_id: UUID, config_service: EquipmentConfigSvc, db: MainDBSession
+    config_id: UUID,
+    config_service: EquipmentConfigSvc,
+    db: MainDBSession,
+    _user: CurrentUser,
 ):
     """Get equipment configuration by ID."""
     config = await config_service.get_by_id(config_id, db)

@@ -7,6 +7,7 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     LargeBinary,
+    String,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import (
@@ -35,6 +36,9 @@ class ExperimentImage(UUIDBase):
         type_=LargeBinary,
         nullable=False,
     )
+    # B11: original MIME captured at upload time. NULL for legacy rows; the
+    # download endpoint falls back to magic-byte sniffing in that case.
+    mime_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
     passes: Mapped[int] = mapped_column(Integer, default=1)
 
     experiment: Mapped[Experiment] = relationship(back_populates="images")

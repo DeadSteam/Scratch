@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models.equipment_config import EquipmentConfig
@@ -25,3 +25,12 @@ class EquipmentConfigRepository(
             .limit(limit)
         )
         return list(result.scalars().all())
+
+    async def count_by_head_type(self, head_type: str, session: AsyncSession) -> int:
+        """Total number of configs with the given head type."""
+        result = await session.execute(
+            select(func.count(EquipmentConfig.id)).where(
+                EquipmentConfig.head_type == head_type
+            )
+        )
+        return result.scalar() or 0

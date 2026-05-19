@@ -58,5 +58,20 @@ export const TIMINGS = {
   REDIRECT_DELAY_MS: 1500,
 };
 
+/** Общая стилизация осей Recharts (X/Y) */
+export const CHART_AXIS_STYLE = {
+  fontFamily: "'Inter', sans-serif",
+  fontSize: '12px',
+};
+
+/** Цвет сетки Recharts */
+export const CHART_GRID_COLOR = 'rgba(51, 65, 85, 0.5)';
+
+/** Цвет осей Recharts */
+export const CHART_AXIS_COLOR = '#94a3b8';
+
+/** Опция «не выбрано» для Select */
+export const EMPTY_SELECT_OPTION = { value: '', label: '— Не выбрано' };
+
 
 

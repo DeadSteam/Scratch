@@ -1,6 +1,6 @@
 import json
 from functools import lru_cache
-from typing import Any, Self
+from typing import Any, ClassVar, Self
 
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -43,8 +43,19 @@ class Settings(BaseSettings):
     )
 
     # Security
-    SECRET_KEY: str = Field(..., description="Secret key for JWT tokens")
+    SECRET_KEY: str = Field(..., description="Primary key used to SIGN new JWT tokens")
+    SECONDARY_SECRET_KEYS: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Additional keys accepted ONLY for verification (key rotation). "
+            "Drain old tokens before removing a key from this list."
+        ),
+    )
     ALGORITHM: str = Field(default="HS256", description="JWT algorithm")
+
+    _ALLOWED_ALGORITHMS: ClassVar[frozenset[str]] = frozenset(
+        {"HS256", "HS384", "HS512", "RS256", "RS384", "RS512", "ES256", "ES384"}
+    )
 
     @field_validator("SECRET_KEY")
     @classmethod
@@ -53,6 +64,30 @@ class Settings(BaseSettings):
             raise ValueError(
                 "SECRET_KEY must be a random string of at least 32 characters. "
                 'Generate: python -c "import secrets; print(secrets.token_urlsafe(32))"'
+            )
+        return v
+
+    @field_validator("SECONDARY_SECRET_KEYS", mode="before")
+    @classmethod
+    def _parse_secondary_keys(cls, v: Any) -> list[str]:
+        if v is None or v == "":
+            return []
+        if isinstance(v, str):
+            try:
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return [str(k) for k in parsed if k]
+            except (json.JSONDecodeError, TypeError):
+                return [k.strip() for k in v.split(",") if k.strip()]
+        return list(v) if isinstance(v, list) else []
+
+    @field_validator("ALGORITHM")
+    @classmethod
+    def validate_algorithm(cls, v: str) -> str:
+        # Reject "none" (signature bypass) and unsupported algorithms outright.
+        if v not in cls._ALLOWED_ALGORITHMS:
+            raise ValueError(
+                f"ALGORITHM must be one of {sorted(cls._ALLOWED_ALGORITHMS)}; got {v!r}"
             )
         return v
 

@@ -1,246 +1,133 @@
 /**
- * Users Management Component
+ * Users Management — на абстракциях useCrudResource + CrudTable.
+ *
+ * Особенности: правка только email (PUT), отдельный flow деактивации/активации,
+ * подтверждение удаления хранит весь объект (для отображения username в заголовке).
  */
 
-import { useState, useEffect, useCallback } from 'react';
-import { useNotification } from '@context/NotificationContext';
-import { userService } from '@api';
+import { useCallback, useState } from 'react';
 import { Users } from '@phosphor-icons/react';
 import { ph } from '@components/icons/phosphor';
-import { Button, Spinner, Modal, Input } from '@components/common';
+import { useNotification } from '@context/NotificationContext';
+import { Button, Spinner, ConfirmDialog, CrudTable, CrudFormModal } from '@components/common';
+import { useCrudResource } from '@hooks/useCrudResource';
+import { userService } from '@api';
 import styles from './Management.module.css';
 
+const EMPTY_FORM = { email: '' };
+
+const FIELDS = [{ name: 'email', label: 'Email', type: 'email' }];
+
 export function UsersManagement() {
-  const [users, setUsers] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editForm, setEditForm] = useState({ email: '' });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const { success, error: showError } = useNotification();
   const [deactivateConfirm, setDeactivateConfirm] = useState(null);
 
-  const { success, error: showError } = useNotification();
+  const crud = useCrudResource({
+    service: userService,
+    emptyForm: EMPTY_FORM,
+    itemToForm: (user) => ({ email: user.email }),
+    formToPayload: (form) => form,
+    messages: {
+      loadError: 'Ошибка загрузки пользователей',
+      updated: 'Пользователь обновлён',
+      deleted: 'Пользователь удалён',
+    },
+  });
 
-  const fetchUsers = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const response = await userService.getAll();
-      setUsers(response.data || []);
-    } catch (err) {
-      showError('Ошибка загрузки пользователей');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [showError]);
-
-  useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
-
-  const handleEdit = (user) => {
-    setSelectedUser(user);
-    setEditForm({ email: user.email });
-    setIsEditModalOpen(true);
-  };
-
-  const handleUpdateUser = async () => {
-    if (!selectedUser) return;
-
-    setIsSubmitting(true);
-    try {
-      await userService.update(selectedUser.id, editForm);
-      success('Пользователь обновлён');
-      setIsEditModalOpen(false);
-      fetchUsers();
-    } catch (err) {
-      showError(err.message || 'Ошибка обновления');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleDeactivate = (userId) => setDeactivateConfirm(userId);
-
-  const handleConfirmDeactivate = async () => {
+  const handleConfirmDeactivate = useCallback(async () => {
+    if (!deactivateConfirm) return;
     try {
       await userService.deactivate(deactivateConfirm);
       success('Пользователь деактивирован');
       setDeactivateConfirm(null);
-      fetchUsers();
+      crud.refetch();
     } catch (err) {
       showError(err.message || 'Ошибка деактивации');
     }
-  };
+  }, [deactivateConfirm, success, showError, crud]);
 
-  const handleActivate = async (userId) => {
+  const handleActivate = useCallback(async (userId) => {
     try {
       await userService.activate(userId);
       success('Пользователь активирован');
-      fetchUsers();
+      crud.refetch();
     } catch (err) {
       showError(err.message || 'Ошибка активации');
     }
-  };
+  }, [success, showError, crud]);
 
-  const handleDelete = (user) => setDeleteConfirm(user);
+  const columns = [
+    { header: 'Имя пользователя', field: 'username' },
+    { header: 'Email', field: 'email' },
+    {
+      header: 'Роли',
+      render: (u) => (u.roles || []).map((r) => (
+        <span key={r.id} className={styles.badge}>{r.name}</span>
+      )),
+    },
+    {
+      header: 'Статус',
+      render: (u) => (
+        <span className={`${styles.status} ${u.is_active ? styles.active : styles.inactive}`}>
+          {u.is_active ? 'Активен' : 'Неактивен'}
+        </span>
+      ),
+    },
+  ];
 
-  const handleConfirmDelete = async () => {
-    try {
-      await userService.delete(deleteConfirm.id);
-      success('Пользователь удалён');
-      setDeleteConfirm(null);
-      fetchUsers();
-    } catch (err) {
-      showError(err.message || 'Ошибка удаления');
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className={styles.loading}>
-        <Spinner size="lg" />
-      </div>
-    );
+  if (crud.isLoading) {
+    return <div className={styles.loading}><Spinner size="lg" /></div>;
   }
 
   return (
     <div className={styles.container}>
-      <div className={styles.tableWrapper}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>Имя пользователя</th>
-              <th>Email</th>
-              <th>Роли</th>
-              <th>Статус</th>
-              <th>Действия</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.length === 0 ? (
-              <tr className={styles.emptyRow}>
-                <td colSpan={5}>
-                  <div className={styles.emptyStateCell}>
-                    <div className={styles.emptyIcon}>
-                      <Users {...ph(18)} aria-hidden />
-                    </div>
-                    <p className={styles.emptyTitle}>Нет пользователей</p>
-                    <p className={styles.emptyDesc}>Пользователи появятся здесь после загрузки данных</p>
-                  </div>
-                </td>
-              </tr>
-            ) : users.map((user) => (
-              <tr key={user.id}>
-                <td className={styles.primaryCell}>{user.username}</td>
-                <td>{user.email}</td>
-                <td>
-                  {user.roles?.map((role) => (
-                    <span key={role.id} className={styles.badge}>
-                      {role.name}
-                    </span>
-                  ))}
-                </td>
-                <td>
-                  <span className={`${styles.status} ${user.is_active ? styles.active : styles.inactive}`}>
-                    {user.is_active ? 'Активен' : 'Неактивен'}
-                  </span>
-                </td>
-                <td>
-                  <div className={styles.actions}>
-                    <Button variant="ghost" size="sm" onClick={() => handleEdit(user)}>
-                      Изменить
-                    </Button>
-                    {user.is_active ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeactivate(user.id)}
-                      >
-                        Деактивировать
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleActivate(user.id)}
-                      >
-                        Активировать
-                      </Button>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={styles.deleteBtn}
-                      onClick={() => handleDelete(user)}
-                    >
-                      Удалить
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <CrudTable
+        columns={columns}
+        items={crud.items}
+        onEdit={crud.startEdit}
+        onDelete={(user) => crud.askDelete(user)}
+        actions={(user) => (
+          user.is_active
+            ? <Button variant="ghost" size="sm" onClick={() => setDeactivateConfirm(user.id)}>Деактивировать</Button>
+            : <Button variant="ghost" size="sm" onClick={() => handleActivate(user.id)}>Активировать</Button>
+        )}
+        emptyIcon={<Users {...ph(18)} aria-hidden />}
+        emptyTitle="Нет пользователей"
+        emptyDescription="Пользователи появятся здесь после загрузки данных"
+      />
 
-      {/* Deactivate confirmation */}
-      <Modal
+      <ConfirmDialog
         isOpen={!!deactivateConfirm}
         onClose={() => setDeactivateConfirm(null)}
+        onConfirm={handleConfirmDeactivate}
         title="Деактивировать пользователя?"
-        size="sm"
-      >
-        <div className={styles.modalContent}>
-          <p>Пользователь потеряет доступ к системе. Это можно отменить.</p>
-          <div className={styles.modalActions}>
-            <Button variant="secondary" onClick={() => setDeactivateConfirm(null)}>Отмена</Button>
-            <Button variant="danger" onClick={handleConfirmDeactivate}>Деактивировать</Button>
-          </div>
-        </div>
-      </Modal>
+        message="Пользователь потеряет доступ к системе. Это можно отменить."
+        confirmText="Деактивировать"
+        tone="danger"
+      />
 
-      {/* Delete confirmation */}
-      <Modal
-        isOpen={!!deleteConfirm}
-        onClose={() => setDeleteConfirm(null)}
-        title={`Удалить пользователя «${deleteConfirm?.username || deleteConfirm?.email || ''}»?`}
-        size="sm"
-      >
-        <div className={styles.modalContent}>
-          <p>Это действие необратимо.</p>
-          <div className={styles.modalActions}>
-            <Button variant="secondary" onClick={() => setDeleteConfirm(null)}>Отмена</Button>
-            <Button variant="danger" onClick={handleConfirmDelete}>Удалить</Button>
-          </div>
-        </div>
-      </Modal>
+      <ConfirmDialog
+        isOpen={!!crud.deleteConfirm}
+        onClose={crud.cancelDelete}
+        onConfirm={crud.confirmDelete}
+        title={`Удалить пользователя «${crud.deleteConfirm?.username || crud.deleteConfirm?.email || ''}»?`}
+        message="Это действие необратимо."
+        confirmText="Удалить"
+        tone="danger"
+      />
 
-      {/* Edit Modal */}
-      <Modal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        title="Редактирование пользователя"
-        size="sm"
-      >
-        <div className={styles.modalContent}>
-          <Input
-            label="Email"
-            type="email"
-            value={editForm.email}
-            onChange={(e) => setEditForm((prev) => ({ ...prev, email: e.target.value }))}
-          />
-
-          <div className={styles.modalActions}>
-            <Button variant="secondary" onClick={() => setIsEditModalOpen(false)}>
-              Отмена
-            </Button>
-            <Button variant="primary" onClick={handleUpdateUser} loading={isSubmitting}>
-              Сохранить
-            </Button>
-          </div>
-        </div>
-      </Modal>
+      <CrudFormModal
+        isOpen={crud.isModalOpen}
+        isCreating={false}
+        onClose={crud.closeModal}
+        onSubmit={crud.submit}
+        isSubmitting={crud.isSubmitting}
+        titleCreate=""
+        titleEdit="Редактирование пользователя"
+        fields={FIELDS}
+        form={crud.form}
+        setForm={crud.setForm}
+      />
     </div>
   );
 }

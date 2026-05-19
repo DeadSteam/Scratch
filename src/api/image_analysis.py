@@ -116,9 +116,17 @@ async def quick_experiment_analysis(
     db: MainDBSession,
     current_user: CurrentUser,
     skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000),
+    # B9: cap inline calls hard. Each image is loaded into Pillow in memory;
+    # 20 * MAX_FILE_SIZE caps in-flight memory at ~200 MB. Larger jobs must
+    # use the Celery-backed task (POST /tasks/quick-analysis/{id}).
+    limit: int = Query(20, ge=1, le=20),
 ):
-    """Quick per-image stats (no write)."""
+    """Quick per-image stats (no write).
+
+    SECURITY/PERF (B9): inline limit hard-capped at 20 images. For larger
+    jobs, submit POST /tasks/quick-analysis/{experiment_id} and poll the
+    resulting task_id.
+    """
     await ensure_experiment_access(experiment_id, current_user, db)
     data = await analysis_service.quick_analysis(experiment_id, db, skip, limit)
     msg = (

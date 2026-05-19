@@ -1,92 +1,43 @@
-"""Knowledge base API: situations, causes, advice."""
+"""Knowledge base API: situations, causes, advice.
+
+Routers are built from a generic factory (api/crud_factory.py, audit B4)
+plus a handful of hand-rolled cross-reference endpoints (causes by
+situation_id, advices by cause_id).
+"""
 
 from uuid import UUID
 
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, Query
 
 from ..core.dependencies import (
     AdviceSvc,
     CauseSvc,
     CurrentAdmin,
+    CurrentUser,
     KnowledgeDBSession,
     SituationSvc,
 )
 from ..schemas.advice import AdviceCreate, AdviceRead, AdviceUpdate
 from ..schemas.cause import CauseCreate, CauseRead, CauseUpdate
 from ..schemas.situation import SituationCreate, SituationRead, SituationUpdate
+from .crud_factory import make_crud_router
 from .crud_router import paginated_list_by_parent
-from .responses import PaginatedResponse, Response
+from .responses import PaginatedResponse
 
-# --- Situations ---
-
-router_situations = APIRouter(prefix="/situations", tags=["Situations"])
-
-
-@router_situations.get("/", response_model=PaginatedResponse[SituationRead])
-async def list_situations(
-    situation_service: SituationSvc,
-    db: KnowledgeDBSession,
-    skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000),
-):
-    items = await situation_service.get_all(db, skip, limit)
-    total = await situation_service.count(db)
-    return PaginatedResponse(
-        success=True,
-        data=items,
-        total=total,
-        skip=skip,
-        limit=limit,
-        has_more=(skip + len(items)) < total,
-    )
-
-
-@router_situations.get("/{situation_id}", response_model=Response[SituationRead])
-async def get_situation(
-    situation_id: UUID,
-    situation_service: SituationSvc,
-    db: KnowledgeDBSession,
-):
-    item = await situation_service.get_by_id(situation_id, db)
-    return Response(success=True, message="OK", data=item)
-
-
-@router_situations.post(
-    "/",
-    response_model=Response[SituationRead],
-    status_code=status.HTTP_201_CREATED,
+# ---------------------------------------------------------------------------
+# Situations
+# ---------------------------------------------------------------------------
+router_situations = make_crud_router(
+    prefix="/situations",
+    tag="Situations",
+    create_schema=SituationCreate,
+    update_schema=SituationUpdate,
+    read_schema=SituationRead,
+    service_dep=SituationSvc,
+    session_dep=KnowledgeDBSession,
+    auth_dep=CurrentUser,
+    admin_dep=CurrentAdmin,
 )
-async def create_situation(
-    data: SituationCreate,
-    situation_service: SituationSvc,
-    db: KnowledgeDBSession,
-    admin: CurrentAdmin,
-):
-    item = await situation_service.create(data, db)
-    return Response(success=True, message="Создано", data=item)
-
-
-@router_situations.patch("/{situation_id}", response_model=Response[SituationRead])
-async def update_situation(
-    situation_id: UUID,
-    data: SituationUpdate,
-    situation_service: SituationSvc,
-    db: KnowledgeDBSession,
-    admin: CurrentAdmin,
-):
-    item = await situation_service.update(situation_id, data, db)
-    return Response(success=True, message="Обновлено", data=item)
-
-
-@router_situations.delete("/{situation_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_situation(
-    situation_id: UUID,
-    situation_service: SituationSvc,
-    db: KnowledgeDBSession,
-    admin: CurrentAdmin,
-):
-    await situation_service.delete(situation_id, db)
-    return None
 
 
 @router_situations.get(
@@ -97,6 +48,7 @@ async def list_causes_by_situation(
     situation_id: UUID,
     cause_service: CauseSvc,
     db: KnowledgeDBSession,
+    _user: CurrentUser,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
 ):
@@ -110,76 +62,20 @@ async def list_causes_by_situation(
     )
 
 
-# --- Causes ---
-
-router_causes = APIRouter(prefix="/causes", tags=["Causes"])
-
-
-@router_causes.get("/", response_model=PaginatedResponse[CauseRead])
-async def list_causes(
-    cause_service: CauseSvc,
-    db: KnowledgeDBSession,
-    skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000),
-):
-    items = await cause_service.get_all(db, skip, limit)
-    total = await cause_service.count(db)
-    return PaginatedResponse(
-        success=True,
-        data=items,
-        total=total,
-        skip=skip,
-        limit=limit,
-        has_more=(skip + len(items)) < total,
-    )
-
-
-@router_causes.get("/{cause_id}", response_model=Response[CauseRead])
-async def get_cause(
-    cause_id: UUID,
-    cause_service: CauseSvc,
-    db: KnowledgeDBSession,
-):
-    item = await cause_service.get_by_id(cause_id, db)
-    return Response(success=True, message="OK", data=item)
-
-
-@router_causes.post(
-    "/",
-    response_model=Response[CauseRead],
-    status_code=status.HTTP_201_CREATED,
+# ---------------------------------------------------------------------------
+# Causes
+# ---------------------------------------------------------------------------
+router_causes = make_crud_router(
+    prefix="/causes",
+    tag="Causes",
+    create_schema=CauseCreate,
+    update_schema=CauseUpdate,
+    read_schema=CauseRead,
+    service_dep=CauseSvc,
+    session_dep=KnowledgeDBSession,
+    auth_dep=CurrentUser,
+    admin_dep=CurrentAdmin,
 )
-async def create_cause(
-    data: CauseCreate,
-    cause_service: CauseSvc,
-    db: KnowledgeDBSession,
-    admin: CurrentAdmin,
-):
-    item = await cause_service.create(data, db)
-    return Response(success=True, message="Создано", data=item)
-
-
-@router_causes.patch("/{cause_id}", response_model=Response[CauseRead])
-async def update_cause(
-    cause_id: UUID,
-    data: CauseUpdate,
-    cause_service: CauseSvc,
-    db: KnowledgeDBSession,
-    admin: CurrentAdmin,
-):
-    item = await cause_service.update(cause_id, data, db)
-    return Response(success=True, message="Обновлено", data=item)
-
-
-@router_causes.delete("/{cause_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_cause(
-    cause_id: UUID,
-    cause_service: CauseSvc,
-    db: KnowledgeDBSession,
-    admin: CurrentAdmin,
-):
-    await cause_service.delete(cause_id, db)
-    return None
 
 
 @router_causes.get(
@@ -190,6 +86,7 @@ async def list_advices_by_cause(
     cause_id: UUID,
     advice_service: AdviceSvc,
     db: KnowledgeDBSession,
+    _user: CurrentUser,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
 ):
@@ -204,73 +101,21 @@ async def list_advices_by_cause(
     )
 
 
-# --- Advices ---
-
-router_advices = APIRouter(prefix="/advices", tags=["Advices"])
-
-
-@router_advices.get("/", response_model=PaginatedResponse[AdviceRead])
-async def list_advices(
-    advice_service: AdviceSvc,
-    db: KnowledgeDBSession,
-    skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000),
-):
-    items = await advice_service.get_all(db, skip, limit)
-    total = await advice_service.count(db)
-    return PaginatedResponse(
-        success=True,
-        data=items,
-        total=total,
-        skip=skip,
-        limit=limit,
-        has_more=(skip + len(items)) < total,
-    )
-
-
-@router_advices.get("/{advice_id}", response_model=Response[AdviceRead])
-async def get_advice(
-    advice_id: UUID,
-    advice_service: AdviceSvc,
-    db: KnowledgeDBSession,
-):
-    item = await advice_service.get_by_id(advice_id, db)
-    return Response(success=True, message="OK", data=item)
-
-
-@router_advices.post(
-    "/",
-    response_model=Response[AdviceRead],
-    status_code=status.HTTP_201_CREATED,
+# ---------------------------------------------------------------------------
+# Advices
+# ---------------------------------------------------------------------------
+router_advices = make_crud_router(
+    prefix="/advices",
+    tag="Advices",
+    create_schema=AdviceCreate,
+    update_schema=AdviceUpdate,
+    read_schema=AdviceRead,
+    service_dep=AdviceSvc,
+    session_dep=KnowledgeDBSession,
+    auth_dep=CurrentUser,
+    admin_dep=CurrentAdmin,
 )
-async def create_advice(
-    data: AdviceCreate,
-    advice_service: AdviceSvc,
-    db: KnowledgeDBSession,
-    admin: CurrentAdmin,
-):
-    item = await advice_service.create(data, db)
-    return Response(success=True, message="Создано", data=item)
 
 
-@router_advices.patch("/{advice_id}", response_model=Response[AdviceRead])
-async def update_advice(
-    advice_id: UUID,
-    data: AdviceUpdate,
-    advice_service: AdviceSvc,
-    db: KnowledgeDBSession,
-    admin: CurrentAdmin,
-):
-    item = await advice_service.update(advice_id, data, db)
-    return Response(success=True, message="Обновлено", data=item)
-
-
-@router_advices.delete("/{advice_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_advice(
-    advice_id: UUID,
-    advice_service: AdviceSvc,
-    db: KnowledgeDBSession,
-    admin: CurrentAdmin,
-):
-    await advice_service.delete(advice_id, db)
-    return None
+# Keep APIRouter imported (factory returns one; this avoids ruff F401).
+_ = APIRouter

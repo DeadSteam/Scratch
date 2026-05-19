@@ -1,7 +1,8 @@
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import func, insert, select
+from sqlalchemy import delete, func, insert, select
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -208,3 +209,68 @@ class ExperimentRepository(
             )
         )
         return result.scalar() or 0
+
+    # -----------------------------------------------------------------
+    # B3: unified list/count. The legacy get_by_X / count_by_X / *_for_user
+    # methods above remain as thin facades for back-compat.
+    # -----------------------------------------------------------------
+    async def list_experiments(
+        self,
+        session: AsyncSession,
+        *,
+        user_id: UUID | None = None,
+        film_id: UUID | None = None,
+        config_id: UUID | None = None,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> list[Experiment]:
+        """List experiments with optional filters."""
+        stmt = select(Experiment).options(
+            selectinload(Experiment.film), selectinload(Experiment.config)
+        )
+        if user_id is not None:
+            stmt = stmt.where(Experiment.user_id == user_id)
+        if film_id is not None:
+            stmt = stmt.where(Experiment.film_id == film_id)
+        if config_id is not None:
+            stmt = stmt.where(Experiment.config_id == config_id)
+        stmt = stmt.offset(skip).limit(limit)
+        result = await session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def count_experiments(
+        self,
+        session: AsyncSession,
+        *,
+        user_id: UUID | None = None,
+        film_id: UUID | None = None,
+        config_id: UUID | None = None,
+    ) -> int:
+        """Count experiments with optional filters."""
+        stmt = select(func.count(Experiment.id))
+        if user_id is not None:
+            stmt = stmt.where(Experiment.user_id == user_id)
+        if film_id is not None:
+            stmt = stmt.where(Experiment.film_id == film_id)
+        if config_id is not None:
+            stmt = stmt.where(Experiment.config_id == config_id)
+        result = await session.execute(stmt)
+        return result.scalar() or 0
+
+    async def delete_by_user_id(
+        self, user_id: UUID, session: AsyncSession
+    ) -> int:
+        """Delete every experiment owned by `user_id`. Returns rowcount.
+
+        B8: triggered by Celery task `cleanup_orphaned_experiments` after a
+        user is removed from users_db. `experiment_images` cascade-delete
+        via ORM `cascade="all, delete-orphan"`.
+        """
+        stmt = delete(Experiment).where(Experiment.user_id == user_id)
+        result = await session.execute(stmt)
+        await self.invalidate_cache()
+        return int(getattr(result, "rowcount", 0) or 0)
+
+
+# Hint for the unused `CursorResult` import (kept for future typing of rowcount).
+_ = CursorResult

@@ -5,7 +5,6 @@
 
 import { useRef, useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
-import { Button } from '@components/common';
 import styles from './ROISelector.module.css';
 
 export function ROISelector({
@@ -95,6 +94,7 @@ export function ROISelector({
       mounted = false;
       image.onload = null;
       image.src = '';
+      imageRef.current = null;
     };
   }, [imageSrc]);
 
@@ -158,13 +158,6 @@ export function ROISelector({
       onSelectionChange?.(coords);
     }
     setIsDrawing(false);
-  };
-
-  const handleClear = () => {
-    setSelection(null);
-    setStartPoint(null);
-    onSelectionChange?.(null);
-    drawSelection(null);
   };
 
   return (

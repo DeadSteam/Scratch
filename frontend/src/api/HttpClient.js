@@ -1,211 +1,130 @@
 /**
- * HTTP Client - Base API layer
- * Single Responsibility: Handle HTTP requests
+ * HttpClient — тонкая обёртка над fetch.
+ * Авторизация и refresh-флоу делегированы AuthInterceptor,
+ * хранилище токенов — TokenStorage.
  */
 
-import { revokeAllBlobUrls } from './imageBlobCache';
-import { API_BASE_URL, STORAGE_KEYS, TIMINGS } from '@utils/constants';
+import { authInterceptor } from './AuthInterceptor';
 
-class HttpClient {
-  constructor(baseURL = API_BASE_URL) {
-    this.baseURL = baseURL;
-    this._isRefreshing = false;
-    this._refreshQueue = [];
+const JSON_HEADERS = { 'Content-Type': 'application/json' };
+
+function buildErrorMessage(response, data) {
+  if (data?.errors && Array.isArray(data.errors)) {
+    return data.errors
+      .map((err) => err.message || err.msg || JSON.stringify(err))
+      .join(', ');
+  }
+  if (Array.isArray(data?.detail)) {
+    return data.detail
+      .map((err) => err.msg || err.message || JSON.stringify(err))
+      .join(', ');
+  }
+  if (typeof data?.detail === 'string') {
+    return data.detail;
+  }
+  if (response.status === 401) {
+    return 'Сессия истекла. Пожалуйста, войдите снова.';
+  }
+  if (response.status >= 502 && response.status <= 504) {
+    return 'Сервис временно недоступен. Повторное подключение...';
+  }
+  if (response.status === 429) {
+    return 'Слишком много запросов. Пожалуйста, подождите немного.';
+  }
+  if (response.status === 403) {
+    return 'Доступ запрещён. У вас недостаточно прав.';
+  }
+  return data?.message || 'Произошла ошибка';
+}
+
+async function parseResponse(response) {
+  if (response.status === 204 || response.headers.get('content-length') === '0') {
+    return { success: true };
   }
 
-  getAccessToken() {
-    return sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-  }
-
-  getRefreshToken() {
-    return sessionStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
-  }
-
-  saveTokens({ access_token, refresh_token, user }) {
-    if (access_token) sessionStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, access_token);
-    if (refresh_token) sessionStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refresh_token);
-    if (user) sessionStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
-  }
-
-  clearSession() {
-    revokeAllBlobUrls();
-    sessionStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-    sessionStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
-    sessionStorage.removeItem(STORAGE_KEYS.USER);
-  }
-
-  getHeaders(customHeaders = {}) {
-    const headers = {
-      'Content-Type': 'application/json',
-      ...customHeaders,
-    };
-    const token = this.getAccessToken();
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-    return headers;
-  }
-
-  /**
-   * Attempt to refresh the access token using the refresh token.
-   * Returns true if successful, false otherwise.
-   */
-  async tryRefreshToken() {
-    const refreshToken = this.getRefreshToken();
-    if (!refreshToken) return false;
-
+  const contentType = response.headers.get('content-type') || '';
+  let data;
+  if (contentType.includes('application/json')) {
     try {
-      const response = await fetch(`${this.baseURL}/auth/refresh`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refresh_token: refreshToken }),
-      });
-      if (!response.ok) return false;
-      const data = await response.json();
-      if (data.success && data.data) {
-        this.saveTokens(data.data);
-        return true;
-      }
-      return false;
+      data = await response.json();
     } catch {
-      return false;
-    }
-  }
-
-  async handleResponse(response, retryFn = null) {
-    // Handle empty responses (204 No Content, etc.)
-    if (response.status === 204 || response.headers.get('content-length') === '0') {
-      return { success: true };
-    }
-
-    let data;
-    const contentType = response.headers.get('content-type');
-    if (contentType && contentType.includes('application/json')) {
-      try {
-        data = await response.json();
-      } catch (e) {
-        const error = new Error(response.statusText || 'Произошла ошибка');
-        error.status = response.status;
-        throw error;
-      }
-    } else {
-      // Non-JSON response (e.g. nginx 502 HTML page) — don't expose raw body
-      data = { message: response.statusText || 'Произошла ошибка' };
-    }
-
-    if (!response.ok) {
-      let errorMessage = data.message || 'Произошла ошибка';
-
-      if (data.errors && Array.isArray(data.errors)) {
-        errorMessage = data.errors.map(err => err.message || err.msg || JSON.stringify(err)).join(', ');
-      } else if (data.detail) {
-        if (Array.isArray(data.detail)) {
-          errorMessage = data.detail.map(err => err.msg || err.message || JSON.stringify(err)).join(', ');
-        } else if (typeof data.detail === 'string') {
-          errorMessage = data.detail;
-        }
-      } else if (response.status === 401 && retryFn && !this._isRefreshing) {
-        this._isRefreshing = true;
-        let refreshed = false;
-        try {
-          refreshed = await this.tryRefreshToken();
-        } finally {
-          this._isRefreshing = false;
-        }
-        if (refreshed) {
-          return retryFn();
-        }
-        errorMessage = 'Сессия истекла. Пожалуйста, войдите снова.';
-        this.clearSession();
-        setTimeout(() => { window.location.href = '/login'; }, TIMINGS.REDIRECT_DELAY_MS);
-      } else if (response.status === 401) {
-        errorMessage = 'Сессия истекла. Пожалуйста, войдите снова.';
-        this.clearSession();
-        setTimeout(() => { window.location.href = '/login'; }, TIMINGS.REDIRECT_DELAY_MS);
-      } else if (response.status === 502 || response.status === 503 || response.status === 504) {
-        errorMessage = 'Сервис временно недоступен. Повторное подключение...';
-      } else if (response.status === 429) {
-        errorMessage = 'Слишком много запросов. Пожалуйста, подождите немного.';
-      } else if (response.status === 403) {
-        errorMessage = 'Доступ запрещён. У вас недостаточно прав.';
-      }
-
-      const error = new Error(errorMessage);
+      const error = new Error(response.statusText || 'Произошла ошибка');
       error.status = response.status;
-      error.data = data;
       throw error;
     }
-
-    return data;
+  } else {
+    data = { message: response.statusText || 'Произошла ошибка' };
   }
 
-  async get(endpoint, params = {}) {
-    const url = new URL(`${this.baseURL}${endpoint}`, window.location.origin);
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) url.searchParams.append(key, value);
+  if (!response.ok) {
+    const error = new Error(buildErrorMessage(response, data));
+    error.status = response.status;
+    error.data = data;
+    throw error;
+  }
+
+  return data;
+}
+
+function appendQuery(endpoint, params) {
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) search.append(key, value);
+  });
+  const qs = search.toString();
+  return qs ? `${endpoint}?${qs}` : endpoint;
+}
+
+class HttpClient {
+  async _request(endpoint, options) {
+    const response = await authInterceptor.fetch(endpoint, options);
+    return parseResponse(response);
+  }
+
+  get(endpoint, params = {}) {
+    return this._request(appendQuery(endpoint, params), { method: 'GET' });
+  }
+
+  post(endpoint, body = {}) {
+    return this._request(endpoint, {
+      method: 'POST',
+      headers: JSON_HEADERS,
+      body: JSON.stringify(body),
     });
-    const doRequest = () =>
-      fetch(url.toString(), { method: 'GET', headers: this.getHeaders() })
-        .then(r => this.handleResponse(r, doRequest));
-    return doRequest();
   }
 
-  async post(endpoint, body = {}) {
-    const doRequest = () =>
-      fetch(`${this.baseURL}${endpoint}`, {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify(body),
-      }).then(r => this.handleResponse(r, doRequest));
-    return doRequest();
+  put(endpoint, body = {}) {
+    return this._request(endpoint, {
+      method: 'PUT',
+      headers: JSON_HEADERS,
+      body: JSON.stringify(body),
+    });
   }
 
-  /**
-   * Raw fetch with auth headers and 401 → refresh retry (for blobs / FormData).
-   */
-  async fetchWithAuth(endpoint, options = {}, retryOn401 = true) {
-    const doRequest = async () => {
-      const token = this.getAccessToken();
-      const headers = { ...options.headers };
-      if (token) headers.Authorization = `Bearer ${token}`;
+  patch(endpoint, body = {}) {
+    return this._request(endpoint, {
+      method: 'PATCH',
+      headers: JSON_HEADERS,
+      body: JSON.stringify(body),
+    });
+  }
 
-      const response = await fetch(`${this.baseURL}${endpoint}`, {
-        ...options,
-        headers,
-      });
+  async delete(endpoint) {
+    const response = await authInterceptor.fetch(endpoint, { method: 'DELETE' });
+    if (response.status === 204) return { success: true };
+    return parseResponse(response);
+  }
 
-      if (
-        response.status === 401 &&
-        retryOn401 &&
-        !this._isRefreshing &&
-        this.getRefreshToken()
-      ) {
-        this._isRefreshing = true;
-        let refreshed = false;
-        try {
-          refreshed = await this.tryRefreshToken();
-        } finally {
-          this._isRefreshing = false;
-        }
-        if (refreshed) {
-          return doRequest();
-        }
-        this.clearSession();
-        setTimeout(() => {
-          window.location.href = '/login';
-        }, TIMINGS.REDIRECT_DELAY_MS);
-        throw new Error('Сессия истекла. Пожалуйста, войдите снова.');
-      }
-
-      return response;
-    };
-    return doRequest();
+  postFormData(endpoint, formData) {
+    return this._request(endpoint, { method: 'POST', body: formData });
   }
 
   async getBlob(endpoint) {
-    const response = await this.fetchWithAuth(endpoint, { method: 'GET' });
+    const response = await authInterceptor.fetch(endpoint, { method: 'GET' });
     if (!response.ok) {
       let message = response.statusText || 'Не удалось загрузить изображение';
-      const contentType = response.headers.get('content-type');
-      if (contentType?.includes('application/json')) {
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
         try {
           const data = await response.json();
           message = data.message || data.detail || message;
@@ -221,55 +140,8 @@ class HttpClient {
     }
     return response.blob();
   }
-
-  async postFormData(endpoint, formData) {
-    const doRequest = async () => {
-      const response = await this.fetchWithAuth(endpoint, {
-        method: 'POST',
-        body: formData,
-      });
-      return this.handleResponse(response, doRequest);
-    };
-    return doRequest();
-  }
-
-  async put(endpoint, body = {}) {
-    const doRequest = () =>
-      fetch(`${this.baseURL}${endpoint}`, {
-        method: 'PUT',
-        headers: this.getHeaders(),
-        body: JSON.stringify(body),
-      }).then(r => this.handleResponse(r, doRequest));
-    return doRequest();
-  }
-
-  async patch(endpoint, body = {}) {
-    const doRequest = () =>
-      fetch(`${this.baseURL}${endpoint}`, {
-        method: 'PATCH',
-        headers: this.getHeaders(),
-        body: JSON.stringify(body),
-      }).then(r => this.handleResponse(r, doRequest));
-    return doRequest();
-  }
-
-  async delete(endpoint) {
-    const doRequest = () =>
-      fetch(`${this.baseURL}${endpoint}`, {
-        method: 'DELETE',
-        headers: this.getHeaders(),
-      }).then(r => {
-        if (r.status === 204) return { success: true };
-        return this.handleResponse(r, doRequest);
-      });
-    return doRequest();
-  }
 }
 
-// Export singleton instance
 export const httpClient = new HttpClient();
 
 export default HttpClient;
-
-
-

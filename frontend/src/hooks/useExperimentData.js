@@ -44,7 +44,8 @@ export function useExperimentData(id) {
     fetchExperiment();
   }, [fetchExperiment]);
 
-  // Load knowledge situations once
+  // Load knowledge situations once on mount — situationService is a stable singleton import.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     let cancelled = false;
     (async () => {

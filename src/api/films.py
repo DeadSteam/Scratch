@@ -4,7 +4,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Query, status
 
-from ..core.dependencies import CurrentAdmin, FilmSvc, MainDBSession
+from ..core.dependencies import CurrentAdmin, CurrentUser, FilmSvc, MainDBSession
 from ..schemas.film import FilmCreate, FilmRead, FilmUpdate
 from .pagination import build_paginated_response
 from .responses import PaginatedResponse, Response
@@ -21,6 +21,7 @@ router = APIRouter(prefix="/films", tags=["Films"])
 async def list_films(
     film_service: FilmSvc,
     db: MainDBSession,
+    _user: CurrentUser,
     skip: int = Query(0, ge=0, description="Number of items to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Number of items to return"),
 ):
@@ -47,6 +48,7 @@ async def list_films(
 async def search_films(
     film_service: FilmSvc,
     db: MainDBSession,
+    _user: CurrentUser,
     name: str = Query(..., min_length=1, description="Name pattern to search for"),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
@@ -63,7 +65,12 @@ async def search_films(
     summary="Get film by ID",
     description="Retrieve a specific film by its ID",
 )
-async def get_film(film_id: UUID, film_service: FilmSvc, db: MainDBSession):
+async def get_film(
+    film_id: UUID,
+    film_service: FilmSvc,
+    db: MainDBSession,
+    _user: CurrentUser,
+):
     """Get film by ID."""
     film = await film_service.get_by_id(film_id, db)
     return Response(success=True, message="Film retrieved successfully", data=film)

@@ -15,6 +15,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
+import { CHART_AXIS_STYLE, CHART_AXIS_COLOR, CHART_GRID_COLOR } from '@utils/constants';
 import styles from './ScratchChart.module.css';
 
 export function ScratchChart({ data, title = 'Индекс царапины' }) {
@@ -71,15 +72,15 @@ export function ScratchChart({ data, title = 'Индекс царапины' }) 
           data={chartData}
           margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
         >
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(51, 65, 85, 0.5)" />
+          <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID_COLOR} />
           <XAxis
             dataKey="label"
-            stroke="#94a3b8"
-            style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px' }}
+            stroke={CHART_AXIS_COLOR}
+            style={CHART_AXIS_STYLE}
           />
           <YAxis
-            stroke="#94a3b8"
-            style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px' }}
+            stroke={CHART_AXIS_COLOR}
+            style={CHART_AXIS_STYLE}
             domain={[0, maxValue]}
             tickFormatter={(value) => value.toFixed(2)}
           />

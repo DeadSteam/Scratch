@@ -195,10 +195,15 @@ async def create_experiment(
     db: MainDBSession,
     current_user: CurrentUser,
 ):
-    """Create a new experiment."""
+    """Create a new experiment.
+
+    The owner (`user_id`) is always set to the authenticated current_user;
+    clients cannot impersonate other users via the create payload.
+    """
     logger.info("create_experiment_started", user_id=str(current_user.id))
-    experiment_data.user_id = current_user.id
-    experiment = await experiment_service.create(experiment_data, db)
+    experiment = await experiment_service.create_for_user(
+        experiment_data, current_user.id, db
+    )
     logger.info("create_experiment_success", experiment_id=str(experiment.id))
     return Response(
         success=True, message="Experiment created successfully", data=experiment

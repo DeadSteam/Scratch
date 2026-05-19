@@ -22,11 +22,36 @@ _PIL_FORMAT_TO_MIME = {
     "WEBP": "image/webp",
 }
 
+# Read uploads in 1 MiB chunks so a malicious client can't OOM us
+# by sending a huge body before the size check runs.
+_UPLOAD_CHUNK = 1024 * 1024
+
 router = APIRouter(prefix="/images", tags=["Experiment Images"])
 
 
-def _validate_image_bytes(content: bytes) -> None:
-    """Validate image size and format via Pillow."""
+async def _read_upload_with_limit(file: UploadFile) -> bytes:
+    """Read an upload, aborting as soon as MAX_FILE_SIZE is exceeded.
+
+    Reading entire UploadFile.read() loads the whole body into memory
+    BEFORE we can check its size — that's a DoS vector. We stream instead.
+    """
+    max_size = settings.MAX_FILE_SIZE
+    buf = bytearray()
+    while True:
+        chunk = await file.read(_UPLOAD_CHUNK)
+        if not chunk:
+            break
+        buf.extend(chunk)
+        if len(buf) > max_size:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=f"File too large. Max allowed: {max_size} bytes",
+            )
+    return bytes(buf)
+
+
+def _validate_image_bytes(content: bytes) -> str:
+    """Validate image size and format via Pillow. Returns the detected MIME."""
     if len(content) > settings.MAX_FILE_SIZE:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
@@ -43,6 +68,25 @@ def _validate_image_bytes(content: bytes) -> None:
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid image file. Allowed formats: JPEG, PNG, WebP",
         )
+    return real_mime
+
+
+def _sniff_mime_from_bytes(image_bytes: bytes) -> str:
+    """Fallback: detect MIME from magic bytes. Used for rows that pre-date
+    the `mime_type` column (B11)."""
+    if len(image_bytes) >= 3 and image_bytes[:3] == b"\xff\xd8\xff":
+        return "image/jpeg"
+    if len(image_bytes) >= 8 and image_bytes[:8] == b"\x89PNG\r\n\x1a\n":
+        return "image/png"
+    if len(image_bytes) >= 6 and image_bytes[:6] in (b"GIF87a", b"GIF89a"):
+        return "image/gif"
+    if (
+        len(image_bytes) >= 12
+        and image_bytes[:4] == b"RIFF"
+        and image_bytes[8:12] == b"WEBP"
+    ):
+        return "image/webp"
+    return "image/png"
 
 
 @router.get(
@@ -107,26 +151,19 @@ async def get_image_data(
     await ensure_image_access(image_id, current_user, db)
     image = await image_service.get_raw_by_id(image_id, db)
 
-    content_type = "image/png"
     image_bytes = bytes(image.image_data)
-
-    if len(image_bytes) >= 3 and image_bytes[:3] == b"\xff\xd8\xff":
-        content_type = "image/jpeg"
-    elif len(image_bytes) >= 8 and image_bytes[:8] == b"\x89PNG\r\n\x1a\n":
-        content_type = "image/png"
-    elif len(image_bytes) >= 6 and image_bytes[:6] in (b"GIF87a", b"GIF89a"):
-        content_type = "image/gif"
-    elif (
-        len(image_bytes) >= 12
-        and image_bytes[:4] == b"RIFF"
-        and image_bytes[8:12] == b"WEBP"
-    ):
-        content_type = "image/webp"
+    # B11: prefer the stored MIME captured at upload; fall back to sniffing
+    # only for rows that pre-date the `mime_type` column.
+    content_type = getattr(image, "mime_type", None) or _sniff_mime_from_bytes(
+        image_bytes
+    )
 
     return FastAPIResponse(
         content=image_bytes,
         media_type=content_type,
-        headers={"Cache-Control": "public, max-age=3600"},
+        # SECURITY: must be `private` — shared caches (CDN, corporate proxies)
+        # would otherwise serve images across users.
+        headers={"Cache-Control": "private, max-age=3600"},
     )
 
 
@@ -151,11 +188,14 @@ async def upload_image(
 ):
     """Upload a new experiment image."""
     await ensure_experiment_access(experiment_id, current_user, db)
-    content = await file.read()
-    _validate_image_bytes(content)
+    content = await _read_upload_with_limit(file)
+    mime_type = _validate_image_bytes(content)
 
     image_create = ExperimentImageCreate(
-        experiment_id=experiment_id, image_data=content, passes=passes
+        experiment_id=experiment_id,
+        image_data=content,
+        passes=passes,
+        mime_type=mime_type,
     )
     image = await image_service.create(image_create, db)
 
@@ -179,7 +219,9 @@ async def create_image(
 ):
     """Create a new experiment image."""
     await ensure_experiment_access(image_data.experiment_id, current_user, db)
-    _validate_image_bytes(bytes(image_data.image_data))
+    detected_mime = _validate_image_bytes(bytes(image_data.image_data))
+    if not image_data.mime_type:
+        image_data.mime_type = detected_mime
     image = await image_service.create(image_data, db)
     return Response(success=True, message="Image created successfully", data=image)
 

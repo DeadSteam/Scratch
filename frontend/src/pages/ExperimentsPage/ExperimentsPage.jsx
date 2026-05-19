@@ -9,7 +9,7 @@ import { useAuth } from '@context/AuthContext';
 import { useNotification } from '@context/NotificationContext';
 import { experimentService } from '@api';
 import { Layout } from '@components/layout';
-import { Button, Card, Spinner, EmptyState, Modal } from '@components/common';
+import { Button, Card, Spinner, EmptyState, ConfirmDialog } from '@components/common';
 import { ROUTES, TIMINGS } from '@utils/constants';
 import {
   formatDate,
@@ -17,7 +17,9 @@ import {
   getScratchQuality,
   formatScratchIndex,
   getKnowledgeQuality,
+  getLatestScratchResult,
 } from '@utils/formatters';
+import { isServerDown } from '@utils/httpStatus';
 import {
   Plus,
   WarningCircle,
@@ -54,15 +56,14 @@ export function ExperimentsPage() {
         retryTimerRef.current = null;
       }
     } catch (err) {
-      const isServerDown = err.status === 502 || err.status === 503 || err.status === 504 || !err.status;
       setError(err.message || 'Ошибка загрузки экспериментов');
       if (!silent) showError('Не удалось загрузить эксперименты');
       // Auto-retry every 5s while server is unavailable
-      if (isServerDown) {
+      if (isServerDown(err)) {
         retryTimerRef.current = setTimeout(() => fetchExperiments({ silent: true }), TIMINGS.RETRY_INTERVAL_MS);
       }
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   }, [user?.id, showError]);
 
@@ -104,14 +105,6 @@ export function ExperimentsPage() {
 
   const handleCancelDelete = () => {
     setDeleteConfirm(null);
-  };
-
-  const getLatestScratchResult = (experiment) => {
-    const results = experiment.scratch_results;
-    if (!results || results.length === 0) return null;
-    const scratched = results.filter((r) => (r.passes ?? 0) > 0);
-    if (scratched.length === 0) return results[results.length - 1];
-    return scratched.reduce((a, b) => ((a.passes ?? 0) > (b.passes ?? 0) ? a : b));
   };
 
   return (
@@ -242,38 +235,17 @@ export function ExperimentsPage() {
           </div>
         )}
 
-        {/* Delete confirmation modal */}
-        <Modal
+        <ConfirmDialog
           isOpen={!!deleteConfirm}
           onClose={handleCancelDelete}
+          onConfirm={handleConfirmDelete}
           title="Удалить эксперимент?"
-          size="sm"
-        >
-          <div className={styles.deleteModalContent}>
-            <div className={styles.deleteIcon}>
-              <Trash {...ph(48)} aria-hidden />
-            </div>
-            <p className={styles.deleteMessage}>
-              Это действие нельзя отменить. Все данные эксперимента будут удалены безвозвратно.
-            </p>
-            <div className={styles.deleteActions}>
-              <Button 
-                variant="secondary" 
-                onClick={handleCancelDelete}
-                disabled={isDeleting}
-              >
-                Отмена
-              </Button>
-              <Button 
-                variant="danger" 
-                onClick={handleConfirmDelete}
-                loading={isDeleting}
-              >
-                Удалить
-              </Button>
-            </div>
-          </div>
-        </Modal>
+          message="Это действие нельзя отменить. Все данные эксперимента будут удалены безвозвратно."
+          icon={<Trash {...ph(48)} aria-hidden />}
+          confirmText="Удалить"
+          tone="danger"
+          loading={isDeleting}
+        />
       </div>
     </Layout>
   );

@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import { useNotification } from '@context/NotificationContext';
+import { useForm } from '@hooks/useForm';
 import { Flask } from '@phosphor-icons/react';
 import { ph } from '@components/icons/phosphor';
 import { Button, Input, ThemeToggle } from '@components/common';
@@ -16,7 +17,7 @@ import styles from './LoginPage.module.css';
 
 export function LoginPage() {
   const [isRegisterMode, setIsRegisterMode] = useState(false);
-  const [formData, setFormData] = useState({
+  const { values: formData, setValues: setFormData, handleChange } = useForm({
     username: '',
     email: '',
     password: '',
@@ -32,11 +33,9 @@ export function LoginPage() {
 
   const from = location.state?.from?.pathname || ROUTES.EXPERIMENTS;
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    
-    // Clear error on change
+  const onFieldChange = (e) => {
+    handleChange(e);
+    const { name } = e.target;
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
     }
@@ -165,7 +164,7 @@ export function LoginPage() {
               label="Имя пользователя"
               placeholder="Введите имя пользователя"
               value={formData.username}
-              onChange={handleChange}
+              onChange={onFieldChange}
               error={errors.username}
               required
               autoComplete="username"
@@ -178,7 +177,7 @@ export function LoginPage() {
                 label="Email"
                 placeholder="example@mail.com"
                 value={formData.email}
-                onChange={handleChange}
+                onChange={onFieldChange}
                 error={errors.email}
                 required
                 autoComplete="email"
@@ -191,7 +190,7 @@ export function LoginPage() {
               label="Пароль"
               placeholder="Введите пароль"
               value={formData.password}
-              onChange={handleChange}
+              onChange={onFieldChange}
               error={errors.password}
               required
               autoComplete={isRegisterMode ? 'new-password' : 'current-password'}
@@ -204,7 +203,7 @@ export function LoginPage() {
                 label="Подтвердите пароль"
                 placeholder="Повторите пароль"
                 value={formData.confirmPassword}
-                onChange={handleChange}
+                onChange={onFieldChange}
                 error={errors.confirmPassword}
                 required
                 autoComplete="new-password"

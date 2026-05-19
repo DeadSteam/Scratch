@@ -5,13 +5,12 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
-    JSON,
     Boolean,
     Float,
     ForeignKey,
     String,
 )
-from sqlalchemy.dialects.postgresql import ARRAY, TIMESTAMP, UUID
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, TIMESTAMP, UUID
 from sqlalchemy.orm import (
     Mapped,
     mapped_column,
@@ -52,8 +51,10 @@ class Experiment(UUIDBase):
 
     # Scratch analysis results: list of scratch_index per image.
     # Structure: [{"image_id": "uuid", "scratch_index": 0.0342}, ...]
+    # B7: JSONB (not JSON) — supports GIN indexes & faster queries inside
+    # the array (matters when we later want to filter by passes/min_index).
     scratch_results: Mapped[list[dict[str, object]] | None] = mapped_column(
-        JSON, nullable=True
+        JSONB, nullable=True
     )
 
     # связи

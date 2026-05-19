@@ -1,36 +1,18 @@
 /**
- * Advice Management (Knowledge Base)
- * CRUD: cause_id (optional), description (max 50)
+ * Advice Management — на абстракциях useCrudResource + CrudTable + CrudFormModal.
  */
 
-import { useState, useEffect, useCallback } from 'react';
-import { useNotification } from '@context/NotificationContext';
+import { useEffect, useMemo, useState, useCallback } from 'react';
+import { Button, Spinner, ConfirmDialog, CrudTable, CrudFormModal } from '@components/common';
+import { useCrudResource } from '@hooks/useCrudResource';
 import { adviceService, causeService } from '@api';
-import { Button, Spinner, Modal, Input, Select } from '@components/common';
+import { EMPTY_SELECT_OPTION } from '@utils/constants';
 import styles from './Management.module.css';
 
-const EMPTY_OPTION = { value: '', label: '— Не выбрано' };
+const EMPTY_FORM = { cause_id: '', description: '' };
 
 export function AdviceManagement() {
-  const [items, setItems] = useState([]);
   const [causes, setCauses] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [selected, setSelected] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
-  const [form, setForm] = useState({ cause_id: '', description: '' });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState(null);
-
-  const { success, error: showError } = useNotification();
-
-  const causeOptions = [
-    EMPTY_OPTION,
-    ...causes.map((c) => ({
-      value: c.id,
-      label: (c.description || '').trim() || c.id,
-    })),
-  ];
 
   const fetchCauses = useCallback(async () => {
     try {
@@ -41,186 +23,92 @@ export function AdviceManagement() {
     }
   }, []);
 
-  const fetchItems = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const res = await adviceService.getAll();
-      setItems(res.data || []);
-    } catch (err) {
-      showError('Ошибка загрузки рекомендаций');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [showError]);
+  useEffect(() => { fetchCauses(); }, [fetchCauses]);
 
-  useEffect(() => {
-    fetchCauses();
-  }, [fetchCauses]);
+  const causeOptions = useMemo(
+    () => [EMPTY_SELECT_OPTION, ...causes.map((c) => ({ value: c.id, label: (c.description || '').trim() || c.id }))],
+    [causes],
+  );
 
-  useEffect(() => {
-    fetchItems();
-  }, [fetchItems]);
+  const getCauseLabel = useCallback((id) => {
+    if (!id) return '—';
+    const c = causes.find((x) => x.id === id);
+    return c ? (c.description || id) : id;
+  }, [causes]);
 
-  const handleCreate = () => {
-    setSelected(null);
-    setForm({ cause_id: '', description: '' });
-    setIsCreating(true);
-    setIsModalOpen(true);
-  };
-
-  const handleEdit = (row) => {
-    setSelected(row);
-    setForm({
+  const crud = useCrudResource({
+    service: adviceService,
+    emptyForm: EMPTY_FORM,
+    itemToForm: (row) => ({
       cause_id: row.cause_id ?? '',
       description: row.description || '',
-    });
-    setIsCreating(false);
-    setIsModalOpen(true);
-  };
+    }),
+    formToPayload: (form) => ({
+      cause_id: form.cause_id || null,
+      description: form.description || null,
+    }),
+    validate: (form) => ((form.description || '').length > 50 ? 'Описание не более 50 символов' : null),
+    messages: {
+      loadError: 'Ошибка загрузки рекомендаций',
+      created: 'Рекомендация создана',
+      updated: 'Рекомендация обновлена',
+      deleted: 'Рекомендация удалена',
+    },
+  });
 
-  const handleSubmit = async () => {
-    if ((form.description || '').length > 50) {
-      showError('Описание не более 50 символов');
-      return;
-    }
-    setIsSubmitting(true);
-    try {
-      const data = {
-        cause_id: form.cause_id || null,
-        description: form.description || null,
-      };
+  const columns = [
+    { header: 'Причина', render: (row) => getCauseLabel(row.cause_id) },
+    { header: 'Рекомендация', render: (row) => row.description || '—', className: styles.descriptionCell },
+  ];
 
-      if (isCreating) {
-        await adviceService.create(data);
-        success('Рекомендация создана');
-      } else {
-        await adviceService.update(selected.id, data);
-        success('Рекомендация обновлена');
-      }
-      setIsModalOpen(false);
-      fetchItems();
-    } catch (err) {
-      showError(err.message || 'Ошибка сохранения');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  const fields = [
+    { name: 'cause_id', label: 'Причина', type: 'select', options: causeOptions, placeholder: '— Не выбрано' },
+    { name: 'description', label: 'Текст рекомендации', maxLength: 50 },
+  ];
 
-  const handleDelete = (id) => setDeleteConfirm(id);
-
-  const handleConfirmDelete = async () => {
-    try {
-      await adviceService.delete(deleteConfirm);
-      success('Рекомендация удалена');
-      setDeleteConfirm(null);
-      fetchItems();
-    } catch (err) {
-      showError(err.message || 'Ошибка удаления');
-    }
-  };
-
-  const getCauseLabel = (causeId) => {
-    if (!causeId) return '—';
-    const c = causes.find((x) => x.id === causeId);
-    return c ? (c.description || causeId) : causeId;
-  };
-
-  if (isLoading) {
-    return (
-      <div className={styles.loading}>
-        <Spinner size="lg" />
-      </div>
-    );
+  if (crud.isLoading) {
+    return <div className={styles.loading}><Spinner size="lg" /></div>;
   }
 
   return (
     <div className={styles.container}>
       <div className={styles.toolbar}>
-        <Button variant="primary" onClick={handleCreate}>
+        <Button variant="primary" onClick={crud.startCreate}>
           Добавить рекомендацию
         </Button>
       </div>
 
-      <div className={styles.tableWrapper}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>Причина</th>
-              <th>Рекомендация</th>
-              <th>Действия</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.length === 0 && (
-              <tr className={styles.emptyRow}>
-                <td colSpan={3}>
-                  <div className={styles.emptyStateCell}>
-                    <p className={styles.emptyTitle}>Нет рекомендаций</p>
-                    <p className={styles.emptyDesc}>Нажмите «Добавить рекомендацию» чтобы создать запись</p>
-                  </div>
-                </td>
-              </tr>
-            )}
-            {items.map((row) => (
-              <tr key={row.id}>
-                <td className={styles.primaryCell}>{getCauseLabel(row.cause_id)}</td>
-                <td className={styles.descriptionCell}>{row.description || '—'}</td>
-                <td>
-                  <div className={styles.actions}>
-                    <Button variant="ghost" size="sm" onClick={() => handleEdit(row)}>Изменить</Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleDelete(row.id)}>Удалить</Button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <CrudTable
+        columns={columns}
+        items={crud.items}
+        onEdit={crud.startEdit}
+        onDelete={(item) => crud.askDelete(item.id)}
+        emptyTitle="Нет рекомендаций"
+        emptyDescription="Нажмите «Добавить рекомендацию» чтобы создать запись"
+      />
 
-      {/* Delete confirmation */}
-      <Modal
-        isOpen={!!deleteConfirm}
-        onClose={() => setDeleteConfirm(null)}
+      <ConfirmDialog
+        isOpen={!!crud.deleteConfirm}
+        onClose={crud.cancelDelete}
+        onConfirm={crud.confirmDelete}
         title="Удалить рекомендацию?"
-        size="sm"
-      >
-        <div className={styles.modalContent}>
-          <p>Это действие нельзя отменить.</p>
-          <div className={styles.modalActions}>
-            <Button variant="secondary" onClick={() => setDeleteConfirm(null)}>Отмена</Button>
-            <Button variant="danger" onClick={handleConfirmDelete}>Удалить</Button>
-          </div>
-        </div>
-      </Modal>
+        message="Это действие нельзя отменить."
+        confirmText="Удалить"
+        tone="danger"
+      />
 
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title={isCreating ? 'Добавить рекомендацию' : 'Редактировать рекомендацию'}
-        size="sm"
-      >
-        <div className={styles.modalContent}>
-          <Select
-            label="Причина"
-            options={causeOptions}
-            value={form.cause_id}
-            onChange={(e) => setForm((p) => ({ ...p, cause_id: e.target.value }))}
-            placeholder="— Не выбрано"
-          />
-          <Input
-            label="Текст рекомендации"
-            value={form.description}
-            onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-            maxLength={50}
-          />
-          <div className={styles.modalActions}>
-            <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Отмена</Button>
-            <Button variant="primary" onClick={handleSubmit} loading={isSubmitting}>
-              {isCreating ? 'Создать' : 'Сохранить'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
+      <CrudFormModal
+        isOpen={crud.isModalOpen}
+        isCreating={crud.isCreating}
+        onClose={crud.closeModal}
+        onSubmit={crud.submit}
+        isSubmitting={crud.isSubmitting}
+        titleCreate="Добавить рекомендацию"
+        titleEdit="Редактировать рекомендацию"
+        fields={fields}
+        form={crud.form}
+        setForm={crud.setForm}
+      />
     </div>
   );
 }

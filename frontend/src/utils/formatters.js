@@ -22,7 +22,7 @@ export const formatDate = withDefault((dateString, options = {}) =>
     month: 'long',
     year: 'numeric',
     ...options,
-  })
+  }),
 );
 
 export const formatScratchIndex = withDefault(
@@ -152,6 +152,25 @@ export const getKnowledgeQualityFromDelta = (delta, situations) => {
 export const formatWeight = withDefault((grams) => `${grams} г`);
 
 export const formatThickness = withDefault((micrometers) => `${micrometers} мкм`);
+
+/**
+ * Сортирует массив (изображений или результатов) по числу проходов от меньшего к большему,
+ * не мутируя исходный.
+ */
+export const sortByPasses = (items) =>
+  [...(items || [])].sort((a, b) => (a?.passes ?? 0) - (b?.passes ?? 0));
+
+/**
+ * Возвращает результат с наибольшим числом проходов (наиболее «зацарапанный»).
+ * Если есть только эталон (passes = 0) — возвращает последний из массива.
+ */
+export const getLatestScratchResult = (experiment) => {
+  const results = experiment?.scratch_results;
+  if (!results || results.length === 0) return null;
+  const scratched = results.filter((r) => (r?.passes ?? 0) > 0);
+  if (scratched.length === 0) return results[results.length - 1];
+  return scratched.reduce((a, b) => ((a.passes ?? 0) > (b.passes ?? 0) ? a : b));
+};
 
 
 

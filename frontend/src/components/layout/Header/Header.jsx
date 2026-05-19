@@ -3,10 +3,11 @@
  * Main navigation header
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useCallback, useState, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import { useTheme } from '@context/ThemeContext';
+import { useClickOutside } from '@hooks/useClickOutside';
 import { ROUTES } from '@utils/constants';
 import { Flask, Sun, Moon, SignOut } from '@phosphor-icons/react';
 import { ph } from '@components/icons/phosphor';
@@ -19,15 +20,8 @@ export function Header() {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const onOutside = (e) => {
-      if (containerRef.current && !containerRef.current.contains(e.target)) setIsOpen(false);
-    };
-    document.addEventListener('click', onOutside);
-    return () => document.removeEventListener('click', onOutside);
-  }, [isOpen]);
+  const closeDropdown = useCallback(() => setIsOpen(false), []);
+  useClickOutside(containerRef, closeDropdown, isOpen);
 
   const handleLogout = () => {
     logout();
