@@ -5,6 +5,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..core.tracing import get_tracer
 from ..models.experiment import Experiment
 from ..repositories.advice_repository import AdviceRepository
 from ..repositories.cause_repository import CauseRepository
@@ -24,6 +25,8 @@ from ..schemas.experiment import (
 from ..schemas.situation import SituationRead
 from .base import BaseService
 from .exceptions import NotFoundError
+
+_tracer = get_tracer()
 
 
 class ExperimentService(
@@ -88,6 +91,22 @@ class ExperimentService(
         return ScratchResult.model_validate(latest)
 
     async def _build_knowledge_summary(
+        self,
+        experiment: Experiment,
+        knowledge_session: AsyncSession | None,
+        *,
+        include_causes: bool = True,
+    ) -> KnowledgeSummary | None:
+        with _tracer.start_as_current_span(
+            "experiment.build_knowledge_summary"
+        ) as span:
+            span.set_attribute("experiment.id", str(experiment.id))
+            span.set_attribute("include_causes", include_causes)
+            return await self._build_knowledge_summary_inner(
+                experiment, knowledge_session, include_causes=include_causes
+            )
+
+    async def _build_knowledge_summary_inner(
         self,
         experiment: Experiment,
         knowledge_session: AsyncSession | None,

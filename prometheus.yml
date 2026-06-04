@@ -6,4 +6,11 @@ scrape_configs:
     metrics_path: /metrics
     static_configs:
       - targets: ["app:8000"]
-
+    # B15: /metrics is fail-closed (requires Basic auth in every environment).
+    # Password lives in a Compose-managed secret backed by METRICS_PASSWORD
+    # from .env (see top-level `secrets:` block in docker-compose.yml).
+    # Change once in .env, then `docker compose up -d --force-recreate
+    # app prometheus` — no edits to this file needed.
+    basic_auth:
+      username: prometheus
+      password_file: /run/secrets/metrics_password

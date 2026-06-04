@@ -204,6 +204,20 @@ class Settings(BaseSettings):
         default="http://tempo:4317",
         description="OTLP collector endpoint",
     )
+    TRACING_ENABLED: bool = Field(
+        default=True,
+        description="Enable OpenTelemetry tracing pipeline",
+    )
+    TRACING_SAMPLE_RATE: float = Field(
+        default=1.0,
+        ge=0.0,
+        le=1.0,
+        description=(
+            "Fraction of root traces to sample (0.0 = none, 1.0 = all). "
+            "ParentBased: child requests follow the parent's decision so a "
+            "sampled trace stays connected end-to-end through Celery."
+        ),
+    )
 
     @model_validator(mode="after")
     def validate_production_security(self) -> Self:

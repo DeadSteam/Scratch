@@ -7,11 +7,18 @@ Start worker::
 Start beat (periodic tasks)::
 
     celery -A src.core.celery_app beat --loglevel=info
+
+Tracing: ``worker_process_init`` re-initializes the OpenTelemetry SDK
+inside each forked worker process. Span context propagates from the API
+through RabbitMQ headers, so HTTP → task spans form one connected trace.
 """
 
 from celery import Celery
+from celery.signals import worker_process_init
 
 from .config import settings
+from .logging_config import configure_logging
+from .tracing import init_tracing_for_worker
 
 celery_app = Celery(
     "scratch",
@@ -57,3 +64,18 @@ celery_app.conf.include = [
     "src.tasks.image_analysis_tasks",
     "src.tasks.experiment_tasks",
 ]
+
+
+@worker_process_init.connect
+def _setup_worker_observability(**_kwargs) -> None:
+    """Re-init structlog + OpenTelemetry inside each worker process.
+
+    Celery forks; the parent's TracerProvider/logging configuration do
+    NOT carry across the fork boundary cleanly. Re-initializing here
+    gives each worker its own SDK with the correct
+    ``service.role=worker`` resource attribute and proper JSON logging
+    that includes ``trace_id`` automatically (the structlog processor
+    looks up the current span on every log call).
+    """
+    configure_logging()
+    init_tracing_for_worker()

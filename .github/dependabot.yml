@@ -1,0 +1,69 @@
+version: 2
+
+updates:
+  # Backend Python (uv reads pyproject.toml; Dependabot's "uv" ecosystem support
+  # is still limited — `pip` works since uv.lock isn't structurally required
+  # for vulnerability detection, only declarations are).
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    labels:
+      - "deps"
+      - "backend"
+    groups:
+      # Bundle OTel updates together — they release in lock-step versions.
+      opentelemetry:
+        patterns:
+          - "opentelemetry-*"
+      # Group minor/patch SQLAlchemy + asyncpg.
+      database:
+        patterns:
+          - "sqlalchemy*"
+          - "asyncpg"
+          - "alembic"
+
+  # Frontend JS
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    labels:
+      - "deps"
+      - "frontend"
+    groups:
+      react:
+        patterns:
+          - "react"
+          - "react-*"
+      webpack:
+        patterns:
+          - "webpack*"
+          - "@babel/*"
+          - "babel-*"
+
+  # CI itself
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - "deps"
+      - "ci"
+
+  # Base Docker image
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - "deps"
+      - "docker"

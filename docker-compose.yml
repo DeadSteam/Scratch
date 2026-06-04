@@ -326,6 +326,11 @@ services:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
+    # Single source of truth for /metrics credentials: ${METRICS_PASSWORD} in
+    # .env is materialised by Compose as the file /run/secrets/metrics_password
+    # which prometheus.yml references via `password_file`. No duplication.
+    secrets:
+      - metrics_password
     ports:
       - "9090:9090"
     networks:
@@ -362,6 +367,13 @@ services:
 networks:
   app-network:
     driver: bridge
+
+# Compose-managed secrets. Each entry is materialised inside the consuming
+# container at /run/secrets/<name>. `environment:` populates the secret
+# content from a shell/.env variable — single source of truth.
+secrets:
+  metrics_password:
+    environment: METRICS_PASSWORD
 
 volumes:
   experiments_data:

@@ -29,6 +29,7 @@ from ..core.token_store import (
     is_refresh_token_blacklisted,
     revoke_refresh_family,
 )
+from ..core.tracing import get_tracer
 from ..repositories.user_repository import UserRepository
 from ..schemas.user import UserRead
 from .exceptions import AuthenticationError
@@ -51,6 +52,7 @@ def _hash_username(username: str) -> str:
 
 
 logger = get_logger("service.auth")
+_tracer = get_tracer()
 
 
 class AuthService:
@@ -76,6 +78,20 @@ class AuthService:
         # is allowed to receive the real user_id where authentication
         # succeeded; pre-auth logs only carry the hash.
         log_uname = _hash_username(username)
+        with _tracer.start_as_current_span("auth.authenticate") as auth_span:
+            auth_span.set_attribute("username_hash", log_uname)
+            return await self._authenticate_inner(
+                username, password, session, log_uname, auth_span
+            )
+
+    async def _authenticate_inner(
+        self,
+        username: str,
+        password: str,
+        session: AsyncSession,
+        log_uname: str,
+        auth_span,
+    ) -> dict[str, Any]:
         self._logger.info("authentication_attempt", username_hash=log_uname)
 
         # SECURITY: per-username lockout — guards against distributed brute-force
@@ -101,7 +117,9 @@ class AuthService:
             )
             raise AuthenticationError(_GENERIC_AUTH_ERROR)
 
-        if not verify_password(password, user.password_hash):
+        with _tracer.start_as_current_span("auth.bcrypt_verify"):
+            ok = verify_password(password, user.password_hash)
+        if not ok:
             await record_login_failure(username)
             self._logger.warning(
                 "authentication_failed",
@@ -120,11 +138,13 @@ class AuthService:
             # Generic error: never reveal account state.
             raise AuthenticationError(_GENERIC_AUTH_ERROR)
 
-        access_token = create_access_token(
-            {"sub": str(user.id), "username": user.username}
-        )
-        refresh_token = create_refresh_token({"sub": str(user.id)})
+        with _tracer.start_as_current_span("auth.mint_tokens"):
+            access_token = create_access_token(
+                {"sub": str(user.id), "username": user.username}
+            )
+            refresh_token = create_refresh_token({"sub": str(user.id)})
 
+        auth_span.set_attribute("user.id", str(user.id))
         await reset_login_failures(username)
         self._logger.info(
             "authentication_success",

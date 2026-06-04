@@ -20,10 +20,13 @@ from numpy.typing import NDArray
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..core.logging_config import get_logger
+from ..core.tracing import get_tracer
 from ..repositories.experiment_repository import ExperimentRepository
 from ..repositories.image_repository import ExperimentImageRepository
 from .exceptions import NotFoundError
 from .exceptions import ValidationError as ServiceValidationError
+
+_tracer = get_tracer()
 
 logger = get_logger(__name__)
 
@@ -44,18 +47,27 @@ class ImageAnalysisService:
 
         Formula: Grayscale(i,j) = 0.3*R + 0.59*G + 0.11*B
         """
-        if len(image_array.shape) != 3 or image_array.shape[2] != 3:
-            raise ServiceValidationError("Image must be RGB format (H, W, 3)")
-        r = image_array[:, :, 0].astype(np.float32)
-        g = image_array[:, :, 1].astype(np.float32)
-        b = image_array[:, :, 2].astype(np.float32)
-        grayscale = 0.3 * r + 0.59 * g + 0.11 * b
-        return cast(NDArray[np.uint8], grayscale.astype(np.uint8))
+        with _tracer.start_as_current_span("analysis.convert_to_grayscale") as span:
+            if len(image_array.shape) != 3 or image_array.shape[2] != 3:
+                raise ServiceValidationError("Image must be RGB format (H, W, 3)")
+            span.set_attribute("image.height", int(image_array.shape[0]))
+            span.set_attribute("image.width", int(image_array.shape[1]))
+            r = image_array[:, :, 0].astype(np.float32)
+            g = image_array[:, :, 1].astype(np.float32)
+            b = image_array[:, :, 2].astype(np.float32)
+            grayscale = 0.3 * r + 0.59 * g + 0.11 * b
+            return cast(NDArray[np.uint8], grayscale.astype(np.uint8))
 
     def calculate_histogram(self, grayscale_image: NDArray[Any]) -> dict[int, int]:
         """Brightness histogram (level 0-255 → pixel count)."""
-        histogram, _ = np.histogram(grayscale_image.flatten(), bins=256, range=(0, 256))
-        return {q: int(count) for q, count in enumerate(histogram) if count > 0}
+        with _tracer.start_as_current_span("analysis.calculate_histogram") as span:
+            span.set_attribute("image.pixels", int(grayscale_image.size))
+            histogram, _ = np.histogram(
+                grayscale_image.flatten(), bins=256, range=(0, 256)
+            )
+            result = {q: int(count) for q, count in enumerate(histogram) if count > 0}
+            span.set_attribute("histogram.nonzero_levels", len(result))
+            return result
 
     def calculate_scratch_index(
         self,
@@ -67,15 +79,18 @@ class ImageAnalysisService:
 
         U(X) = sum( w_q * (count_q / total_pixels) )
         """
-        if total_pixels == 0:
-            return 0.0
-        if weights is None:
-            weights = {q: q / 255.0 for q in range(256)}
-        scratch_index = 0.0
-        for q, count in histogram.items():
-            w = weights.get(q, q / 255.0)
-            scratch_index += w * (count / total_pixels)
-        return scratch_index
+        with _tracer.start_as_current_span("analysis.calculate_scratch_index") as span:
+            span.set_attribute("total_pixels", total_pixels)
+            if total_pixels == 0:
+                return 0.0
+            if weights is None:
+                weights = {q: q / 255.0 for q in range(256)}
+            scratch_index = 0.0
+            for q, count in histogram.items():
+                w = weights.get(q, q / 255.0)
+                scratch_index += w * (count / total_pixels)
+            span.set_attribute("scratch_index", float(scratch_index))
+            return scratch_index
 
     def analyze_image(
         self,
@@ -83,40 +98,51 @@ class ImageAnalysisService:
         rect_coords: list[float] | None = None,
     ) -> dict[str, Any]:
         """Analyze a single image: grayscale + histogram + stats."""
-        try:
-            from PIL import Image
-        except ImportError:
-            raise ServiceValidationError(
-                "PIL (Pillow) is required for image processing"
-            ) from None
+        with _tracer.start_as_current_span("analysis.analyze_image") as span:
+            span.set_attribute("image.bytes", len(image_data))
+            span.set_attribute("roi.applied", bool(rect_coords))
 
-        image = Image.open(BytesIO(image_data))
-        if image.mode != "RGB":
-            image = image.convert("RGB")
-
-        # ROI crop
-        if rect_coords and len(rect_coords) == 4:
-            x, y, w, h = (int(v) for v in rect_coords)
-            img_w, img_h = image.size
-            if x < 0 or y < 0 or x + w > img_w or y + h > img_h:
+            try:
+                from PIL import Image
+            except ImportError:
                 raise ServiceValidationError(
-                    f"ROI out of bounds: image {img_w}x{img_h}, "
-                    f"ROI ({x}, {y}, {w}, {h})"
-                )
-            image = image.crop((x, y, x + w, y + h))
+                    "PIL (Pillow) is required for image processing"
+                ) from None
 
-        image_array = np.array(image)
-        grayscale = self.convert_to_grayscale(image_array)
-        histogram = self.calculate_histogram(grayscale)
+            with _tracer.start_as_current_span("analysis.pil_open"):
+                image = Image.open(BytesIO(image_data))
+                if image.mode != "RGB":
+                    image = image.convert("RGB")
 
-        total_pixels = int(grayscale.size) or 1
+            # ROI crop
+            if rect_coords and len(rect_coords) == 4:
+                x, y, w, h = (int(v) for v in rect_coords)
+                img_w, img_h = image.size
+                if x < 0 or y < 0 or x + w > img_w or y + h > img_h:
+                    raise ServiceValidationError(
+                        f"ROI out of bounds: image {img_w}x{img_h}, "
+                        f"ROI ({x}, {y}, {w}, {h})"
+                    )
+                image = image.crop((x, y, x + w, y + h))
+                span.set_attribute("roi.x", x)
+                span.set_attribute("roi.y", y)
+                span.set_attribute("roi.w", w)
+                span.set_attribute("roi.h", h)
 
-        return {
-            "grayscale_shape": grayscale.shape,
-            "histogram": histogram,
-            "total_pixels": total_pixels,
-            "brightness_levels_count": len(histogram),
-        }
+            image_array = np.array(image)
+            grayscale = self.convert_to_grayscale(image_array)
+            histogram = self.calculate_histogram(grayscale)
+
+            total_pixels = int(grayscale.size) or 1
+            span.set_attribute("total_pixels", total_pixels)
+            span.set_attribute("histogram.levels", len(histogram))
+
+            return {
+                "grayscale_shape": grayscale.shape,
+                "histogram": histogram,
+                "total_pixels": total_pixels,
+                "brightness_levels_count": len(histogram),
+            }
 
     async def analyze_and_save_single(
         self,
@@ -131,6 +157,13 @@ class ImageAnalysisService:
 
         Returns the computed entry dict.
         """
+        with _tracer.start_as_current_span("analysis.single") as span:
+            span.set_attribute("image.id", str(image_id))
+            return await self._analyze_and_save_single_inner(image_id, session)
+
+    async def _analyze_and_save_single_inner(
+        self, image_id: UUID, session: AsyncSession
+    ) -> dict[str, Any]:
         image = await self.image_repo.get_by_id(image_id, session)
         if not image:
             raise NotFoundError("ExperimentImage", image_id)
@@ -191,13 +224,22 @@ class ImageAnalysisService:
         Overwrites the entire ``scratch_results`` array.
         Use when ``rect_coords`` changes or for a full audit.
         """
+        with _tracer.start_as_current_span("analysis.recalculate") as span:
+            span.set_attribute("experiment.id", str(experiment_id))
+            return await self._recalculate_experiment_inner(experiment_id, session)
+
+    async def _recalculate_experiment_inner(
+        self, experiment_id: UUID, session: AsyncSession
+    ) -> dict[str, Any]:
         experiment = await self.experiment_repo.get_by_id(experiment_id, session)
         if not experiment:
             raise NotFoundError("Experiment", experiment_id)
 
         rect_coords = experiment.rect_coords
+        # include_data=True: this loop reads image.image_data on every row;
+        # the default deferred-column behaviour would cause an N+1 here.
         images = await self.image_repo.get_by_experiment_id(
-            experiment_id, session, skip=0, limit=10000
+            experiment_id, session, skip=0, limit=10000, include_data=True
         )
 
         results: list[dict[str, Any]] = []
@@ -281,8 +323,9 @@ class ImageAnalysisService:
         """Quick per-image stats (no write, no recalculation)."""
         experiment = await self.experiment_repo.get_by_id(experiment_id, session)
         rect_coords = experiment.rect_coords if experiment else None
+        # quick_analysis runs analyze_image on every row → needs image_data.
         images = await self.image_repo.get_by_experiment_id(
-            experiment_id, session, skip, limit
+            experiment_id, session, skip, limit, include_data=True
         )
         if not images:
             return {

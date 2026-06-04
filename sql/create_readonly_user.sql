@@ -1,4 +1,4 @@
-
+ 
 \set ro_password 'Akrawerkatya'
 
 DO $$

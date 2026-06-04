@@ -4,6 +4,7 @@ from uuid import UUID
 from sqlalchemy import delete, func, select
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import defer
 
 from ..models.image import ExperimentImage
 from .base import CachedRepositoryImpl
@@ -21,15 +22,33 @@ class ExperimentImageRepository(CachedRepositoryImpl[ExperimentImage]):
         session: AsyncSession,
         skip: int = 0,
         limit: int = 100,
+        *,
+        include_data: bool = False,
     ) -> list[ExperimentImage]:
-        """Get images by experiment ID."""
-        result = await session.execute(
-            select(ExperimentImage)
-            .where(ExperimentImage.experiment_id == experiment_id)
+        """Get images by experiment ID.
+
+        ``include_data``:
+            False (default): defers the ``image_data`` BYTEA column. The
+                list-images HTTP endpoint only returns id/passes/mime_type
+                in JSON, but a plain SELECT * still drags every image's
+                raw bytes out of Postgres TOAST + hydrates them — the
+                difference between ~17 ms and ~114 ms on experiments with
+                many uploads.
+            True: required by ImageAnalysisService.recalculate_experiment,
+                which actually walks ``image_data`` for every image. Without
+                this flag we'd hit N+1 (one extra SELECT per row to lazily
+                load the deferred column).
+        """
+        stmt = select(ExperimentImage)
+        if not include_data:
+            stmt = stmt.options(defer(ExperimentImage.image_data))
+        stmt = (
+            stmt.where(ExperimentImage.experiment_id == experiment_id)
             .order_by(ExperimentImage.passes.asc(), ExperimentImage.id.asc())
             .offset(skip)
             .limit(limit)
         )
+        result = await session.execute(stmt)
         return list(result.scalars().all())
 
     async def delete_by_experiment_id(
