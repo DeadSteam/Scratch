@@ -1,4 +1,4 @@
-/* Toast Component - Laboratory Precision Theme */
+/* Toast Component */
 
 .container {
   position: fixed;
@@ -17,10 +17,8 @@
   align-items: flex-start;
   gap: var(--space-3);
   padding: var(--space-4) var(--space-5);
-  background: var(--color-glass);
-  backdrop-filter: blur(var(--blur-xl));
-  -webkit-backdrop-filter: blur(var(--blur-xl));
-  border: 1px solid var(--color-glass-border);
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-xl);
   animation: slideIn var(--transition-base) var(--ease-spring);

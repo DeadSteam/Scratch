@@ -34,66 +34,20 @@
     box-shadow var(--transition-slow) var(--ease-out),
     transform var(--transition-base) var(--ease-out);
   text-align: left;
-  position: relative;
-  overflow: hidden;
-}
-
-/* Dot matrix texture */
-.card::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.025) 1px, transparent 0);
-  background-size: 22px 22px;
-  pointer-events: none;
-  z-index: 0;
-}
-
-/* Corner accents — 21st.dev Dark Grid pattern */
-.cornerTL,
-.cornerBR {
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  pointer-events: none;
-  z-index: 2;
-  opacity: 0;
-  transition: opacity var(--transition-base);
-}
-
-.cornerTL {
-  top: -2px;
-  left: -2px;
-  border-top: 2px solid var(--color-accent-primary);
-  border-left: 2px solid var(--color-accent-primary);
-}
-
-.cornerBR {
-  bottom: -2px;
-  right: -2px;
-  border-bottom: 2px solid var(--color-accent-primary);
-  border-right: 2px solid var(--color-accent-primary);
-}
-
-.card:hover .cornerTL,
-.card:hover .cornerBR,
-.card.active .cornerTL,
-.card.active .cornerBR {
-  opacity: 1;
 }
 
 .card:hover {
-  border-color: rgba(245, 158, 11, 0.25);
+  border-color: var(--color-border-light);
   background: var(--color-surface-hover);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--shadow-md);
   transform: translateY(-2px);
 }
 
-/* Active — amber border + amber glow */
+/* Active — selected section */
 .card.active {
-  border-color: rgba(245, 158, 11, 0.35);
-  background: rgba(245, 158, 11, 0.05);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  border-color: var(--color-accent-muted);
+  background: var(--color-accent-subtle);
+  box-shadow: var(--shadow-md);
   transform: translateY(-2px);
 }
 
@@ -105,27 +59,24 @@
   width: 38px;
   height: 38px;
   border-radius: var(--radius-lg);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--color-bg-tertiary);
   border: 1px solid var(--color-border);
   color: var(--color-text-muted);
   transition: color var(--transition-base), background var(--transition-base),
               border-color var(--transition-base), box-shadow var(--transition-base);
-  position: relative;
-  z-index: 1;
   flex-shrink: 0;
 }
 
 .card:hover .cardIconWrap {
   color: var(--color-accent-primary);
   background: var(--color-accent-subtle);
-  border-color: rgba(245, 158, 11, 0.2);
+  border-color: var(--color-accent-muted);
 }
 
 .card.active .cardIconWrap {
   color: var(--color-accent-primary);
   background: var(--color-accent-subtle);
-  border-color: rgba(245, 158, 11, 0.25);
-  box-shadow: none;
+  border-color: var(--color-accent-muted);
 }
 
 /* Card text */
@@ -133,8 +84,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
-  position: relative;
-  z-index: 1;
 }
 
 .cardTitle {

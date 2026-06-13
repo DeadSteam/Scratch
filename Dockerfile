@@ -39,4 +39,7 @@ EXPOSE 8000
 USER app
 
 ENTRYPOINT ["./entrypoint.sh"]
+# --proxy-headers/--forwarded-allow-ips are added dynamically by entrypoint.sh,
+# pinned to nginx's *current* IP on app-network (resolved via Docker DNS at
+# startup, since container IPs are reassigned across recreations).
 CMD ["python", "-m", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--timeout-graceful-shutdown", "25"]

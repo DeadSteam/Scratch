@@ -1,9 +1,9 @@
 @import './variables.css';
 @import './reset.css';
 
-/* 
- * ScratchLab Global Styles v2.0
- * Laboratory Precision Theme
+/*
+ * ScratchLab Global Styles v3.0
+ * Industrial Graphite Theme
  */
 
 /* ═══════════════════════════════════════════════════════════
@@ -197,27 +197,6 @@ body {
   100% { background-position: 200% 0; }
 }
 
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
-}
-
-@keyframes glow {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0.92; }
-}
-
-@keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-@keyframes scanline {
-  0% { transform: translateY(-100%); }
-  100% { transform: translateY(100vh); }
-}
-
 /* Animation utility classes */
 .animate-fadeIn { animation: fadeIn var(--transition-base) var(--ease-out) forwards; }
 .animate-fadeInUp { animation: fadeInUp var(--transition-slow) var(--ease-out) forwards; }
@@ -227,145 +206,6 @@ body {
 .animate-slideInLeft { animation: slideInLeft var(--transition-slow) var(--ease-out) forwards; }
 .animate-pulse { animation: pulse 2s var(--ease-in-out) infinite; }
 .animate-spin { animation: spin 1s linear infinite; }
-.animate-float { animation: float 3s var(--ease-in-out) infinite; }
-.animate-glow { animation: glow 2s var(--ease-in-out) infinite; }
-
-/* Stagger animations */
-.stagger-1 { animation-delay: 50ms; }
-.stagger-2 { animation-delay: 100ms; }
-.stagger-3 { animation-delay: 150ms; }
-.stagger-4 { animation-delay: 200ms; }
-.stagger-5 { animation-delay: 250ms; }
-.stagger-6 { animation-delay: 300ms; }
-
-/* ═══════════════════════════════════════════════════════════
-   GLASS MORPHISM UTILITIES
-   ═══════════════════════════════════════════════════════════ */
-
-.glass {
-  background: var(--color-glass);
-  backdrop-filter: blur(var(--blur-lg));
-  -webkit-backdrop-filter: blur(var(--blur-lg));
-  border: 1px solid var(--color-glass-border);
-}
-
-.glass-subtle {
-  background: rgba(30, 36, 51, 0.4);
-  backdrop-filter: blur(var(--blur-md));
-  -webkit-backdrop-filter: blur(var(--blur-md));
-}
-
-/* ═══════════════════════════════════════════════════════════
-   GRADIENT BACKGROUNDS
-   ═══════════════════════════════════════════════════════════ */
-
-.bg-gradient-dark {
-  background: linear-gradient(
-    180deg,
-    var(--color-bg-primary) 0%,
-    var(--color-bg-secondary) 100%
-  );
-}
-
-.bg-gradient-surface {
-  background: linear-gradient(
-    135deg,
-    var(--color-surface) 0%,
-    var(--color-surface-elevated) 100%
-  );
-}
-
-.bg-gradient-accent {
-  background: linear-gradient(
-    135deg,
-    var(--color-accent-primary) 0%,
-    var(--color-accent-secondary) 100%
-  );
-}
-
-.bg-gradient-radial {
-  background: radial-gradient(
-    ellipse at center,
-    var(--color-surface-elevated) 0%,
-    var(--color-bg-primary) 100%
-  );
-}
-
-.bg-gradient-mesh {
-  background: 
-    radial-gradient(at 40% 20%, rgba(245, 158, 11, 0.08) 0px, transparent 50%),
-    radial-gradient(at 80% 0%, rgba(99, 102, 241, 0.06) 0px, transparent 50%),
-    radial-gradient(at 0% 50%, rgba(245, 158, 11, 0.05) 0px, transparent 50%),
-    radial-gradient(at 80% 50%, rgba(99, 102, 241, 0.04) 0px, transparent 50%),
-    radial-gradient(at 0% 100%, rgba(245, 158, 11, 0.06) 0px, transparent 50%),
-    var(--color-bg-primary);
-}
-
-/* ═══════════════════════════════════════════════════════════
-   DECORATIVE PATTERNS
-   ═══════════════════════════════════════════════════════════ */
-
-.pattern-grid {
-  background-image: 
-    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-  background-size: 40px 40px;
-}
-
-.pattern-dots {
-  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-  background-size: 24px 24px;
-}
-
-.pattern-diagonal {
-  background-image: repeating-linear-gradient(
-    45deg,
-    transparent,
-    transparent 10px,
-    rgba(255, 255, 255, 0.01) 10px,
-    rgba(255, 255, 255, 0.01) 20px
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════
-   INTERACTIVE STATES
-   ═══════════════════════════════════════════════════════════ */
-
-.interactive {
-  transition: all var(--transition-base) var(--ease-out);
-}
-
-.interactive:hover {
-  opacity: 0.9;
-}
-
-.interactive:active {
-  opacity: 1;
-}
-
-.hover-lift {
-  transition: transform var(--transition-base) var(--ease-out);
-}
-
-.hover-lift:hover {
-  /* subtle background change instead of lift */
-}
-
-.hover-glow {
-  transition: opacity var(--transition-base) var(--ease-out);
-}
-
-.hover-glow:hover {
-  opacity: 0.9;
-}
-
-.hover-scale {
-  transition: transform var(--transition-fast) var(--ease-spring);
-}
-
-.hover-scale:hover {
-  transform: scale(1.02);
-}
 
 /* ═══════════════════════════════════════════════════════════
    SKELETON LOADING
@@ -432,7 +272,7 @@ body {
 .badge-accent {
   background: var(--color-accent-subtle);
   color: var(--color-accent-primary);
-  border-color: rgba(245, 158, 11, 0.2);
+  border-color: var(--color-accent-muted);
 }
 
 .badge-success {

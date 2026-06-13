@@ -1,4 +1,4 @@
-/* Image Carousel - Laboratory Precision Theme */
+/* Image Carousel */
 
 .container {
   display: flex;
@@ -119,17 +119,17 @@
   align-items: center;
   justify-content: space-between;
   padding: var(--space-5);
-  background: linear-gradient(transparent, rgba(12, 15, 20, 0.95));
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.75));
 }
 
 .passesLabel {
   font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   color: var(--color-accent-primary);
-  background: rgba(245, 158, 11, 0.15);
+  background: var(--color-accent-subtle);
   padding: var(--space-1-5) var(--space-4);
   border-radius: var(--radius-full);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  border: 1px solid var(--color-accent-muted);
 }
 
 .counter {
@@ -242,7 +242,7 @@
   font-weight: var(--font-semibold);
   text-align: center;
   padding: 3px;
-  background: rgba(12, 15, 20, 0.85);
+  background: rgba(0, 0, 0, 0.75);
   color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -323,7 +323,7 @@
 .addThumbnail:hover {
   border-color: var(--color-accent-primary);
   color: var(--color-accent-primary);
-  background: rgba(245, 158, 11, 0.05);
+  background: var(--color-accent-subtle);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -397,20 +397,4 @@
 
 .confirmButton:hover {
   background: #dc2626;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
 }

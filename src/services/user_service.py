@@ -40,11 +40,11 @@ class UserService(BaseService[User, UserCreate, UserUpdate, UserRead]):
         if "username" in data:
             existing = await self.user_repo.get_by_username(data["username"], session)
             if existing and (not exclude_id or existing.id != exclude_id):
-                raise AlreadyExistsError("User", "username", data["username"])
+                raise AlreadyExistsError("User", "username")
         if "email" in data:
             existing = await self.user_repo.get_by_email(data["email"], session)
             if existing and (not exclude_id or existing.id != exclude_id):
-                raise AlreadyExistsError("User", "email", data["email"])
+                raise AlreadyExistsError("User", "email")
 
     async def create(self, data: UserCreate, session: AsyncSession) -> UserRead:
         """Create user with hashed password."""

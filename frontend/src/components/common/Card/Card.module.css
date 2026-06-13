@@ -1,4 +1,4 @@
-/* Card Component - Laboratory Precision Theme */
+/* Card Component */
 
 .card {
   background: var(--color-surface);
@@ -19,23 +19,14 @@
 }
 
 .elevated {
-  background: var(--color-glass);
-  backdrop-filter: blur(var(--blur-lg));
-  -webkit-backdrop-filter: blur(var(--blur-lg));
-  border: 1px solid var(--color-glass-border);
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-border);
   box-shadow: var(--shadow-lg);
 }
 
 .outlined {
   border: 1px solid var(--color-border-light);
   background: transparent;
-}
-
-.glass {
-  background: var(--color-glass);
-  backdrop-filter: blur(var(--blur-xl));
-  -webkit-backdrop-filter: blur(var(--blur-xl));
-  border: 1px solid var(--color-glass-border);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -68,7 +59,7 @@
 
 .hoverable:hover {
   border-color: var(--color-border-light);
-  background: var(--color-surface-hover, rgba(255, 255, 255, 0.03));
+  background: var(--color-surface-hover);
 }
 
 .clickable {
@@ -82,22 +73,4 @@
 .clickable:focus-visible {
   outline: 2px solid var(--color-accent-primary);
   outline-offset: 2px;
-}
-
-/* ═══════════════════════════════════════════════════════════
-   ACCENT VARIANT
-   ═══════════════════════════════════════════════════════════ */
-
-.accent {
-  border-color: rgba(245, 158, 11, 0.2);
-}
-
-.accent::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: var(--color-accent-primary);
 }

@@ -131,11 +131,6 @@ export function LoginPage() {
       <div className={styles.themeToggleWrap}>
         <ThemeToggle />
       </div>
-      {/* Background decoration */}
-      <div className={styles.bgDecoration}>
-        <div className={styles.gridOverlay} />
-        <div className={styles.accentLines} />
-      </div>
 
       <div className={styles.formContainer}>
         <div className={styles.formCard}>

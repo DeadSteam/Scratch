@@ -1,4 +1,4 @@
-/* Create Experiment Page - Laboratory Precision Theme */
+/* Create Experiment Page */
 
 .page {
   max-width: 900px;
@@ -75,17 +75,15 @@
 }
 
 .step.active .stepIndicator {
-  background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary));
+  background: var(--color-accent-primary);
   border-color: transparent;
   color: var(--color-text-inverse);
-  /* no glow */
 }
 
 .step.completed .stepIndicator {
   background: var(--color-success);
   border-color: transparent;
   color: white;
-  box-shadow: none;
 }
 
 .stepText {
@@ -192,62 +190,22 @@
   cursor: pointer;
   transition: all var(--transition-base) var(--ease-out);
   color: var(--color-text-muted);
-  position: relative;
-  overflow: hidden;
-}
-
-.uploadLabel::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at center, var(--color-accent-subtle) 0%, transparent 70%);
-  opacity: 0;
-  transition: opacity var(--transition-base);
 }
 
 .uploadLabel:hover {
   border-color: var(--color-accent-primary);
-  background: rgba(245, 158, 11, 0.03);
-}
-
-.uploadLabel:hover::before {
-  opacity: 1;
-}
-
-.uploadIcon {
-  width: 56px;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-xl);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  color: var(--color-text-muted);
-  transition: all var(--transition-base);
-  position: relative;
-  z-index: 1;
-}
-
-.uploadLabel:hover .uploadIcon {
-  border-color: var(--color-accent-primary);
-  color: var(--color-accent-primary);
-  /* no glow */
+  background: var(--color-accent-subtle);
 }
 
 .uploadText {
   font-size: var(--text-base);
   font-weight: var(--font-medium);
   color: var(--color-text-secondary);
-  position: relative;
-  z-index: 1;
 }
 
 .uploadHint {
   font-size: var(--text-sm);
   color: var(--color-text-muted);
-  position: relative;
-  z-index: 1;
 }
 
 /* ═══════════════════════════════════════════════════════════

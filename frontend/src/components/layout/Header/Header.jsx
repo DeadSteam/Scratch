@@ -34,10 +34,16 @@ export function Header() {
   return (
     <header className={styles.header}>
       <div className={styles.container}>
-        <Link to={ROUTES.EXPERIMENTS} className={styles.logo}>
-          <Flask {...ph(32)} aria-hidden />
-          <span className={styles.logoText}>ScratchLab</span>
-        </Link>
+        <div className={styles.brandGroup}>
+          <Link to={ROUTES.EXPERIMENTS} className={styles.logo}>
+            <Flask {...ph(24)} aria-hidden className={styles.logoIcon} />
+            <span className={styles.logoText}>ScratchLab</span>
+          </Link>
+          <div className={styles.systemStatus}>
+            <span className="status-dot status-dot-ok" aria-hidden />
+            <span>Система активна</span>
+          </div>
+        </div>
 
         <nav className={styles.nav}>
           <Link 

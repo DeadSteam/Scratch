@@ -51,7 +51,12 @@ def test_verify_token_accepts_secondary_key(monkeypatch):
     )
 
     token_signed_with_old = pyjwt.encode(
-        {"sub": "u", "type": "access"},
+        {
+            "sub": "u",
+            "type": "access",
+            "iss": settings.JWT_ISSUER,
+            "aud": settings.JWT_AUDIENCE,
+        },
         old_key,
         algorithm=settings.ALGORITHM,
     )
@@ -64,7 +69,12 @@ def test_verify_token_rejects_unknown_key(monkeypatch):
     monkeypatch.setattr(settings, "SECONDARY_SECRET_KEYS", [])
 
     foreign = pyjwt.encode(
-        {"sub": "u", "type": "access"},
+        {
+            "sub": "u",
+            "type": "access",
+            "iss": settings.JWT_ISSUER,
+            "aud": settings.JWT_AUDIENCE,
+        },
         "totally-unrelated-key-at-least-32-characters-long",
         algorithm=settings.ALGORITHM,
     )

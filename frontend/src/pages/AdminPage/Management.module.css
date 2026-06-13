@@ -32,18 +32,6 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   overflow: hidden;
-  /* Subtle dot matrix inside table — from 21st.dev scientific card pattern */
-  position: relative;
-}
-
-.tableWrapper::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.02) 1px, transparent 0);
-  background-size: 28px 28px;
-  pointer-events: none;
-  z-index: 0;
 }
 
 /* ═══════════════════════════════════════════════
@@ -53,8 +41,6 @@
 .table {
   width: 100%;
   border-collapse: collapse;
-  position: relative;
-  z-index: 1;
 }
 
 /* Header cells */
@@ -68,24 +54,6 @@
   text-transform: uppercase;
   letter-spacing: var(--tracking-wider);
   border-bottom: 1px solid var(--color-border);
-  position: relative;
-}
-
-/* Amber accent under thead */
-.table thead tr th:first-child::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  width: 100vw;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    rgba(245, 158, 11, 0.45) 0%,
-    rgba(245, 158, 11, 0.2) 50%,
-    transparent 100%
-  );
-  pointer-events: none;
 }
 
 /* Body cells */
@@ -102,16 +70,15 @@
   border-bottom: none;
 }
 
-/* Row hover — subtle amber highlight */
 .table tbody tr {
   transition: background var(--transition-base);
 }
 
 .table tbody tr:hover {
-  background: rgba(245, 158, 11, 0.04);
+  background: var(--color-surface-hover);
 }
 
-/* Left amber accent via box-shadow on first cell */
+/* Left accent on hovered row */
 .table tbody tr:hover td:first-child {
   box-shadow: -3px 0 0 0 var(--color-accent-primary) inset;
 }
@@ -136,7 +103,7 @@
 }
 
 /* ═══════════════════════════════════════════════
-   BADGE — amber
+   BADGE
    ═══════════════════════════════════════════════ */
 
 .badge {
@@ -145,9 +112,9 @@
   padding: var(--space-1) var(--space-2-5);
   font-size: var(--text-xs);
   font-weight: var(--font-medium);
-  background: rgba(245, 158, 11, 0.1);
+  background: var(--color-accent-subtle);
   color: var(--color-accent-primary);
-  border: 1px solid rgba(245, 158, 11, 0.2);
+  border: 1px solid var(--color-accent-muted);
   border-radius: var(--radius-full);
   margin-right: var(--space-1);
   letter-spacing: var(--tracking-wide);
@@ -169,7 +136,6 @@
   white-space: nowrap;
 }
 
-/* Glowing dot before status text */
 .status::before {
   content: '';
   width: 6px;
@@ -182,13 +148,10 @@
   background: var(--color-success-bg);
   color: var(--color-success);
   border: 1px solid var(--color-success-border);
-  box-shadow: none;
 }
 
 .status.active::before {
   background: var(--color-success);
-  box-shadow: none;
-  animation: none;
 }
 
 .status.inactive {
@@ -201,13 +164,8 @@
   background: var(--color-text-muted);
 }
 
-@keyframes statusPulse {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0.85; }
-}
-
 /* ═══════════════════════════════════════════════
-   ACTION BUTTONS — icon glow (21st.dev FancyButton + Button Soft Glow pattern)
+   ACTION BUTTONS
    ═══════════════════════════════════════════════ */
 
 .actions {
@@ -218,13 +176,12 @@
 /* Edit button — first in actions group */
 .actions button:first-child {
   transition: color var(--transition-base), background var(--transition-base),
-              box-shadow var(--transition-base), transform var(--transition-fast) var(--ease-spring) !important;
+              transform var(--transition-fast) var(--ease-spring) !important;
 }
 
 .actions button:first-child:hover {
   color: var(--color-accent-primary) !important;
   background: var(--color-accent-subtle) !important;
-  box-shadow: none !important;
   transform: scale(1.08) !important;
 }
 
@@ -235,13 +192,12 @@
 /* Delete button — explicit class */
 .deleteBtn {
   transition: color var(--transition-base), background var(--transition-base),
-              box-shadow var(--transition-base), transform var(--transition-fast) var(--ease-spring) !important;
+              transform var(--transition-fast) var(--ease-spring) !important;
 }
 
 .deleteBtn:hover {
   color: var(--color-error) !important;
   background: var(--color-error-bg) !important;
-  box-shadow: none !important;
   transform: scale(1.08) !important;
 }
 
@@ -252,13 +208,12 @@
 /* Deactivate/Activate button — last in actions group (legacy support) */
 .actions button:last-child:not(:first-child) {
   transition: color var(--transition-base), background var(--transition-base),
-              box-shadow var(--transition-base), transform var(--transition-fast) var(--ease-spring) !important;
+              transform var(--transition-fast) var(--ease-spring) !important;
 }
 
 .actions button:last-child:not(:first-child):hover {
   color: var(--color-error) !important;
   background: var(--color-error-bg) !important;
-  box-shadow: none !important;
   transform: scale(1.08) !important;
 }
 
@@ -267,7 +222,7 @@
 }
 
 /* ═══════════════════════════════════════════════
-   EMPTY STATE (inspired by 21st.dev Empty State pattern)
+   EMPTY STATE
    ═══════════════════════════════════════════════ */
 
 .emptyRow td {
@@ -283,22 +238,6 @@
   gap: var(--space-3);
   padding: var(--space-14) var(--space-4);
   width: 100%;
-  /* Dashed border inset — 21st.dev empty state style */
-  background:
-    repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 6px,
-      rgba(255, 255, 255, 0.025) 6px,
-      rgba(255, 255, 255, 0.025) 7px
-    ),
-    repeating-linear-gradient(
-      90deg,
-      transparent,
-      transparent 6px,
-      rgba(255, 255, 255, 0.025) 6px,
-      rgba(255, 255, 255, 0.025) 7px
-    );
 }
 
 .emptyIcon {
@@ -308,7 +247,7 @@
   width: 44px;
   height: 44px;
   border-radius: var(--radius-xl);
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--color-bg-tertiary);
   border: 1px dashed var(--color-border);
   color: var(--color-text-muted);
   opacity: 0.6;

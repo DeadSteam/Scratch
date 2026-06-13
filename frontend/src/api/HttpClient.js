@@ -22,6 +22,9 @@ function buildErrorMessage(response, data) {
   if (typeof data?.detail === 'string') {
     return data.detail;
   }
+  if (typeof data?.message === 'string') {
+    return data.message;
+  }
   if (response.status === 401) {
     return 'Сессия истекла. Пожалуйста, войдите снова.';
   }

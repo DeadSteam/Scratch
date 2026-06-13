@@ -1,24 +1,10 @@
-/* Layout Component - Laboratory Precision Theme */
+/* Layout Component */
 
 .layout {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   background: var(--color-bg-primary);
-  position: relative;
-}
-
-/* Background texture — subtle amber ambient */
-.layout::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background-image: 
-    radial-gradient(at 100% 0%, rgba(245, 158, 11, 0.04) 0px, transparent 50%),
-    radial-gradient(at 0% 100%, rgba(245, 158, 11, 0.025) 0px, transparent 50%),
-    radial-gradient(at 50% 50%, rgba(99, 102, 241, 0.015) 0px, transparent 60%);
-  pointer-events: none;
-  z-index: 0;
 }
 
 .main {
@@ -27,8 +13,6 @@
   max-width: var(--container-xl);
   width: 100%;
   margin: 0 auto;
-  position: relative;
-  z-index: 1;
 }
 
 @media (max-width: 768px) {

@@ -54,10 +54,6 @@ export function KnowledgeManagement() {
             className={`${styles.card} ${active === s.id ? styles.active : ''}`}
             onClick={() => setActive(s.id)}
           >
-            {/* Corner accents — visible on hover/active (21st.dev Dark Grid pattern) */}
-            <span className={styles.cornerTL} aria-hidden="true" />
-            <span className={styles.cornerBR} aria-hidden="true" />
-
             <span className={styles.cardIconWrap}>
               <s.Icon />
             </span>

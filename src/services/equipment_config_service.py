@@ -46,7 +46,7 @@ class EquipmentConfigService(
         if "name" in data:
             existing = await self.config_repo.get_by_name(data["name"], session)
             if existing and (not exclude_id or existing.id != exclude_id):
-                raise AlreadyExistsError("EquipmentConfig", "name", data["name"])
+                raise AlreadyExistsError("EquipmentConfig", "name")
 
     async def search_by_name(
         self, name_pattern: str, session: AsyncSession, skip: int = 0, limit: int = 100

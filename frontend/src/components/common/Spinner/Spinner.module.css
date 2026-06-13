@@ -1,4 +1,4 @@
-/* Spinner Component - Laboratory Precision Theme */
+/* Spinner Component */
 
 .spinner {
   display: inline-flex;
@@ -9,15 +9,6 @@
 
 .spinner svg {
   animation: spin 0.8s linear infinite;
-}
-
-.track {
-  opacity: 0.15;
-}
-
-.progress {
-  opacity: 1;
-  filter: none;
 }
 
 /* ═══════════════════════════════════════════════════════════

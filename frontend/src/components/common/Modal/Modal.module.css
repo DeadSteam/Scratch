@@ -1,9 +1,9 @@
-/* Modal Component - Laboratory Precision Theme */
+/* Modal Component */
 
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(12, 15, 20, 0.85);
+  background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(var(--blur-md));
   -webkit-backdrop-filter: blur(var(--blur-md));
   display: flex;

@@ -55,15 +55,20 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     await close_redis_connection()
 
 
+# Disable interactive API docs / OpenAPI schema in production to avoid
+# exposing the full API surface (endpoints, schemas, auth flows) to anyone
+# who can reach the app.
+_docs_enabled = settings.ENVIRONMENT != "production"
+
 # Create FastAPI app
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
     debug=settings.DEBUG,
     lifespan=lifespan,
-    docs_url="/api/docs",
-    redoc_url="/api/redoc",
-    openapi_url="/api/openapi.json",
+    docs_url="/api/docs" if _docs_enabled else None,
+    redoc_url="/api/redoc" if _docs_enabled else None,
+    openapi_url="/api/openapi.json" if _docs_enabled else None,
 )
 
 # Rate limiting

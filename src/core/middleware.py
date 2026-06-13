@@ -4,6 +4,7 @@ import uuid
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 from structlog.contextvars import bind_contextvars, clear_contextvars
 
 from .audit import AuditLogMiddleware
@@ -94,3 +95,7 @@ def register_middlewares(app: FastAPI) -> None:
 
     # Request ID / structured logging
     app.add_middleware(RequestIdMiddleware)
+
+    # Reject requests with an unrecognized Host header (outermost: runs
+    # first, before Host can be reflected into a redirect Location header).
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts)

@@ -98,6 +98,15 @@ class Settings(BaseSettings):
         default=7, description="Refresh token expiration in days"
     )
 
+    # JWT iss/aud claims: scope tokens to this application so a token signed
+    # with the same SECRET_KEY for a different service cannot be replayed here.
+    JWT_ISSUER: str = Field(
+        default="scratchlab", description="JWT 'iss' (issuer) claim"
+    )
+    JWT_AUDIENCE: str = Field(
+        default="scratchlab-api", description="JWT 'aud' (audience) claim"
+    )
+
     # Default Admin User
     ADMIN_USERNAME: str = Field(default="admin", description="Default admin username")
     ADMIN_EMAIL: str = Field(
@@ -248,6 +257,24 @@ class Settings(BaseSettings):
         if "*" in self.CORS_ORIGINS:
             return True
         return origin in self.CORS_ORIGINS
+
+    @property
+    def allowed_hosts(self) -> list[str]:
+        """Hostnames accepted by TrustedHostMiddleware.
+
+        Derived from CORS_ORIGINS (the public hostnames clients use) plus
+        fixed names needed by Docker-internal callers (Prometheus scraping
+        app:8000) and test clients (httpx ASGITransport default host).
+        """
+        from urllib.parse import urlparse
+
+        hosts = {
+            hostname
+            for origin in self.CORS_ORIGINS
+            if (hostname := urlparse(origin).hostname)
+        }
+        hosts.update({"app", "test", "testserver", "localhost", "127.0.0.1"})
+        return sorted(hosts)
 
 
 @lru_cache

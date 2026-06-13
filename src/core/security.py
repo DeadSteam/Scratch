@@ -62,6 +62,8 @@ def create_access_token(
             "exp": expire,
             "type": "access",
             "jti": str(uuid.uuid4()),
+            "iss": settings.JWT_ISSUER,
+            "aud": settings.JWT_AUDIENCE,
         }
     )
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
@@ -84,6 +86,8 @@ def create_refresh_token(
             "type": "refresh",
             "jti": str(uuid.uuid4()),
             "family": family_id or str(uuid.uuid4()),
+            "iss": settings.JWT_ISSUER,
+            "aud": settings.JWT_AUDIENCE,
         }
     )
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
@@ -103,7 +107,13 @@ def verify_token(token: str) -> dict[str, Any]:
     last_err: Exception | None = None
     for key in keys:
         try:
-            return jwt.decode(token, key, algorithms=[settings.ALGORITHM])
+            return jwt.decode(
+                token,
+                key,
+                algorithms=[settings.ALGORITHM],
+                audience=settings.JWT_AUDIENCE,
+                issuer=settings.JWT_ISSUER,
+            )
         except PyJWTError as err:
             last_err = err
             continue

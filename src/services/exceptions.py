@@ -36,11 +36,12 @@ class AlreadyExistsError(ServiceError):
 
     status_code = 409
 
-    def __init__(self, entity_name: str, field: str, value: Any):
-        message = f"{entity_name} with {field}='{value}' already exists"
-        super().__init__(
-            message, {"entity": entity_name, "field": field, "value": value}
-        )
+    def __init__(self, entity_name: str, field: str):
+        # SECURITY: do not echo the submitted value back to the client —
+        # POST /auth/register is unauthenticated, so reflecting it here
+        # would enable user enumeration (testing-for-sensitive-data-exposure).
+        message = f"{entity_name} with this {field} already exists"
+        super().__init__(message, {"entity": entity_name, "field": field})
 
 
 class AuthenticationError(ServiceError):

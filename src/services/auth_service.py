@@ -37,7 +37,7 @@ from .exceptions import AuthenticationError
 # A pre-computed bcrypt hash used to keep timing constant when the username
 # does not exist (otherwise the absent verify_password call is a side channel).
 _DUMMY_HASH = bcrypt.hashpw(b"dummy", bcrypt.gensalt()).decode("utf-8")
-_GENERIC_AUTH_ERROR = "Invalid username or password"
+_GENERIC_AUTH_ERROR = "Неверное имя пользователя или пароль"
 
 
 def _hash_username(username: str) -> str:
@@ -102,7 +102,9 @@ class AuthService:
                 username_hash=log_uname,
                 reason="too_many_failures",
             )
-            raise AuthenticationError("Too many failed attempts. Try again later.")
+            raise AuthenticationError(
+                "Слишком много неудачных попыток. Повторите позже."
+            )
 
         user = await self._user_repo.get_by_username(username, session)
         if not user:
@@ -189,18 +191,14 @@ class AuthService:
         # Family burned by a prior theft detection? Reject before doing
         # anything else.
         if await is_refresh_family_revoked(family_id):
-            self._logger.warning(
-                "refresh_rejected_family_revoked", family=family_id
-            )
+            self._logger.warning("refresh_rejected_family_revoked", family=family_id)
             raise AuthenticationError("Refresh token has been revoked")
 
         if previous_refresh_token:
             if await is_refresh_token_blacklisted(previous_refresh_token):
                 # Replay of a rotated token == possible theft. Burn the
                 # whole family.
-                self._logger.warning(
-                    "refresh_token_replay_detected", family=family_id
-                )
+                self._logger.warning("refresh_token_replay_detected", family=family_id)
                 if family_id:
                     await revoke_refresh_family(family_id)
                 raise AuthenticationError("Refresh token has been revoked")

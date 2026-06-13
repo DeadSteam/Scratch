@@ -187,6 +187,7 @@ export function CreateExperimentPage() {
     <Layout>
       <div className={styles.page}>
         <div className={styles.header}>
+          <span className={styles.eyebrow}>Инициализация эксперимента</span>
           <h1 className={styles.title}>Создать эксперимент</h1>
           <p className={styles.subtitle}>
             Настройте параметры теста на устойчивость к царапинам
@@ -195,7 +196,7 @@ export function CreateExperimentPage() {
 
         <StepIndicator steps={STEPS} currentStep={currentStep} />
 
-        <Card variant="default" padding="lg" className={styles.content}>
+        <Card variant="default" padding="none" className={styles.content}>
           {currentStep === 1 && (
             <StepConfig
               formData={formData}

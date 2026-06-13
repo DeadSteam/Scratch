@@ -10,25 +10,8 @@
 
 .header {
   margin-bottom: var(--space-8);
-  position: relative;
   padding-bottom: var(--space-6);
-}
-
-/* Amber accent separator */
-.header::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 200px;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    var(--color-accent-primary) 0%,
-    rgba(245, 158, 11, 0.4) 60%,
-    transparent 100%
-  );
-  opacity: 0.7;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .title {
@@ -36,14 +19,7 @@
   font-weight: var(--font-bold);
   margin: 0 0 var(--space-2);
   letter-spacing: var(--tracking-tight);
-  background: linear-gradient(
-    135deg,
-    var(--color-text-primary) 0%,
-    var(--color-accent-primary) 70%
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--color-text-primary);
 }
 
 .subtitle {
@@ -53,8 +29,7 @@
 }
 
 /* ═══════════════════════════════════════════════
-   PILL TABS — inspired by 21st.dev PillMorphTabs
-   Glassmorphism container + gradient active pill
+   PILL TABS
    ═══════════════════════════════════════════════ */
 
 .tabs {
@@ -63,11 +38,9 @@
   gap: var(--space-1);
   margin-bottom: var(--space-8);
   padding: var(--space-1-5);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0.01));
-  border: 1px solid var(--color-glass-border);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-2xl);
-  backdrop-filter: blur(var(--blur-sm));
-  -webkit-backdrop-filter: blur(var(--blur-sm));
   width: fit-content;
 }
 
@@ -102,19 +75,17 @@
 
 .tab:hover {
   color: var(--color-text-primary);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--color-surface-hover);
 }
 
 .tab:hover .tabIcon {
   opacity: 1;
 }
 
-/* Active state — amber pill */
 .tab.active {
   color: var(--color-text-primary);
-  background: rgba(245, 158, 11, 0.12);
-  border-color: rgba(245, 158, 11, 0.25);
-  box-shadow: none;
+  background: var(--color-accent-subtle);
+  border-color: var(--color-accent-muted);
 }
 
 .tab.active .tabIcon {

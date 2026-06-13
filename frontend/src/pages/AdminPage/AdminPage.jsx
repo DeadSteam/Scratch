@@ -59,6 +59,7 @@ export function AdminPage() {
     <Layout>
       <div className={styles.page}>
         <div className={styles.header}>
+          <span className={styles.eyebrow}>Системное управление</span>
           <h1 className={styles.title}>Админ-панель</h1>
           <p className={styles.subtitle}>
             Управление пользователями, типами пленок и конфигурациями оборудования
