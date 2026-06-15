@@ -39,10 +39,6 @@ export function Header() {
             <Flask {...ph(24)} aria-hidden className={styles.logoIcon} />
             <span className={styles.logoText}>ScratchLab</span>
           </Link>
-          <div className={styles.systemStatus}>
-            <span className="status-dot status-dot-ok" aria-hidden />
-            <span>Система активна</span>
-          </div>
         </div>
 
         <nav className={styles.nav}>
