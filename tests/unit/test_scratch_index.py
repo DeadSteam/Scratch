@@ -40,11 +40,20 @@ def test_scratch_index_pure_white_is_one():
 
 
 def test_scratch_index_uniform_grey():
-    """50% grey (brightness 128) ⇒ index ≈ 0.502 ( = 128/255 )."""
+    """50% grey (brightness 128) ⇒ index = 0.502 ( = round(128/255, 3) )."""
     svc = _service()
     hist = {128: 1000}
     index = svc.calculate_scratch_index(hist, total_pixels=1000)
-    assert abs(index - 128 / 255) < 1e-9
+    assert index == round(128 / 255, 3) == 0.502
+
+
+def test_scratch_index_rounded_to_3_decimals():
+    """The index is always rounded to 3 decimals at the source."""
+    svc = _service()
+    # Mixed levels produce a long fractional value; it must come back at 3dp.
+    hist = {10: 333, 137: 333, 251: 334}
+    index = svc.calculate_scratch_index(hist, total_pixels=1000)
+    assert index == round(index, 3)
 
 
 def test_scratch_index_total_pixels_zero_is_zero():

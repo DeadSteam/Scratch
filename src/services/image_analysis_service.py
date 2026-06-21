@@ -89,6 +89,10 @@ class ImageAnalysisService:
             for q, count in histogram.items():
                 w = weights.get(q, q / 255.0)
                 scratch_index += w * (count / total_pixels)
+            # The index is a weighted mean of 8-bit levels (quantum 1/255 ≈
+            # 0.0039); 3 decimals already resolve finer than that, so we round
+            # here at the source — stored and displayed values stay consistent.
+            scratch_index = round(scratch_index, 3)
             span.set_attribute("scratch_index", float(scratch_index))
             return scratch_index
 
@@ -274,9 +278,9 @@ class ImageAnalysisService:
         indices = [r["scratch_index"] for r in results]
         summary = {
             "count": len(results),
-            "average": float(np.mean(indices)) if indices else 0.0,
-            "max": float(np.max(indices)) if indices else 0.0,
-            "min": float(np.min(indices)) if indices else 0.0,
+            "average": round(float(np.mean(indices)), 3) if indices else 0.0,
+            "max": round(float(np.max(indices)), 3) if indices else 0.0,
+            "min": round(float(np.min(indices)), 3) if indices else 0.0,
         }
 
         logger.info(

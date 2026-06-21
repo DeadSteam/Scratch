@@ -107,7 +107,7 @@ def build_experiment_report_xlsx(experiment: ExperimentRead) -> bytes:
     for result in results:
         ws.cell(row=row, column=1, value=result.get("passes") or 0)
         index_cell = ws.cell(row=row, column=2, value=result.get("scratch_index"))
-        index_cell.number_format = "0.0000"
+        index_cell.number_format = "0.000"
         ws.cell(row=row, column=3, value=result.get("total_pixels"))
         row += 1
     data_end_row = row - 1

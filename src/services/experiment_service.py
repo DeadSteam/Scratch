@@ -122,7 +122,9 @@ class ExperimentService(
 
         delta = None
         if reference_result is not None and latest_result is not None:
-            delta = latest_result.scratch_index - reference_result.scratch_index
+            delta = round(
+                latest_result.scratch_index - reference_result.scratch_index, 3
+            )
 
         summary = KnowledgeSummary(
             controlled_param=None,

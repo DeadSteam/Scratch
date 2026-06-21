@@ -26,11 +26,11 @@ export const formatDate = withDefault((dateString, options = {}) =>
 );
 
 export const formatScratchIndex = withDefault(
-  (value, decimals = 4) => value.toFixed(decimals),
+  (value, decimals = 3) => value.toFixed(decimals),
   true,
 );
 
-export const formatScratchDelta = withDefault((value, decimals = 4) => {
+export const formatScratchDelta = withDefault((value, decimals = 3) => {
   const sign = value > 0 ? '+' : '';
   return `${sign}${value.toFixed(decimals)}`;
 }, true);
