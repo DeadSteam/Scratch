@@ -11,6 +11,16 @@ class UserService extends BaseApiService {
     return response.data;
   }
 
+  async getRoles() {
+    const response = await this.http.get(`${this.basePath}/roles`);
+    return response.data;
+  }
+
+  async setRoles(id, roles) {
+    const response = await this.http.put(`${this.basePath}/${id}/roles`, { roles });
+    return response.data;
+  }
+
   async deactivate(id) {
     return this.http.post(`${this.basePath}/${id}/deactivate`);
   }

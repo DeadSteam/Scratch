@@ -4,7 +4,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from ..models.user import User
+from ..models.user import Role, User
 from .base import CachedRepositoryImpl, _serialize_row
 from .interfaces import UserRepositoryInterface
 
@@ -96,3 +96,33 @@ class UserRepository(CachedRepositoryImpl[User], UserRepositoryInterface[User]):
             select(func.count(User.id)).where(User.is_active)
         )
         return result.scalar() or 0
+
+    async def list_roles(self, session: AsyncSession) -> list[Role]:
+        """Return all roles ordered by name."""
+        result = await session.execute(select(Role).order_by(Role.name))
+        return list(result.scalars().all())
+
+    async def set_roles(
+        self, user_id: UUID, role_names: list[str], session: AsyncSession
+    ) -> User | None:
+        """Replace a user's roles with the roles matching `role_names`.
+
+        Returns the updated user (with roles loaded), or None if not found.
+        No commit — managed by the session dependency.
+        """
+        user = await self.get_by_id_with_roles(user_id, session)
+        if user is None:
+            return None
+
+        if role_names:
+            result = await session.execute(
+                select(Role).where(Role.name.in_(role_names))
+            )
+            roles = list(result.scalars().all())
+        else:
+            roles = []
+
+        user.roles = roles
+        await session.flush()
+        await self.invalidate_cache(user_id)
+        return user

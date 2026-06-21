@@ -49,6 +49,14 @@ class RoleUpdate(SchemaBase):
     name: str | None = Field(None, min_length=1, max_length=50)
 
 
+class UserRolesUpdate(SchemaBase):
+    """Admin-only payload: replace a user's roles with the given role names."""
+
+    roles: list[str] = Field(
+        default_factory=list, description="Role names to assign to the user"
+    )
+
+
 class UserBase(SchemaBase):
     username: str = Field(..., min_length=3, max_length=50, description="Username")
     email: EmailStr

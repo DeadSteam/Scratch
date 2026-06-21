@@ -12,9 +12,9 @@ from ..core.audit import emit_audit_event
 from ..core.security import get_password_hash
 from ..models.user import User
 from ..repositories.user_repository import UserRepository
-from ..schemas.user import UserCreate, UserRead, UserUpdate
+from ..schemas.user import RoleRead, UserCreate, UserRead, UserUpdate
 from .base import BaseService
-from .exceptions import AlreadyExistsError, NotFoundError
+from .exceptions import AlreadyExistsError, NotFoundError, ValidationError
 
 
 class UserService(BaseService[User, UserCreate, UserUpdate, UserRead]):
@@ -166,6 +166,41 @@ class UserService(BaseService[User, UserCreate, UserUpdate, UserRead]):
                 resource_id=str(entity_id),
             )
         return deleted
+
+    async def list_roles(self, session: AsyncSession) -> list[RoleRead]:
+        """List all available roles."""
+        roles = await self.user_repo.list_roles(session)
+        return [RoleRead.model_validate(r) for r in roles]
+
+    async def set_roles(
+        self, user_id: UUID, role_names: list[str], session: AsyncSession
+    ) -> UserRead:
+        """Replace a user's roles (admin action).
+
+        Validates every requested role name exists before applying, so an
+        invalid name fails loudly instead of silently dropping the role.
+        """
+        requested = list(dict.fromkeys(role_names))  # de-dup, keep order
+        available = {r.name for r in await self.user_repo.list_roles(session)}
+        unknown = [name for name in requested if name not in available]
+        if unknown:
+            raise ValidationError(
+                f"Unknown role(s): {', '.join(unknown)}", field="roles"
+            )
+
+        user = await self.user_repo.set_roles(user_id, requested, session)
+        if not user:
+            raise NotFoundError("User", user_id)
+
+        result = self.read_schema.model_validate(user)
+        emit_audit_event(
+            user_id=None,
+            action="USER_SET_ROLES",
+            resource="/users",
+            resource_id=str(user_id),
+            details={"roles": requested},
+        )
+        return result
 
     async def count(self, session: AsyncSession) -> int:
         """Count total users."""

@@ -34,6 +34,7 @@ dependencies = [
     "celery>=5.6.2",
     "opentelemetry-instrumentation-celery>=0.60b1",
     "python-docx>=1.2.0",
+    "openpyxl>=3.1.5",
 ]
 
 [project.optional-dependencies]
@@ -106,6 +107,12 @@ allowed-unresolved-imports = []
 include = ["src/main.py", "src/core/middleware.py"]
 [tool.ty.overrides.rules]
 invalid-argument-type = "ignore"
+
+# openpyxl chart axis stubs type `.title` too narrowly; the runtime API accepts str.
+[[tool.ty.overrides]]
+include = ["src/services/report_service.py"]
+[tool.ty.overrides.rules]
+invalid-assignment = "ignore"
 
 [[tool.ty.overrides]]
 include = ["src/repositories/**", "src/services/base.py", "src/services/advice_service.py", "src/services/cause_service.py"]

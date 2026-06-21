@@ -14,6 +14,10 @@ class ExperimentService extends BaseApiService {
     const response = await this.http.get(`${this.basePath}/${id}/with-images`);
     return response.data;
   }
+
+  async downloadReport(id) {
+    return this.http.getBlob(`${this.basePath}/${id}/report`);
+  }
 }
 
 export const experimentService = new ExperimentService();

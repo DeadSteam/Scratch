@@ -14,21 +14,26 @@ from .logging_config import get_logger
 logger = get_logger(__name__)
 
 
+async def ensure_role(name: str, session: AsyncSession) -> Role:
+    """Create a role by name if it does not exist yet."""
+    result = await session.execute(select(Role).where(Role.name == name))
+    role = result.scalar_one_or_none()
+
+    if not role:
+        role = Role(name=name)
+        session.add(role)
+        await session.flush()
+        await session.refresh(role)
+        logger.info("role_created", role=name)
+    else:
+        logger.info("role_already_exists", role=name)
+
+    return role
+
+
 async def create_admin_role(session: AsyncSession) -> Role:
     """Create admin role if not exists."""
-    result = await session.execute(select(Role).where(Role.name == "admin"))
-    admin_role = result.scalar_one_or_none()
-
-    if not admin_role:
-        admin_role = Role(name="admin")
-        session.add(admin_role)
-        await session.flush()
-        await session.refresh(admin_role)
-        logger.info("admin_role_created")
-    else:
-        logger.info("admin_role_already_exists")
-
-    return admin_role
+    return await ensure_role("admin", session)
 
 
 async def assign_admin_role_to_user(
@@ -98,5 +103,6 @@ async def create_default_admin(session: AsyncSession) -> None:
 async def initialize_default_data(session: AsyncSession) -> None:
     """Initialize all default data."""
     logger.info("initializing_default_data")
+    await ensure_role("user", session)
     await create_default_admin(session)
     logger.info("default_data_initialization_complete")

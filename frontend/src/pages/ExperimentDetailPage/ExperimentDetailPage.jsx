@@ -12,6 +12,8 @@ import { useExperimentData } from '@hooks/useExperimentData';
 import { useHistogramData } from '@hooks/useHistogramData';
 import { useExperimentActions } from '@hooks/useExperimentActions';
 import { useAuthenticatedImageUrl } from '@hooks/useAuthenticatedImageUrl';
+import { useNotification } from '@context/NotificationContext';
+import { experimentService } from '@api';
 import { Layout } from '@components/layout';
 import { Button, Spinner } from '@components/common';
 import { ImageCarousel } from '@components/features';
@@ -52,8 +54,32 @@ export function ExperimentDetailPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isRoiModalOpen, setIsRoiModalOpen] = useState(false);
   const [isKnowledgeModalOpen, setIsKnowledgeModalOpen] = useState(false);
+  const [isReportLoading, setIsReportLoading] = useState(false);
+
+  const { success: notifySuccess, error: notifyError } = useNotification();
 
   const openKnowledge = useCallback(() => setIsKnowledgeModalOpen(true), []);
+
+  const downloadReport = useCallback(async () => {
+    setIsReportLoading(true);
+    try {
+      const blob = await experimentService.downloadReport(id);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const name = experiment?.name || experiment?.film?.name || id;
+      link.download = `report-${name}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      notifySuccess('Отчёт сформирован');
+    } catch (err) {
+      notifyError(err.message || 'Не удалось сформировать отчёт');
+    } finally {
+      setIsReportLoading(false);
+    }
+  }, [id, experiment, notifySuccess, notifyError]);
 
   const actions = useExperimentActions({
     id,
@@ -126,6 +152,8 @@ export function ExperimentDetailPage() {
           onRename={actions.renameExperiment}
           onOpenAddImage={() => setIsAddModalOpen(true)}
           onRecalculate={actions.recalculateAll}
+          onDownloadReport={downloadReport}
+          isReportLoading={isReportLoading}
         />
 
         <div className={styles.mainGrid}>

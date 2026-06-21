@@ -76,7 +76,7 @@ class _ExperimentEditable(SchemaBase):
     rect_coords: list[float] | None = Field(
         None, description="Rectangle coordinates for analysis [x, y, width, height]"
     )
-    weight: float | None = Field(None, gt=0, description="Sample weight in grams")
+    weight: float | None = Field(None, ge=0, description="Sample weight in grams")
     has_fabric: bool | None = Field(
         False, description="Whether fabric substrate was used"
     )
@@ -103,7 +103,7 @@ class ExperimentUpdate(SchemaBase):
     name: str | None = Field(None, max_length=200)
     date: datetime | None = None
     rect_coords: list[float] | None = None
-    weight: float | None = Field(None, gt=0)
+    weight: float | None = Field(None, ge=0)
     has_fabric: bool | None = None
 
     @field_validator("name")
@@ -117,8 +117,8 @@ class ExperimentUpdate(SchemaBase):
     @field_validator("weight")
     @classmethod
     def validate_weight(cls, v: float | None) -> float | None:
-        if v is not None and v <= 0:
-            raise ValueError("Weight must be greater than 0")
+        if v is not None and v < 0:
+            raise ValueError("Weight must be non-negative")
         return v
 
     @field_validator("rect_coords")

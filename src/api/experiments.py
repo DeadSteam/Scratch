@@ -1,8 +1,10 @@
 """Experiment management endpoints."""
 
+from urllib.parse import quote
 from uuid import UUID
 
 from fastapi import APIRouter, Query, status
+from fastapi.responses import StreamingResponse
 
 from ..core.authorization import (
     ensure_experiment_access,
@@ -17,6 +19,7 @@ from ..core.dependencies import (
 )
 from ..core.logging_config import get_logger
 from ..schemas.experiment import ExperimentCreate, ExperimentRead, ExperimentUpdate
+from ..services.report_service import build_experiment_report_xlsx
 from .responses import PaginatedResponse, Response
 
 router = APIRouter(prefix="/experiments", tags=["Experiments"])
@@ -259,6 +262,36 @@ async def get_experiment_with_images(
         success=True,
         message="Experiment with images retrieved successfully",
         data=experiment,
+    )
+
+
+@router.get(
+    "/{experiment_id}/report",
+    summary="Download experiment report (Excel)",
+    description="Generate an .xlsx report with metadata, indices table and histogram",
+    response_class=StreamingResponse,
+)
+async def download_experiment_report(
+    experiment_id: UUID,
+    experiment_service: ExperimentSvc,
+    db: MainDBSession,
+    knowledge_db: KnowledgeDBSession,
+    current_user: CurrentUser,
+):
+    """Build and stream an Excel report for the experiment."""
+    await ensure_experiment_access(experiment_id, current_user, db)
+    logger.info("download_experiment_report", experiment_id=str(experiment_id))
+    experiment = await experiment_service.get_by_id(experiment_id, db, knowledge_db)
+    content = build_experiment_report_xlsx(experiment)
+
+    filename = f"report-{experiment.name or experiment_id}.xlsx"
+    disposition = f"attachment; filename*=UTF-8''{quote(filename)}"
+    return StreamingResponse(
+        iter([content]),
+        media_type=(
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        ),
+        headers={"Content-Disposition": disposition},
     )
 
 

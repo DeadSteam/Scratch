@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Check, X, PencilSimple, Plus } from '@phosphor-icons/react';
+import { ArrowLeft, Check, X, PencilSimple, Plus, FileXls } from '@phosphor-icons/react';
 import { ph } from '@components/icons/phosphor';
 import { Button, Input } from '@components/common';
 import { ROUTES } from '@utils/constants';
@@ -16,6 +16,8 @@ export function ExperimentHeader({
   onRename,
   onOpenAddImage,
   onRecalculate,
+  onDownloadReport,
+  isReportLoading,
 }) {
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
@@ -96,6 +98,14 @@ export function ExperimentHeader({
       </div>
 
       <div className={styles.headerActions}>
+        <Button
+          variant="secondary"
+          onClick={onDownloadReport}
+          loading={isReportLoading}
+        >
+          <FileXls {...ph(16)} weight="bold" aria-hidden />
+          Отчёт
+        </Button>
         <Button variant="secondary" onClick={onOpenAddImage}>
           <Plus {...ph(16)} weight="bold" aria-hidden />
           Добавить фото
@@ -125,6 +135,8 @@ ExperimentHeader.propTypes = {
   onRename: PropTypes.func.isRequired,
   onOpenAddImage: PropTypes.func.isRequired,
   onRecalculate: PropTypes.func.isRequired,
+  onDownloadReport: PropTypes.func.isRequired,
+  isReportLoading: PropTypes.bool,
 };
 
 export default ExperimentHeader;

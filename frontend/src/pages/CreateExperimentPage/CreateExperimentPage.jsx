@@ -120,7 +120,8 @@ export function CreateExperimentPage() {
     if (currentStep === 1) {
       if (!formData.filmId) newErrors.filmId = 'Выберите тип пленки';
       if (!formData.configId) newErrors.configId = 'Выберите конфигурацию';
-      if (!formData.weight || parseFloat(formData.weight) <= 0) {
+      const weightValue = parseFloat(formData.weight);
+      if (formData.weight === '' || Number.isNaN(weightValue) || weightValue < 0) {
         newErrors.weight = 'Введите корректный вес';
       }
     }

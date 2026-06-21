@@ -31,10 +31,9 @@ CREATE INDEX IF NOT EXISTS idx_users_active ON users(is_active);
 CREATE INDEX IF NOT EXISTS idx_roles_name ON roles(name);
 
 -- Insert default roles
-INSERT INTO roles (name) VALUES 
+INSERT INTO roles (name) VALUES
 ('admin'),
-('user'),
-('researcher')
+('user')
 ON CONFLICT (name) DO NOTHING;
 
 

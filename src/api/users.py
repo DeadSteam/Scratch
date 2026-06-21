@@ -6,7 +6,13 @@ from fastapi import APIRouter, Query, status
 
 from ..core.authorization import ensure_same_user_or_admin, is_admin
 from ..core.dependencies import CurrentAdmin, CurrentUser, UsersDBSession, UserSvc
-from ..schemas.user import UserCreate, UserRead, UserUpdate
+from ..schemas.user import (
+    RoleRead,
+    UserCreate,
+    UserRead,
+    UserRolesUpdate,
+    UserUpdate,
+)
 from ..services.exceptions import NotFoundError
 from .responses import PaginatedResponse, Response
 
@@ -65,6 +71,22 @@ async def list_active_users(
         limit=limit,
         has_more=(skip + len(users)) < total,
     )
+
+
+@router.get(
+    "/roles",
+    response_model=Response[list[RoleRead]],
+    summary="List roles",
+    description="Get all available roles (admin only)",
+)
+async def list_roles(
+    user_service: UserSvc,
+    db: UsersDBSession,
+    admin: CurrentAdmin,
+):
+    """List all available roles."""
+    roles = await user_service.list_roles(db)
+    return Response(success=True, message="Roles retrieved successfully", data=roles)
 
 
 @router.post(
@@ -144,6 +166,24 @@ async def update_user(
     """Update user information."""
     user = await user_service.update(user_id, user_data, db)
     return Response(success=True, message="User updated successfully", data=user)
+
+
+@router.put(
+    "/{user_id}/roles",
+    response_model=Response[UserRead],
+    summary="Set user roles",
+    description="Replace a user's roles (admin only)",
+)
+async def set_user_roles(
+    user_id: UUID,
+    payload: UserRolesUpdate,
+    user_service: UserSvc,
+    db: UsersDBSession,
+    admin: CurrentAdmin,
+):
+    """Replace the user's roles with the provided set."""
+    user = await user_service.set_roles(user_id, payload.roles, db)
+    return Response(success=True, message="User roles updated successfully", data=user)
 
 
 @router.post(
